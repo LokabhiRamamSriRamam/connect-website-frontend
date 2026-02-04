@@ -92,7 +92,7 @@ const Footer = ({ enableGradient = false }) => {
 
       {/* Footer Bottom */}
       <div className="mt-10 text-center text-xs text-gray-600 relative z-10">
-        © {new Date().getFullYear()} Connect-Gen AI. All rights reserved.
+        © {new Date().getFullYear()} Sreeji Growth Advisory. All rights reserved.
       </div>
 
       {/* Animation */}

@@ -16,7 +16,7 @@ const SCALING_FEATURES = [
     icon: "22%",
     title: "Revenue Boost",
     description: "Average increase driven by Sherlock’s Business Insights and predictive sales forecasting.",
-  },
+},
 ];
 
 const Numbers1 = () => {

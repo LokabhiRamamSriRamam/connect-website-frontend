@@ -23,6 +23,7 @@ import IntegrationSection from "./components/IntegrationSection";
 import Footer from "./components/Footer";
 import Careers from "./pages/Careers";
 import GetInTouch from "./pages/get-in-touch";
+import ConnectRegistration from "./pages/Register";
 
 const router = createBrowserRouter([
   {
@@ -265,6 +266,25 @@ const router = createBrowserRouter([
       </div>
     ),
   },
+{
+  path: "/register/:role?",
+  element: (
+    <div>
+      <div>
+        <TopNav />
+        <ConnectRegistration />
+        <div className="bg-yellow-400">
+          <IntegrationSection />
+          <FinalPoster />
+        </div>
+        <div className="bg-yellow-200">
+          <Footer />
+        </div>
+      </div>
+    </div>
+  ),
+},
+
 ]);
 
 function App() {

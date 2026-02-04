@@ -65,6 +65,7 @@ const products = {
     { name: "Restaurant POS & Management", icon: "/products/restaurant.svg" },
     { name: "Salon & Beauty POS", icon: "/products/salon.svg" },
     { name: "Retail POS", icon: "/products/retail.svg" },
+     { name: "Dental Management System", icon: "/products/dentist.svg" },
     { name: "Healthcare Management", icon: "/products/healthcare.svg" },
     { name: "D2C & Ecommerce Management", icon: "/products/ecommerce.svg" },
   ],
