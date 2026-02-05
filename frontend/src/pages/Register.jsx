@@ -27,7 +27,7 @@ const ConnectRegistration = () => {
 
   const companies = [
     "Tatvan Research pvt. ltd. (Ahmedabad, Gujarat)",
-    "JaiNex (Uttar Pradesh)",
+    "JaiNex",
     "Harish Kitchen (Thane)",
     "Dr. Juhi's Confidental Clinic (Thane)",
     "Anna's Tiffin (Thane)",
