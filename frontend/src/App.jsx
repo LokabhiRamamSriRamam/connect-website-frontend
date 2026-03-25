@@ -24,6 +24,9 @@ import Footer from "./components/Footer";
 import Careers from "./pages/Careers";
 import GetInTouch from "./pages/get-in-touch";
 import ConnectRegistration from "./pages/Register";
+import SaarthiGate from "./pages/SaarthiGate";
+import SaarthiReport from "./pages/SaarthiReport";
+import SaarthiSuccess from "./pages/SaarthiSuccess";
 
 const router = createBrowserRouter([
   {
@@ -266,6 +269,33 @@ const router = createBrowserRouter([
       </div>
     ),
   },
+{
+  path: "/saarthi",
+  element: (
+    <div>
+      <TopNav />
+      <SaarthiGate />
+    </div>
+  ),
+},
+{
+  path: "/saarthi/smartreport",
+  element: (
+    <div>
+      <TopNav />
+      <SaarthiReport />
+    </div>
+  ),
+},
+{
+  path: "/saarthi/get-saarthi",
+  element: (
+    <div>
+      <TopNav />
+      <SaarthiSuccess />
+    </div>
+  ),
+},
 {
   path: "/register/:role?",
   element: (
