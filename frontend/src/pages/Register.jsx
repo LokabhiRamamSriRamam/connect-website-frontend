@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+// for the frontend commit 
 
 const ConnectRegistration = () => {
   const { role } = useParams();
