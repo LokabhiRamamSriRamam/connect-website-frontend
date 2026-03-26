@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(mkdir -p src)",
+      "Bash(mv api/models src/)",
+      "Bash(mv api/routes src/)",
+      "Bash(mv api/utils src/)"
     ]
   }
 }

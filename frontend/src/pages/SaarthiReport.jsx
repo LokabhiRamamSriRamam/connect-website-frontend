@@ -35,40 +35,40 @@ const calculateReport = ({ monthlySales, inventoryValue, slowStockPct, marginPct
 const getInsights = (r) => {
   const insights = [];
   if (r.inventoryTurnover < 1) {
-    insights.push("Inventory turnover abhi kaafi slow hai. Iska matlab yeh hai ki aapki working capital maal mein bandh hai aur liquidity pe asar pad raha hai.");
+    insights.push("Inventory turnover अभी काफ़ी slow है। इसका मतलब यह है कि आपकी working capital माल में बंद है और liquidity पे असर पड़ रहा है।");
   } else if (r.inventoryTurnover < 2) {
-    insights.push("Maal ghoom raha hai, lekin thoda aur tez ho sakta hai. Kuch items hain jo slow chal rahe hain — unhe thoda push karna faydemand rahega.");
+    insights.push("माल घूम रहा है, लेकिन थोड़ा और तेज़ हो सकता है। कुछ items हैं जो slow चल रहे हैं — उन्हें थोड़ा push करना फ़ायदेमंद रहेगा।");
   } else {
-    insights.push("Aapka inventory turnover strong hai — maal achhe se ghoom raha hai. Lekin deadstock ki wajah se kuch profit consistently leak ho raha hai.");
+    insights.push("आपका inventory turnover strong है — माल अच्छे से घूम रहा है। लेकिन deadstock की वजह से कुछ profit consistently leak हो रहा है।");
   }
   if (r.deadStock > r.monthlySales * 0.5) {
-    insights.push(`Aapka deadstock (${formatINR(r.deadStock)}) ek poori mahine ki bikri ke barabar ya zyada hai. Yeh ek important signal hai jis par dhyan dena zaroori hai.`);
+    insights.push(`आपका deadstock (${formatINR(r.deadStock)}) एक पूरी महीने की बिक्री के बराबर या ज़्यादा है। यह एक important signal है जिस पर ध्यान देना ज़रूरी है।`);
   } else {
-    insights.push(`${formatINR(r.deadStock)} ka maal thoda ruka hua lag raha hai. Is wajah se karib ${formatINR(r.monthlyLeakage)} ka paisa har mahine seedha haath mein nahi aa paa raha.`);
+    insights.push(`${formatINR(r.deadStock)} का माल थोड़ा रुका हुआ लग रहा है। इस वजह से करीब ${formatINR(r.monthlyLeakage)} का पैसा हर महीने सीधे हाथ में नहीं आ पा रहा।`);
   }
   if (r.daysToSell > r.restockDays) {
-    insights.push(`Aapka restock cycle ${r.restockDays} din ka hai, jabki current pace par maal sell hone mein ${r.daysToSell} din lagte hain. Isse overstock ka risk naturally badh jaata hai.`);
+    insights.push(`आपका restock cycle ${r.restockDays} दिन का है, जबकि current pace पर माल sell होने में ${r.daysToSell} दिन लगते हैं। इससे overstock का risk naturally बढ़ जाता है।`);
   }
   return insights;
 };
 
 const getAsliSamasya = (r) => {
   if (r.inventoryTurnover < 1)
-    return "Zaroorat se zyada inventory hold karne ki wajah se working capital zyada time tak tied up rehti hai. Yeh ek common challenge hai — aur isme sahi planning se kaafi sudhar laaya ja sakta hai.";
-  return "Business ki growth acchi hai — lekin deadstock ki wajah se har mahine kuch profit silently leak hota rehta hai. Ek structured inventory review se yeh situation kaafi behtar ho sakti hai.";
+    return "ज़रूरत से ज़्यादा inventory hold करने की वजह से working capital ज़्यादा time तक tied up रहती है। यह एक common challenge है — और इसमें सही planning से काफ़ी सुधार लाया जा सकता है।";
+  return "Business की growth अच्छी है — लेकिन deadstock की वजह से हर महीने कुछ profit silently leak होता रहता है। एक structured inventory review से यह situation काफ़ी बेहतर हो सकती है।";
 };
 
 const SEEDHE_UPAY = [
-  "Deadstock ka margin thoda lower karo aur agar unhe fast-moving items ke saath combo ya bundle mein daal diya jaaye — toh instant positive cash flow badh jaayega aur maal bhi ghoom jaayega.",
-  "Naya maal kharidne se pehle check karo: kya purana 70% bik gaya? Sirf tab order do.",
-  "Ek 'dead stock list' banao. Har hafte 15 minute review karo. Bas itna kafi hai shuruat ke liye.",
+  "Deadstock का margin थोड़ा lower करो और अगर उन्हें fast-moving items के साथ combo या bundle में डाल दिया जाए — तो instant positive cash flow बढ़ जाएगा और माल भी घूम जाएगा।",
+  "नया माल खरीदने से पहले check करो: क्या पुराना 70% बिक गया? सिर्फ़ तब order दो।",
+  "एक 'dead stock list' बनाओ। हर हफ़्ते 15 minute review करो। बस इतना काफ़ी है शुरुआत के लिए।",
 ];
 
 const SAARTHI_ITEM_LEVEL = [
-  { icon: "🔍", title: "Item-Level Visibility", desc: "Har SKU ka alag performance track hota hai — konsa item fast hai, konsa slow, konsa seasonal. Aggregate numbers ke peeche ki sacchai samajhne mein madad milti hai." },
-  { icon: "📊", title: "Transaction-Level Analysis", desc: "Har sale, har return, har adjustment — sab kuch analyze hota hai. Isse woh patterns milte hain jo normally nazarandaz ho jaate hain." },
-  { icon: "⚠️", title: "Anomaly Detection", desc: "Unusual patterns — jaise sudden returns, pricing inconsistencies, ya unexpected slow months — automatically flag ho jaate hain before they compound into bigger losses." },
-  { icon: "📅", title: "Reorder Intelligence", desc: "Saarthi exactly batata hai kab, kitna, aur kaunsa maal kharidna chahiye — based on your actual sales velocity, not gut feeling." },
+  { icon: "🔍", title: "Item-Level Visibility", desc: "हर SKU का अलग performance track होता है — कौनसा item fast है, कौनसा slow, कौनसा seasonal। Aggregate numbers के पीछे की सच्चाई समझने में मदद मिलती है।" },
+  { icon: "📊", title: "Transaction-Level Analysis", desc: "हर sale, हर return, हर adjustment — सब कुछ analyze होता है। इससे वो patterns मिलते हैं जो normally नज़रअंदाज़ हो जाते हैं।" },
+  { icon: "⚠️", title: "Anomaly Detection", desc: "Unusual patterns — जैसे sudden returns, pricing inconsistencies, या unexpected slow months — automatically flag हो जाते हैं before they compound into bigger losses." },
+  { icon: "📅", title: "Reorder Intelligence", desc: "Saarthi exactly बताता है कब, कितना, और कौनसा माल खरीदना चाहिए — based on your actual sales velocity, not gut feeling." },
 ];
 
 // ─── Excel Export ────────────────────────────────────────────────────────────
@@ -97,13 +97,13 @@ const downloadExcel = (report, user) => {
     ["", ""],
     ["ANALYSIS", ""],
     ...getInsights(report).map((i, n) => [`Insight ${n + 1}`, i]),
-    ["Asli Samasya", getAsliSamasya(report)],
+    ["असली समस्या", getAsliSamasya(report)],
     ["", ""],
     ["ACTION ITEMS", ""],
     ...SEEDHE_UPAY.map((u, n) => [`Step ${n + 1}`, u]),
     ["", ""],
-    ["", "Yeh report Saarthi Smart Report tool dwara generate ki gayi hai."],
-    ["", "Exact numbers alag ho sakte hain — direction sahi hai."],
+    ["", "यह report Saarthi Smart Report tool द्वारा generate की गई है।"],
+    ["", "Exact numbers अलग हो सकते हैं — direction सही है।"],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(summaryData);
@@ -121,12 +121,12 @@ const downloadExcel = (report, user) => {
 // ─── Share Text ───────────────────────────────────────────────────────────────
 
 const buildShareText = (report, user) =>
-  `📊 Meri Saarthi Smart Report\n\n🏢 ${user.companyName}\n\n` +
+  `📊 मेरी Saarthi Smart Report\n\n🏢 ${user.companyName}\n\n` +
   `• Dead Stock: ${formatINR(report.deadStock)}\n` +
-  `• Monthly Nuksaan: ${formatINR(report.monthlyLeakage)}\n` +
+  `• Monthly नुकसान: ${formatINR(report.monthlyLeakage)}\n` +
   `• Inventory Turnover: ${report.inventoryTurnover}x\n` +
-  `• Maal bikne mein: ${report.daysToSell} din\n\n` +
-  `Saarthi aapke business ko item-level pe analyze karta hai aur exact problem spots dhundh nikalta hai.\n\n` +
+  `• माल बिकने में: ${report.daysToSell} दिन\n\n` +
+  `Saarthi आपके business को item-level पे analyze करता है और exact problem spots ढूंढ निकालता है।\n\n` +
   `👉 connectgenai.com/saarthi`;
 
 // ─── Gradient style ──────────────────────────────────────────────────────────
@@ -216,8 +216,8 @@ function SharePanel({ report, user, onClose }) {
         className="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl"
         style={glassCard}
       >
-        <h3 className="text-lg font-extrabold text-gray-900 mb-1">Report Share Karein</h3>
-        <p className="text-xs text-gray-500 mb-5">Apne team ya mentor ko bhejein</p>
+        <h3 className="text-lg font-extrabold text-gray-900 mb-1">Report Share करें</h3>
+        <p className="text-xs text-gray-500 mb-5">अपनी team या mentor को भेजें</p>
 
         <div className="space-y-3">
           {options.map(({ label, color, icon, href }) => (
@@ -228,7 +228,7 @@ function SharePanel({ report, user, onClose }) {
               rel="noopener noreferrer"
               className={`flex items-center gap-3 w-full text-white ${color} px-4 py-3 rounded-xl font-semibold text-sm transition-colors`}
             >
-              {icon} {label} par share karein
+              {icon} {label} पर share करें
             </a>
           ))}
 
@@ -237,7 +237,7 @@ function SharePanel({ report, user, onClose }) {
               onClick={handleNativeShare}
               className="flex items-center gap-3 w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
             >
-              <Share2 className="w-5 h-5" /> Aur options dekhein
+              <Share2 className="w-5 h-5" /> और options देखें
             </button>
           )}
 
@@ -246,12 +246,12 @@ function SharePanel({ report, user, onClose }) {
             className="flex items-center gap-3 w-full border-2 border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
           >
             {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
-            {copied ? "Copy ho gaya!" : "Text copy karein"}
+            {copied ? "Copy हो गया!" : "Text copy करें"}
           </button>
         </div>
 
         <button onClick={onClose} className="mt-4 w-full text-xs text-gray-400 hover:text-gray-600">
-          Band karein
+          बंद करें
         </button>
       </div>
     </div>
@@ -261,10 +261,10 @@ function SharePanel({ report, user, onClose }) {
 // ─── AI Loading Screen ────────────────────────────────────────────────────────
 
 const LOADING_STEPS = [
-  "Aapka data scan ho raha hai...",
-  "Inventory patterns analyze ho rahe hain...",
-  "Dead stock aur leakage calculate kiya ja raha hai...",
-  "Saarthi aapki report taiyaar kar raha hai...",
+  "आपका data scan हो रहा है...",
+  "Inventory patterns analyze हो रहे हैं...",
+  "Dead stock और leakage calculate किया जा रहा है...",
+  "Saarthi आपकी report तैयार कर रहा है...",
 ];
 
 function LoadingScreen({ companyName }) {
@@ -296,10 +296,10 @@ function LoadingScreen({ companyName }) {
         Saarthi AI
       </p>
       <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-1 text-center">
-        Report Generate Ho Rahi Hai
+        Report Generate हो रही है
       </h2>
       <p className="text-gray-400 text-sm mb-8 text-center">
-        {companyName} ke liye personalized analysis...
+        {companyName} के लिए personalized analysis...
       </p>
 
       {/* Scan progress bar */}
@@ -376,9 +376,9 @@ export default function SaarthiReport() {
   const validateInputs = () => {
     const e = {};
     if (!inputs.monthlySales || Number(inputs.monthlySales) <= 0)
-      e.monthlySales = "Mahine ki bikri daalein (0 se zyada)";
+      e.monthlySales = "महीने की बिक्री डालें (0 से ज़्यादा)";
     if (!inputs.inventoryValue || Number(inputs.inventoryValue) <= 0)
-      e.inventoryValue = "Maal ki keemat daalein (0 se zyada)";
+      e.inventoryValue = "माल की कीमत डालें (0 से ज़्यादा)";
     return e;
   };
 
@@ -387,7 +387,7 @@ export default function SaarthiReport() {
     const errs = validateInputs();
     if (Object.keys(errs).length > 0) { setInputErrors(errs); return; }
     const result = calculateReport(inputs);
-    if (!result) { setInputErrors({ inventoryValue: "Valid value daalein" }); return; }
+    if (!result) { setInputErrors({ inventoryValue: "Valid value डालें" }); return; }
     // Show AI loading screen for ~12s, then reveal the report
     setGenerating(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -421,24 +421,24 @@ export default function SaarthiReport() {
               <div className="flex items-center space-x-3 mb-5">
                 <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
                 <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                  Saarthi · Aapke 5 Sawaal
+                  Saarthi · आपके 5 सवाल
                 </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 leading-tight mb-1">
-                Namaste, {user.name.split(" ")[0]}!
+                नमस्ते, {user.name.split(" ")[0]}!
               </h1>
               <p className="text-sm text-gray-500 font-light mb-6">
-                Neeche 5 andaze daalein. Exact number zaroori nahi — roughly sahi ho toh chalega.
+                नीचे 5 अंदाज़े डालें। Exact number ज़रूरी नहीं — roughly सही हो तो चलेगा।
               </p>
 
               <form onSubmit={handleCalculate} noValidate className="space-y-5">
                 {/* Q1 */}
                 <div>
                   <label className="block text-xs font-semibold tracking-[0.12em] text-gray-500 uppercase mb-1">
-                    1. Mahine ka approx total bikri (₹)
+                    1. महीने का approx total बिक्री (₹)
                   </label>
-                  <p className="text-xs text-gray-400 mb-1.5">Andaza chalega — exact nahi chahiye</p>
+                  <p className="text-xs text-gray-400 mb-1.5">अंदाज़ा चलेगा — exact नहीं चाहिए</p>
                   <input
                     type="number" name="monthlySales" value={inputs.monthlySales}
                     onChange={handleChange} placeholder="e.g. 500000"
@@ -453,9 +453,9 @@ export default function SaarthiReport() {
                 {/* Q2 */}
                 <div>
                   <label className="block text-xs font-semibold tracking-[0.12em] text-gray-500 uppercase mb-1">
-                    2. Dukaan + godown mein total maal ki keemat (₹)
+                    2. दुकान + godown में total माल की कीमत (₹)
                   </label>
-                  <p className="text-xs text-gray-400 mb-1.5">Kitne ka maal abhi aapke paas hai?</p>
+                  <p className="text-xs text-gray-400 mb-1.5">कितने का माल अभी आपके पास है?</p>
                   <input
                     type="number" name="inventoryValue" value={inputs.inventoryValue}
                     onChange={handleChange} placeholder="e.g. 800000"
@@ -470,48 +470,48 @@ export default function SaarthiReport() {
                 {/* Q3 */}
                 <div>
                   <label className="block text-xs font-semibold tracking-[0.12em] text-gray-500 uppercase mb-1">
-                    3. Kitna % maal dheere bikhta hai ya padha rehta hai?
+                    3. कितना % माल धीरे बिकता है या पड़ा रहता है?
                   </label>
                   <select name="slowStockPct" value={inputs.slowStockPct} onChange={handleChange}
                     className="w-full border-2 border-gray-200 bg-white rounded-xl px-4 py-3.5 text-gray-900 text-base focus:outline-none focus:border-purple-400 transition-colors">
-                    <option value="10">10% — Thoda sa maal atka hai</option>
-                    <option value="20">20% — Theek thaak atka hai</option>
-                    <option value="30">30% — Kaafi maal ruka hua hai</option>
-                    <option value="40">40%+ — Bahut maal pada hai</option>
+                    <option value="10">10% — थोड़ा सा माल अटका है</option>
+                    <option value="20">20% — ठीक ठाक अटका है</option>
+                    <option value="30">30% — काफ़ी माल रुका हुआ है</option>
+                    <option value="40">40%+ — बहुत माल पड़ा है</option>
                   </select>
                 </div>
 
                 {/* Q4 */}
                 <div>
                   <label className="block text-xs font-semibold tracking-[0.12em] text-gray-500 uppercase mb-1">
-                    4. Aapka average munafa % (per product)
+                    4. आपका average मुनाफ़ा % (per product)
                   </label>
                   <select name="marginPct" value={inputs.marginPct} onChange={handleChange}
                     className="w-full border-2 border-gray-200 bg-white rounded-xl px-4 py-3.5 text-gray-900 text-base focus:outline-none focus:border-purple-400 transition-colors">
-                    <option value="10">10% — Kam margin</option>
+                    <option value="10">10% — कम margin</option>
                     <option value="15">15% — Average margin</option>
-                    <option value="20">20% — Accha margin</option>
-                    <option value="25">25%+ — Bahut accha margin</option>
+                    <option value="20">20% — अच्छा margin</option>
+                    <option value="25">25%+ — बहुत अच्छा margin</option>
                   </select>
                 </div>
 
                 {/* Q5 */}
                 <div>
                   <label className="block text-xs font-semibold tracking-[0.12em] text-gray-500 uppercase mb-1">
-                    5. Aap kitne din mein naya maal kharidte ho?
+                    5. आप कितने दिन में नया माल खरीदते हो?
                   </label>
                   <select name="restockDays" value={inputs.restockDays} onChange={handleChange}
                     className="w-full border-2 border-gray-200 bg-white rounded-xl px-4 py-3.5 text-gray-900 text-base focus:outline-none focus:border-purple-400 transition-colors">
-                    <option value="7">7 din — Har hafte</option>
-                    <option value="15">15 din — Har 2 hafte</option>
-                    <option value="30">30 din — Mahine mein ek baar</option>
-                    <option value="45">45+ din — Kam baar kharidta hoon</option>
+                    <option value="7">7 दिन — हर हफ़्ते</option>
+                    <option value="15">15 दिन — हर 2 हफ़्ते</option>
+                    <option value="30">30 दिन — महीने में एक बार</option>
+                    <option value="45">45+ दिन — कम बार खरीदता हूँ</option>
                   </select>
                 </div>
 
                 <button type="submit"
                   className="w-full bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white py-4 rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 mt-1">
-                  Meri Report Banao <ArrowRight className="w-4 h-4" />
+                  मेरी Report बनाओ <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
             </div>
@@ -543,7 +543,7 @@ export default function SaarthiReport() {
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="h-1.5 w-5 bg-yellow-400 rounded-full" />
                   <span className="text-xs font-semibold tracking-[0.2em] text-gray-400 uppercase">
-                    Saarthi · Aapki Report
+                    Saarthi · आपकी Report
                   </span>
                 </div>
                 <p className="text-gray-400 text-xs mb-3">{user.companyName} · {user.designation}</p>
@@ -551,12 +551,12 @@ export default function SaarthiReport() {
                   {formatINR(report.deadStock)}
                 </h2>
                 <p className="text-lg font-semibold text-white mb-1">
-                  ka maal slow-moving category mein hai
+                  का माल slow-moving category में है
                 </p>
                 <p className="text-gray-300 text-sm sm:text-base">
-                  Aur lagbhag{" "}
+                  और लगभग{" "}
                   <span className="text-yellow-400 font-bold">{formatINR(report.monthlyLeakage)}</span>{" "}
-                  har mahine chup-chaap nuksaan ho raha hai.
+                  हर महीने चुप-चाप नुकसान हो रहा है।
                 </p>
               </div>
 
@@ -572,10 +572,10 @@ export default function SaarthiReport() {
                 </div>
                 <div className="grid grid-cols-2 divide-y divide-x divide-gray-200">
                   {[
-                    { label: "Mahine ki Bikri", value: formatINR(report.monthlySales) },
-                    { label: "Total Maal", value: formatINR(report.inventoryValue) },
-                    { label: "Atka Hua Maal", value: formatINR(report.deadStock) },
-                    { label: "Monthly Nuksaan", value: formatINR(report.monthlyLeakage) },
+                    { label: "महीने की बिक्री", value: formatINR(report.monthlySales) },
+                    { label: "Total माल", value: formatINR(report.inventoryValue) },
+                    { label: "अटका हुआ माल", value: formatINR(report.deadStock) },
+                    { label: "Monthly नुकसान", value: formatINR(report.monthlyLeakage) },
                   ].map(({ label, value }) => (
                     <div key={label} className="p-4 sm:p-5 flex flex-col">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{label}</p>
@@ -594,9 +594,9 @@ export default function SaarthiReport() {
                   <div>
                     <div className="flex items-center space-x-2">
                       <div className="h-1.5 w-4 bg-purple-500 rounded-full" />
-                      <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">Saarthi Ki Pakad</span>
+                      <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">Saarthi की पकड़</span>
                     </div>
-                    <p className="text-xs text-gray-400">Aapke numbers ka seedha matlab</p>
+                    <p className="text-xs text-gray-400">आपके numbers का सीधा मतलब</p>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -615,7 +615,7 @@ export default function SaarthiReport() {
                   <div className="w-8 h-8 bg-yellow-400/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
                   </div>
-                  <span className="text-xs font-semibold tracking-[0.2em] text-gray-400 uppercase">Asli Samasya</span>
+                  <span className="text-xs font-semibold tracking-[0.2em] text-gray-400 uppercase">असली समस्या</span>
                 </div>
                 <p className="text-lg sm:text-xl font-extrabold tracking-tight leading-snug text-white">
                   {getAsliSamasya(report)}
@@ -631,9 +631,9 @@ export default function SaarthiReport() {
                   <div>
                     <div className="flex items-center space-x-2">
                       <div className="h-1.5 w-4 bg-purple-500 rounded-full" />
-                      <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">Seedhe Upay</span>
+                      <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">सीधे उपाय</span>
                     </div>
-                    <p className="text-xs text-gray-400">3 kaam jo aaj se shuru kar sakte ho</p>
+                    <p className="text-xs text-gray-400">3 काम जो आज से शुरू कर सकते हो</p>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -653,21 +653,21 @@ export default function SaarthiReport() {
                 <div className="flex items-center gap-3 mb-2">
                   <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
                   <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                    Yeh sirf surface hai
+                    यह सिर्फ़ surface है
                   </span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 mb-2">
-                  Saarthi andar tak jaata hai.
+                  Saarthi अंदर तक जाता है।
                 </h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  Yeh report aapke overall numbers par based hai. Saarthi har item, har transaction, har pattern ko individually scan karta hai.
+                  यह report आपके overall numbers पर based है। Saarthi हर item, हर transaction, हर pattern को individually scan करता है।
                 </p>
 
                 <button
                   onClick={() => setShowItemLevel((v) => !v)}
                   className="flex items-center gap-2 text-purple-600 font-semibold text-sm mb-4"
                 >
-                  {showItemLevel ? "Kam dekhein" : "Aur jaanein"}
+                  {showItemLevel ? "कम देखें" : "और जानें"}
                   {showItemLevel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
 
@@ -684,11 +684,11 @@ export default function SaarthiReport() {
                 )}
 
                 <p className="text-sm text-gray-600 mb-5">
-                  Isse aap har mahine{" "}
+                  इससे आप हर महीने{" "}
                   <span className="font-bold text-gray-900">
                     {formatINR(report.monthlyLeakage * 2)}–{formatINR(report.monthlyLeakage * 3)}
                   </span>{" "}
-                  zyada bachaana ya kamaana shuru kar sakte ho.
+                  ज़्यादा बचाना या कमाना शुरू कर सकते हो।
                 </p>
 
                 {/* GET SAARTHI CTA */}
@@ -704,13 +704,13 @@ export default function SaarthiReport() {
                   to="/get-in-touch"
                   className="block w-full mt-3 text-center text-purple-600 font-semibold text-sm py-3 rounded-xl border border-purple-200 hover:bg-purple-50 transition-colors"
                 >
-                  Pehle baat karein
+                  पहले बात करें
                 </Link>
               </div>
 
               {/* 7. DISCLAIMER */}
               <p className="text-xs text-gray-400 text-center px-2">
-                Yeh report aapke diye gaye andazon par aadharit hai. Exact numbers alag ho sakte hain, par direction sahi dikhayi gayi hai.
+                यह report आपके दिए गए अंदाज़ों पर आधारित है। Exact numbers अलग हो सकते हैं, पर direction सही दिखाई गई है।
               </p>
 
               {/* RECALCULATE */}
@@ -720,7 +720,7 @@ export default function SaarthiReport() {
                   className="inline-flex items-center gap-2 border border-gray-300 bg-white/70 backdrop-blur-sm text-gray-600 font-semibold px-6 py-3 rounded-full text-sm hover:bg-white transition-colors active:scale-95"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Dobara Calculate Karein
+                  दोबारा Calculate करें
                 </button>
               </div>
             </>

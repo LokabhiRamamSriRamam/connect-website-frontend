@@ -47,7 +47,7 @@ export default function SaarthiGate() {
       if (data.exists) {
         setErrors((prev) => ({
           ...prev,
-          mobile: "Yeh number pehle se registered hai. Koi doosra number use karein.",
+          mobile: "यह number पहले से registered है। कोई दूसरा number use करें।",
         }));
       }
     } catch (_) {
@@ -59,19 +59,19 @@ export default function SaarthiGate() {
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "Naam zaroori hai";
+    if (!form.name.trim()) e.name = "नाम ज़रूरी है";
     if (!form.mobile.trim()) {
-      e.mobile = "Mobile number zaroori hai";
+      e.mobile = "Mobile number ज़रूरी है";
     } else if (!INDIAN_MOBILE_REGEX.test(form.mobile.trim())) {
-      e.mobile = "10 digit ka valid Indian mobile number daalein (6–9 se shuru)";
+      e.mobile = "10 digit का valid Indian mobile number डालें (6–9 से शुरू)";
     }
-    if (!form.designation) e.designation = "Designation select karein";
-    if (!form.companyName.trim()) e.companyName = "Company ka naam zaroori hai";
+    if (!form.designation) e.designation = "Designation select करें";
+    if (!form.companyName.trim()) e.companyName = "Company का नाम ज़रूरी है";
     if (
       form.email.trim() &&
       !/\S+@\S+\.\S+/.test(form.email.trim())
     ) {
-      e.email = "Valid email address daalein";
+      e.email = "Valid email address डालें";
     }
     return e;
   };
@@ -98,7 +98,7 @@ export default function SaarthiGate() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Kuch galat ho gaya");
+      if (!res.ok) throw new Error(data.error || "कुछ गलत हो गया");
       navigate("/saarthi/smartreport", { state: { user: data.user } });
     } catch (err) {
       if (
@@ -156,10 +156,10 @@ export default function SaarthiGate() {
 
             {/* Heading */}
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 leading-tight mb-2">
-              Apni Dukaan Ki Asli Tasveer Dekhein
+              अपनी दुकान की असली तस्वीर देखें
             </h1>
             <p className="text-gray-500 font-light mb-8">
-              5 sawaalon mein jaanein aapke vyapar ki sacchai — bilkul muft.
+              5 सवालों में जानें आपके व्यापार की सच्चाई — बिलकुल मुफ़्त।
             </p>
 
             {/* Status message */}
@@ -179,7 +179,7 @@ export default function SaarthiGate() {
               {/* Name */}
               <div>
                 <label className="block text-xs font-semibold tracking-[0.15em] text-gray-500 uppercase mb-1.5">
-                  Aapka Naam *
+                  आपका नाम *
                 </label>
                 <input
                   type="text"
@@ -256,7 +256,7 @@ export default function SaarthiGate() {
               {/* Designation */}
               <div>
                 <label className="block text-xs font-semibold tracking-[0.15em] text-gray-500 uppercase mb-1.5">
-                  Aapka Designation *
+                  आपका Designation *
                 </label>
                 <select
                   name="designation"
@@ -268,7 +268,7 @@ export default function SaarthiGate() {
                       : "border-gray-200 focus:border-purple-400"
                   }`}
                 >
-                  <option value="">-- Select karo --</option>
+                  <option value="">-- Select करो --</option>
                   {DESIGNATIONS.map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -283,7 +283,7 @@ export default function SaarthiGate() {
               {/* Company Name */}
               <div>
                 <label className="block text-xs font-semibold tracking-[0.15em] text-gray-500 uppercase mb-1.5">
-                  Company / Dukaan Ka Naam *
+                  Company / दुकान का नाम *
                 </label>
                 <input
                   type="text"
@@ -311,18 +311,18 @@ export default function SaarthiGate() {
                 {loading ? (
                   <>
                     <Loader className="w-4 h-4 animate-spin" />
-                    Thoda ruko...
+                    थोड़ा रुको...
                   </>
                 ) : (
                   <>
-                    Report Dekhein
+                    Report देखें
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
 
               <p className="text-center text-xs text-gray-400 pt-1">
-                Aapki jankari safe hai. Kisi ke saath share nahi hogi.
+                आपकी जानकारी safe है। किसी के साथ share नहीं होगी।
               </p>
             </form>
           </div>

@@ -46,28 +46,28 @@ export default function SaarthiSuccess() {
             <div className="flex items-center justify-center space-x-3 mb-4">
               <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
               <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                Saarthi · Shukriya
+                Saarthi · शुक्रिया
               </span>
               <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
             </div>
 
             {/* Heading */}
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 mb-3">
-              {firstName} ji, aapki request mil gayi!
+              {firstName} जी, आपकी request मिल गई!
             </h1>
 
             <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-2">
-              Hamari Saarthi team ne aapki details note kar li hain.
+              हमारी Saarthi team ने आपकी details note कर ली हैं।
             </p>
             <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
-              Hum jald hi aapse personally sampark karenge — aur aapke business ke liye ek customized plan taiyaar karenge.
+              हम जल्द ही आपसे personally संपर्क करेंगे — और आपके business के लिए एक customized plan तैयार करेंगे।
             </p>
 
             {/* User detail card */}
             {user && (
               <div className="bg-gray-50 rounded-xl p-4 text-left mb-7 border border-gray-100 space-y-2">
                 {[
-                  { label: "Naam", value: user.name },
+                  { label: "नाम", value: user.name },
                   { label: "Company", value: user.companyName },
                   { label: "Mobile", value: user.mobile },
                 ].map(({ label, value }) => (
@@ -82,13 +82,13 @@ export default function SaarthiSuccess() {
             {/* What happens next */}
             <div className="text-left mb-7">
               <p className="text-xs font-semibold tracking-[0.15em] text-gray-500 uppercase mb-3">
-                Aage kya hoga
+                आगे क्या होगा
               </p>
               <div className="space-y-3">
                 {[
-                  "Hamara ek Saarthi specialist 24 ghante ke andar call karega.",
-                  "Aapke business ki specific situation samjhi jaayegi.",
-                  "Ek personalized plan suggest kiya jaayega — bilkul free.",
+                  "हमारा एक Saarthi specialist 24 घंटे के अंदर call करेगा।",
+                  "आपके business की specific situation समझी जाएगी।",
+                  "एक personalized plan suggest किया जाएगा — बिलकुल free।",
                 ].map((step, i) => (
                   <div key={i} className="flex gap-3 items-start">
                     <div className="flex-shrink-0 w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold text-xs">
@@ -109,9 +109,9 @@ export default function SaarthiSuccess() {
             </Link>
 
             <p className="text-xs text-gray-400 mt-4">
-              Koi sawaal ho toh{" "}
+              कोई सवाल हो तो{" "}
               <Link to="/get-in-touch" className="text-purple-500 underline">
-                yahan likhein
+                यहाँ लिखें
               </Link>
               .
             </p>
