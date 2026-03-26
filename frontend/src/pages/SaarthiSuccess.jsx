@@ -42,11 +42,16 @@ export default function SaarthiSuccess() {
               </div>
             </div>
 
+            {/* Logo */}
+            <div className="flex justify-center mb-3">
+              <img src="/Saarthi-Logo.png" alt="Saarthi" className="h-8 w-auto object-contain" />
+            </div>
+
             {/* Section label */}
             <div className="flex items-center justify-center space-x-3 mb-4">
               <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
               <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                Saarthi · शुक्रिया
+                शुक्रिया
               </span>
               <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
             </div>

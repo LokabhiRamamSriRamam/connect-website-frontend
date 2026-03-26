@@ -283,12 +283,12 @@ function LoadingScreen({ companyName }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-950 flex flex-col items-center justify-center px-6">
-      {/* Pulsing orb */}
+      {/* Pulsing orb with logo */}
       <div className="relative mb-10 flex items-center justify-center">
-        <div className="pulse-ring absolute w-28 h-28 rounded-full bg-purple-500/20" />
-        <div className="pulse-ring absolute w-20 h-20 rounded-full bg-purple-500/30" style={{ animationDelay: "0.3s" }} />
-        <div className="w-14 h-14 rounded-full bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/40">
-          <span className="text-2xl">🧠</span>
+        <div className="pulse-ring absolute w-32 h-32 rounded-full bg-purple-500/15" />
+        <div className="pulse-ring absolute w-24 h-24 rounded-full bg-purple-500/25" style={{ animationDelay: "0.3s" }} />
+        <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl shadow-purple-500/30 border border-purple-100">
+          <img src="/Saarthi-Logo.png" alt="Saarthi" className="w-14 h-14 object-contain" />
         </div>
       </div>
 
@@ -418,11 +418,14 @@ export default function SaarthiReport() {
           {/* ── STEP 1: INPUT FORM ─────────────────────────────── */}
           {step === 1 && (
             <div className="rounded-2xl p-5 sm:p-8 shadow-2xl" style={glassCard}>
-              <div className="flex items-center space-x-3 mb-5">
-                <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
-                <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                  Saarthi · आपके 5 सवाल
-                </span>
+              <div className="flex items-center gap-3 mb-5">
+                <img src="/Saarthi-Logo.png" alt="Saarthi" className="h-7 w-auto object-contain" />
+                <div className="flex items-center space-x-2">
+                  <div className="h-1.5 w-4 bg-purple-500 rounded-full" />
+                  <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
+                    आपके 5 सवाल
+                  </span>
+                </div>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 leading-tight mb-1">
@@ -540,11 +543,14 @@ export default function SaarthiReport() {
 
               {/* 1. BIG HEADLINE */}
               <div className="bg-gray-900 text-white rounded-2xl p-5 sm:p-7 shadow-2xl">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-1.5 w-5 bg-yellow-400 rounded-full" />
-                  <span className="text-xs font-semibold tracking-[0.2em] text-gray-400 uppercase">
-                    Saarthi · आपकी Report
-                  </span>
+                <div className="flex items-center gap-3 mb-3">
+                  <img src="/Saarthi-Logo.png" alt="Saarthi" className="h-7 w-auto object-contain brightness-0 invert" />
+                  <div className="flex items-center space-x-2">
+                    <div className="h-1.5 w-4 bg-yellow-400 rounded-full" />
+                    <span className="text-xs font-semibold tracking-[0.2em] text-gray-400 uppercase">
+                      आपकी Report
+                    </span>
+                  </div>
                 </div>
                 <p className="text-gray-400 text-xs mb-3">{user.companyName} · {user.designation}</p>
                 <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-yellow-400 leading-tight mb-2">

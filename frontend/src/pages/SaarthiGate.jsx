@@ -146,12 +146,15 @@ export default function SaarthiGate() {
               border: "1px solid rgba(255,255,255,0.65)",
             }}
           >
-            {/* Section label */}
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="h-1.5 w-6 bg-purple-500 rounded-full" />
-              <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
-                Saarthi · Smart Report
-              </span>
+            {/* Logo + Section label */}
+            <div className="flex items-center gap-3 mb-6">
+              <img src="/Saarthi-Logo.png" alt="Saarthi" className="h-8 w-auto object-contain" />
+              <div className="flex items-center space-x-2">
+                <div className="h-1.5 w-5 bg-purple-500 rounded-full" />
+                <span className="text-xs font-semibold tracking-[0.2em] text-gray-500 uppercase">
+                  Smart Report
+                </span>
+              </div>
             </div>
 
             {/* Heading */}
