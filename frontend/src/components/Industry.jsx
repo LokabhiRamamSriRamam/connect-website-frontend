@@ -1,10 +1,93 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+
+// ─── Markdown renderer ────────────────────────────────────────────────────────
+function renderInline(text, key) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return (
+    <span key={key}>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**"))
+          return <strong key={i} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
+        if (part.startsWith("*") && part.endsWith("*"))
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        return part;
+      })}
+    </span>
+  );
+}
+
+function parseMarkdown(text) {
+  const lines = text.split("\n");
+  const elements = [];
+  let bulletBuf = [];
+  let numberedBuf = [];
+
+  const flushBullets = () => {
+    if (!bulletBuf.length) return;
+    elements.push(
+      <ul key={elements.length} className="space-y-1.5 my-2 pl-1">
+        {bulletBuf.map((item, i) => (
+          <li key={i} className="flex gap-2 items-start text-sm text-gray-700 leading-relaxed">
+            <span className="text-purple-500 font-bold mt-0.5 flex-shrink-0">•</span>
+            <span>{renderInline(item, i)}</span>
+          </li>
+        ))}
+      </ul>
+    );
+    bulletBuf = [];
+  };
+
+  const flushNumbered = () => {
+    if (!numberedBuf.length) return;
+    elements.push(
+      <ol key={elements.length} className="space-y-1.5 my-2 pl-1">
+        {numberedBuf.map((item, i) => (
+          <li key={i} className="flex gap-2 items-start text-sm text-gray-700 leading-relaxed">
+            <span className="text-purple-600 font-bold flex-shrink-0 min-w-[1.2rem]">{i + 1}.</span>
+            <span>{renderInline(item, i)}</span>
+          </li>
+        ))}
+      </ol>
+    );
+    numberedBuf = [];
+  };
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) {
+      flushBullets(); flushNumbered();
+      elements.push(<div key={elements.length} className="h-1.5" />);
+      continue;
+    }
+    if (t.startsWith("### ")) {
+      flushBullets(); flushNumbered();
+      elements.push(<h4 key={elements.length} className="font-bold text-gray-900 text-sm mt-3 mb-0.5">{t.slice(4)}</h4>);
+    } else if (t.startsWith("## ")) {
+      flushBullets(); flushNumbered();
+      elements.push(<h3 key={elements.length} className="font-extrabold text-gray-900 text-base mt-3 mb-1">{t.slice(3)}</h3>);
+    } else if (t.startsWith("# ")) {
+      flushBullets(); flushNumbered();
+      elements.push(<h2 key={elements.length} className="font-extrabold text-gray-900 text-lg mt-3 mb-1">{t.slice(2)}</h2>);
+    } else if (t.startsWith("- ") || t.startsWith("* ")) {
+      flushNumbered();
+      bulletBuf.push(t.slice(2));
+    } else if (/^\d+\.\s/.test(t)) {
+      flushBullets();
+      numberedBuf.push(t.replace(/^\d+\.\s/, ""));
+    } else {
+      flushBullets(); flushNumbered();
+      elements.push(<p key={elements.length} className="text-sm text-gray-700 leading-relaxed">{renderInline(t, elements.length)}</p>);
+    }
+  }
+  flushBullets(); flushNumbered();
+  return elements;
+}
 // import mindmapImg from "../assets/mindmap.png"; // Assuming you have this, otherwise using /mindmap.png as placeholder
 
 const INDUSTRY_CONTEXT = {
   Healthcare: `
-You are Stark, an AI business advisor for healthcare providers.
+You are Stark, an AI business advisor for healthcare providers, built by Connect Gen AI.
 Connect helps healthcare businesses with:
 - Appointment scheduling
 - Patient CRM
@@ -12,11 +95,11 @@ Connect helps healthcare businesses with:
 - Billing, invoicing, and reports
 - Staff management and analytics
 
-Answer clearly, practically, and in simple language.
+Answer clearly and practically. Use markdown formatting: **bold** for key points, bullet lists for multiple items, and short headers (##) where helpful. Keep responses concise and actionable.
 `,
 
   "Salon and Beauty": `
-You are Stark, an AI growth and operations assistant for salons and beauty businesses.
+You are Stark, an AI growth and operations assistant for salons and beauty businesses, built by Connect Gen AI.
 Connect helps salons with:
 - Online bookings
 - Stylist scheduling
@@ -25,11 +108,11 @@ Connect helps salons with:
 - Inventory tracking
 - Customer loyalty and CRM
 
-Be friendly, business-focused, and actionable.
+Be friendly, business-focused, and actionable. Use markdown: **bold** key terms, bullet lists for features, ## for section headers. Keep it concise.
 `,
 
   "Dental Clinics": `
-You are Stark, an AI operations and growth advisor for dental clinics.
+You are Stark, an AI operations and growth advisor for dental clinics, built by Connect Gen AI.
 Connect helps dental clinics manage:
 - Patient appointments
 - Treatment tracking
@@ -37,7 +120,7 @@ Connect helps dental clinics manage:
 - Billing and reports
 - Staff scheduling
 
-Keep responses professional and trust-oriented.
+Keep responses professional and trust-oriented. Use markdown: **bold** for key points, bullet lists for multiple items, ## for section headers. Be concise.
 `,
 
   // add more industries later
@@ -302,26 +385,27 @@ const Industry = () => {
                   {(displayedResponse || loading) && (
                     <div className="flex flex-col space-y-2 pb-4">
                       <div className="flex items-center space-x-2 text-primary">
-                        <span className="material-symbols-outlined text-sm">
-                          auto_awesome
-                        </span>
-                        <span className="text-xs font-bold uppercase tracking-wider">
-                          Stark AI
-                        </span>
+                        <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">Stark AI</span>
                       </div>
                       <div
-                        className={`rounded-2xl p-4 text-sm leading-relaxed ${
+                        className={`rounded-2xl px-4 py-3 ${
                           error
-                            ? "bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-500/30 dark:text-yellow-200"
-                            : "bg-primary/5 border border-primary/10 text-gray-800 dark:text-gray-200"
+                            ? "bg-yellow-50 border border-yellow-200 text-yellow-800"
+                            : "bg-primary/5 border border-primary/10"
                         }`}
                       >
-                        <p className="whitespace-pre-line text-center">
-                          {displayedResponse}
-                        </p>
-
-                        {loading && !displayedResponse && (
-                          <span className="animate-pulse">Analyzing...</span>
+                        {loading && !displayedResponse ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-500 py-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                            <span className="ml-1">Analyzing...</span>
+                          </div>
+                        ) : error ? (
+                          <p className="text-sm leading-relaxed text-center">{displayedResponse}</p>
+                        ) : (
+                          <div>{parseMarkdown(displayedResponse)}</div>
                         )}
                       </div>
                     </div>
