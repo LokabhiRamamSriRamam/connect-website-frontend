@@ -11,6 +11,9 @@ const integrations = [
   { name: "Facebook", logo: "/Integrations/fb.png" },
   { name: "ChatGPT", logo: "/Integrations/openai.png" },
   { name: "Telegram", logo: "/Integrations/telegram.png" },
+  { name: "NVIDIA", logo: "/Integrations/nvidia.png" },
+  { name: "Claude", logo: "/Integrations/claude.png" },
+  { name: "Tally", logo: "/Integrations/tally.png" },
 ];
 
 const IntegrationSection = () => {

@@ -26,53 +26,27 @@ const THEMES = {
 };
 
 const industries = [
-  {
-    name: "Salon & Beauty",
-    icon: "/industry/salon.svg",
-    slug: "/industry/salon",
-  },
-  {
-    name: "F&B (Restaurants and Cafes)",
-    icon: "/industry/fb.svg",
-    slug: "/industry/restaurant",
-  },
-  {
-    name: "Healthcare",
-    icon: "/industry/healthcare.svg",
-    slug: "/industry/healthcare",
-  },
-  {
-    name: "D2C and Ecommerce",
-    icon: "/industry/d2c.svg",
-    slug: "/industry/ecommerce",
-  },
-  {
-    name: "Real Estate",
-    icon: "/industry/realestate.svg",
-    slug: "/industry/realestate",
-  },
-  { name: "Finance", icon: "/industry/finance.svg", slug: "/industry/finance" },
-  {
-    name: "Education",
-    icon: "/industry/education.svg",
-    slug: "/industry/education",
-  },
-  { name: "Dentist", icon: "/industry/dentist.svg", slug: "/industry/dentist" },
+  { name: "Healthcare & Dental", icon: "/industry/healthcare.svg", slug: "/industry/healthcare" },
+  { name: "Wholesale & Distribution", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
+  { name: "Retail", icon: "/industry/salon.svg", slug: "/industry/salon" },
+  { name: "Real Estate", icon: "/industry/realestate.svg", slug: "/industry/realestate" },
+  { name: "D2C & E-commerce", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
+  { name: "Enterprise Solutions", icon: "/industry/finance.svg", slug: "/industry/finance" },
+  { name: "Salon & Beauty", icon: "/industry/salon.svg", slug: "/industry/salon" },
 ];
 
 const products = {
-  pos: [
-    { name: "Restaurant POS & Management", icon: "/products/restaurant.svg" },
-    { name: "Salon & Beauty POS", icon: "/products/salon.svg" },
-    { name: "Retail POS", icon: "/products/retail.svg" },
-     { name: "Dental Management System", icon: "/products/dentist.svg" },
-    { name: "Healthcare Management", icon: "/products/healthcare.svg" },
-    { name: "D2C & Ecommerce Management", icon: "/products/ecommerce.svg" },
-  ],
-  ai: [
-    { name: "Picasso", desc: "Creative & marketing AI" },
-    { name: "Sherlock", desc: "Insights, analytics & reporting" },
-    { name: "Stark", desc: "Operations & BI AI" },
+  core: [
+    {
+      name: "Saarthi.AI",
+      desc: "Conversational ERP & BI for MSMEs and Enterprises",
+      slug: "/products/saarthi",
+    },
+    {
+      name: "DigitalTCO",
+      desc: "Voice-first clinical documentation for dentists",
+      slug: "/products/digitaltco",
+    },
   ],
 };
 
@@ -160,14 +134,14 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
                 {link === "Products" && (
                   <div>
                     <p className="font-semibold text-white mb-1">Products</p>
-                    {products.pos.map((item) => (
+                    {products.core.map((item) => (
                       <a
                         key={item.name}
-                        href="#"
-                        className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-800 text-white"
+                        href={item.slug}
+                        className="block px-3 py-2 rounded-lg hover:bg-gray-800 text-white"
                       >
-                        <img src={item.icon} className="w-5 h-5 invert" />
-                        <span>{item.name}</span>
+                        <p className="font-medium text-sm">{item.name}</p>
+                        <p className="text-xs text-white/50">{item.desc}</p>
                       </a>
                     ))}
                   </div>
@@ -222,38 +196,20 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
               {link === "Products" && (
                 <>
                   <button className="text-sm font-medium">Products</button>
-                  <div className="absolute top-full left-0 mt-2 w-[520px] bg-gray-900 rounded-xl shadow-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-xs uppercase text-white/60 mb-3">
-                        POS & Management
-                      </p>
-                      {products.pos.map((item) => (
-                        <a
-                          key={item.name}
-                          href="#"
-                          className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-800 text-white"
-                        >
-                          <img src={item.icon} className="w-5 h-5 invert" />
-                          <span>{item.name}</span>
-                        </a>
-                      ))}
-                    </div>
-
-                    <div>
-                      <p className="text-xs uppercase text-white/60 mb-3">
-                        Connect AI Models
-                      </p>
-                      {products.ai.map((item) => (
-                        <a
-                          key={item.name}
-                          href="#"
-                          className="block p-3 rounded-lg hover:bg-gray-800 text-white"
-                        >
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-xs text-white/60">{item.desc}</p>
-                        </a>
-                      ))}
-                    </div>
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-gray-900 rounded-xl shadow-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition">
+                    <p className="text-xs uppercase text-white/50 mb-3 tracking-widest">
+                      Our Products
+                    </p>
+                    {products.core.map((item) => (
+                      <a
+                        key={item.name}
+                        href={item.slug}
+                        className="block p-3 rounded-lg hover:bg-gray-800 text-white mb-1"
+                      >
+                        <p className="font-semibold text-sm">{item.name}</p>
+                        <p className="text-xs text-white/50 mt-0.5">{item.desc}</p>
+                      </a>
+                    ))}
                   </div>
                 </>
               )}

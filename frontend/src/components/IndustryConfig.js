@@ -218,4 +218,66 @@ dentist: {
       "Patient trust",
     ],
   },
+
+  // ── Product Pages ──────────────────────────────────────────────────────────
+
+  saarthi: {
+    title: "Saarthi.AI — The Intelligent Business Operating System",
+    image: "/ai/stark.png",
+    overview:
+      "Saarthi.AI is a full-stack, AI-powered ERP and business intelligence platform built for MSMEs and enterprises. It replaces dashboard fatigue and spreadsheet chaos with a single conversational interface — ask your business a question in English or Hinglish and get a real answer, or issue a voice command and watch it execute instantly.",
+    problems: [
+      "Spreadsheets and disconnected tools make it impossible to get a real-time view of the business",
+      "Manual data entry across ledgers, CRM, and inventory wastes hours of productive time every day",
+      "Business insights arrive too late — weekly reports mean decisions are always based on stale data",
+      "High-volume transaction environments make it impossible to track profitability per SKU or per customer",
+      "New staff take weeks to learn complex ERP interfaces — high turnover compounds the training cost",
+      "Language barriers prevent non-English-speaking floor staff from querying or updating business systems",
+    ],
+    solutionSteps: [
+      "The Analyst Pipeline: Ask any business question in natural language — Saarthi translates it into a precise database query and returns the exact answer. No guessed math, no hallucinations.",
+      "The Operator Pipeline: Issue voice or text commands to execute multi-step workflows — create invoices, log payments, update CRM records, move inventory — without navigating a single menu.",
+      "Native Hinglish STT: Saarthi understands mixed-language commands naturally. Any staff member, from the warehouse floor to the boardroom, can interact in the language they're most comfortable in.",
+    ],
+    chatbotPrompt:
+      "Ask about Saarthi.AI's capabilities, how it handles your industry's specific needs, pricing, or how it compares to your existing ERP.",
+    outcomes: [
+      "Real-time business visibility — every metric, every transaction, on demand",
+      "10x faster operations — no menus, no manual entry, just conversation",
+      "True profit tracking with cost lookback to original Purchase Orders per SKU",
+      "Zero learning curve — if your team can send a voice note, they can use Saarthi",
+      "Enterprise-grade security — tenant isolation, JWT auth, bcrypt encryption, data never trains public AI",
+      "Hinglish-native — your entire team operates in the language they think in",
+    ],
+  },
+
+  digitaltco: {
+    title: "DigitalTCO — The Cheat Code for Modern Dentistry",
+    image: "/images/dentist.jpg",
+    overview:
+      "DigitalTCO is the voice-first clinical documentation platform built exclusively for dentists. It eliminates the After-Hours Epidemic — dentists staying until 7:30 PM finishing charts — by generating SOAP-compliant, legally defensible clinical notes before the patient leaves the chair. Built by a practicing dentist who received a 65-page GDC complaint purely over documentation gaps, not clinical errors.",
+    problems: [
+      "The After-Hours Epidemic: Dentists sacrifice evenings and weekends catching up on charts instead of time with their families",
+      "Documentation fatigue leads to shortcuts that create compliance and legal exposure",
+      "Generic medical scribes like Heidi are trained on medical, not dental terminology — MOD composites, tooth numbering systems, and material names are mishandled",
+      "Complex setup and steep learning curves mean documentation tools get abandoned within weeks",
+      "Referral letters, consent forms, and patient replies take hours to generate manually after every appointment",
+      "Inconsistent patient communication — risk explanations and post-op instructions vary between staff members",
+    ],
+    solutionSteps: [
+      "Speak → Click → Done: Dictate naturally in any scenario (radiographic report, emergency, full exam). The AI instantly formats it into a SOAP-compliant note with legal boilerplates — chart finished before the patient leaves.",
+      "The Spiel Store™ & Letter Engine: Voice-triggered content inserts full risk explanations instantly. The Letter Engine auto-generates referral letters, patient replies, and consent forms directly from your clinical notes.",
+      "Zero Setup, Any PMS: Average setup time of 2 minutes. Works alongside Dentally, Dentrix, Eaglesoft, Open Dental, SOE — no hardware required, no replacement of your existing workflow.",
+    ],
+    chatbotPrompt:
+      "Ask about DigitalTCO's features, how it handles specific clinical scenarios, compliance, PMS compatibility, or how to start the free trial.",
+    outcomes: [
+      "10–15 hours saved per month on clinical administration",
+      "Charts completed before the patient leaves the chair — every single time",
+      "100% HIPAA & GDPR compliant, 256-bit encryption, SOC 2 Type II certified",
+      "AI trained exclusively on US and UK dental terminology — not generic medical scribes",
+      "Standardized patient communication via The Spiel Store™ — consistent risk disclosures every time",
+      "28-day free trial, no credit card required, 2-minute setup",
+    ],
+  },
 };

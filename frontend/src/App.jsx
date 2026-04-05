@@ -27,6 +27,8 @@ import ConnectRegistration from "./pages/Register";
 import SaarthiGate from "./pages/SaarthiGate";
 import SaarthiReport from "./pages/SaarthiReport";
 import SaarthiSuccess from "./pages/SaarthiSuccess";
+import SaarthiProduct from "./pages/Products/Saarthi";
+import DigitalTCO from "./pages/Products/DigitalTCO";
 
 const router = createBrowserRouter([
   {
@@ -269,6 +271,24 @@ const router = createBrowserRouter([
       </div>
     ),
   },
+{
+  path: "/products/saarthi",
+  element: (
+    <div>
+      <TopNav />
+      <SaarthiProduct />
+    </div>
+  ),
+},
+{
+  path: "/products/digitaltco",
+  element: (
+    <div>
+      <TopNav />
+      <DigitalTCO />
+    </div>
+  ),
+},
 {
   path: "/saarthi",
   element: (
