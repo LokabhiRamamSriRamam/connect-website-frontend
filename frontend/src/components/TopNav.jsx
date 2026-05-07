@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 
 const CONNECT_LOGO_SRC = "/connect.png";
 
@@ -26,7 +26,8 @@ const THEMES = {
 };
 
 const industries = [
-  { name: "Healthcare & Dental", icon: "/industry/healthcare.svg", slug: "/industry/healthcare" },
+  { name: "Healthcare", icon: "/industry/healthcare.svg", slug: "/industry/healthcare" },
+  { name: "Dental Clinics", icon: "/industry/healthcare.svg", slug: "/industry/dentalclinics" },
   { name: "Wholesale & Distribution", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
   { name: "Retail", icon: "/industry/salon.svg", slug: "/industry/salon" },
   { name: "Real Estate", icon: "/industry/realestate.svg", slug: "/industry/realestate" },
@@ -43,7 +44,7 @@ const products = {
       slug: "/products/saarthi",
     },
     {
-      name: "DigitalTCO",
+      name: "Molars.AI",
       desc: "Voice-first clinical documentation for dentists",
       slug: "/products/digitaltco",
     },
@@ -56,8 +57,19 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileIndustriesOpen, setMobileIndustriesOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const closeTimer = useRef(null);
 
   const themeClasses = THEMES[theme] || THEMES.light;
+
+  const openMenu = (name) => {
+    clearTimeout(closeTimer.current);
+    setOpenDropdown(name);
+  };
+
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
+  };
 
   return (
     <nav
@@ -174,43 +186,56 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
 
         <div className="flex items-center space-x-6">
           {desktopLinks.map((link) => (
-            <div key={link} className="relative group">
+            <div
+              key={link}
+              className="relative"
+              onMouseEnter={() => (link === "Industries" || link === "Products") && openMenu(link)}
+              onMouseLeave={() => (link === "Industries" || link === "Products") && scheduleClose()}
+            >
               {link === "Industries" && (
                 <>
                   <button className="text-sm font-medium">Industries</button>
-                  <div className="absolute top-full left-0 mt-2 bg-gray-900 rounded-xl shadow-lg py-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition">
-                    {industries.map((ind) => (
-                      <a
-                        key={ind.name}
-                        href={ind.slug} // <-- link to the industry page
-                        className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-800 text-white"
-                      >
-                        <img src={ind.icon} className="w-5 h-5 invert" />
-                        <span>{ind.name}</span>
-                      </a>
-                    ))}
-                  </div>
+                  {openDropdown === "Industries" && (
+                    <div className="absolute top-full left-0 pt-2">
+                      <div className="bg-gray-900 rounded-xl shadow-lg py-2 w-64">
+                        {industries.map((ind) => (
+                          <a
+                            key={ind.name}
+                            href={ind.slug}
+                            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-800 text-white"
+                          >
+                            <img src={ind.icon} className="w-5 h-5 invert" />
+                            <span>{ind.name}</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
               {link === "Products" && (
                 <>
                   <button className="text-sm font-medium">Products</button>
-                  <div className="absolute top-full left-0 mt-2 w-72 bg-gray-900 rounded-xl shadow-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition">
-                    <p className="text-xs uppercase text-white/50 mb-3 tracking-widest">
-                      Our Products
-                    </p>
-                    {products.core.map((item) => (
-                      <a
-                        key={item.name}
-                        href={item.slug}
-                        className="block p-3 rounded-lg hover:bg-gray-800 text-white mb-1"
-                      >
-                        <p className="font-semibold text-sm">{item.name}</p>
-                        <p className="text-xs text-white/50 mt-0.5">{item.desc}</p>
-                      </a>
-                    ))}
-                  </div>
+                  {openDropdown === "Products" && (
+                    <div className="absolute top-full left-0 pt-2">
+                      <div className="w-72 bg-gray-900 rounded-xl shadow-xl p-4">
+                        <p className="text-xs uppercase text-white/50 mb-3 tracking-widest">
+                          Our Products
+                        </p>
+                        {products.core.map((item) => (
+                          <a
+                            key={item.name}
+                            href={item.slug}
+                            className="block p-3 rounded-lg hover:bg-gray-800 text-white mb-1"
+                          >
+                            <p className="font-semibold text-sm">{item.name}</p>
+                            <p className="text-xs text-white/50 mt-0.5">{item.desc}</p>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 

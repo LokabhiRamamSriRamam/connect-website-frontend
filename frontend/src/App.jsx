@@ -18,6 +18,7 @@ import Dentist from "./pages/Industry/Dentist";
 import RealEstate from "./pages/Industry/RealEstate";
 import Finance from "./pages/Industry/Finance";
 import Education from "./pages/Industry/Education";
+import DentalClinics from "./pages/Industry/DentalClinics";
 import Pricing from "./pages/Pricing";
 import IntegrationSection from "./components/IntegrationSection";
 import Footer from "./components/Footer";
@@ -207,6 +208,16 @@ const router = createBrowserRouter([
       <div>
         <div>
           <Education />
+        </div>
+      </div>
+    ),
+  },
+  {
+    path: "/industry/dentalclinics",
+    element: (
+      <div>
+        <div>
+          <DentalClinics />
         </div>
       </div>
     ),
