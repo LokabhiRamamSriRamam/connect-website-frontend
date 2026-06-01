@@ -3,19 +3,19 @@ import React from "react";
 // --- CONFIGURATION ---
 const SCALING_FEATURES = [
   {
-    icon: "5x",
-    title: "Faster Workflows and Efficiency",
-    description: "The average speed increase when moving from manual organization to AI-assisted Thought Partnering.",
+    icon: "< 60s",
+    title: "Note Generation",
+    description: "Average time for VITAL.AI to produce a complete, structured SOAP note from a live consultation — before the patient leaves the room.",
   },
   {
-    icon: "50k+",
-    title: "Thoughts Connected",
-    description: "The scale of data the system is already handling for its user base. From Idea to Live in a matter of minutes.",
+    icon: "3+ hrs",
+    title: "Saved Per Clinician Daily",
+    description: "Average documentation time recovered every day across practices using VITAL.AI and Molaris.AI — time that goes back to patient care.",
   },
   {
-    icon: "25+",
-    title: "Hours Saved Weekly",
-    description: "The average time a business owner saves by automating.",
+    icon: "99.2%",
+    title: "Transcription Accuracy",
+    description: "Clinical-grade speech recognition trained on medical terminology across specialties, languages, and accents.",
   },
 ];
 

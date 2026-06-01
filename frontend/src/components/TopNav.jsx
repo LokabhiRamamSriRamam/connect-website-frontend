@@ -26,27 +26,38 @@ const THEMES = {
 };
 
 const industries = [
-  { name: "Healthcare", icon: "/industry/healthcare.svg", slug: "/industry/healthcare" },
-  { name: "Dental Clinics", icon: "/industry/healthcare.svg", slug: "/industry/dentalclinics" },
-  { name: "Wholesale & Distribution", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
-  { name: "Retail", icon: "/industry/salon.svg", slug: "/industry/salon" },
-  { name: "Real Estate", icon: "/industry/realestate.svg", slug: "/industry/realestate" },
-  { name: "D2C & E-commerce", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
-  { name: "Enterprise Solutions", icon: "/industry/finance.svg", slug: "/industry/finance" },
+  { name: "Healthcare", icon: "/industry/healthcare.svg", slug: "/products/vital" },
+  { name: "Dental Hospitals & Clinics", icon: "/industry/healthcare.svg", slug: "/industry/dentalclinics" },
+  { name: "Supply Chain & Distribution", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
   { name: "Salon & Beauty", icon: "/industry/salon.svg", slug: "/industry/salon" },
 ];
 
 const products = {
   core: [
     {
+      name: "VITAL.AI",
+      desc: "Clinical AI platform for every medical practice",
+      slug: "/products/vital",
+    },
+    {
+      name: "Molaris.AI",
+      desc: "Voice-first clinical documentation for dentists",
+      slug: "/industry/dentalclinics",
+    },
+    {
       name: "Saarthi.AI",
       desc: "Conversational ERP & BI for MSMEs and Enterprises",
       slug: "/products/saarthi",
     },
     {
-      name: "Molars.AI",
-      desc: "Voice-first clinical documentation for dentists",
-      slug: "/products/digitaltco",
+      name: "Nexus CRM",
+      desc: "AI-powered CRM for modern sales teams",
+      slug: "/get-in-touch",
+    },
+    {
+      name: "Beauty POS",
+      desc: "Smart point-of-sale for salons and spas",
+      slug: "/industry/salon",
     },
   ],
 };

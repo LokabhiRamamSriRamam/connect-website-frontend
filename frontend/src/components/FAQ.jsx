@@ -4,30 +4,29 @@ import { gsap } from "gsap";
 // --- FAQ DATA ---
 const faqData = [
   {
-    question:
-      "How do Sherlock, Picasso, and Stark actually 'connect' to my business?",
+    question: "Is VITAL.AI compliant with HIPAA and other healthcare data regulations?",
     answer:
-      "Our platform uses secure API integrations to connect with your existing tools—like Shopify, Stripe, Slack, and Google Workspace. Once connected, Sherlock reads the data, Stark manages the operations, and Picasso generates content based on your real-time business metrics.",
+      "Yes. VITAL.AI is fully HIPAA compliant, GDPR ready, and SOC 2 Type II certified. All patient data is encrypted at rest and in transit using 256-bit encryption. Your clinical data is never used to train public AI models — it stays within your private, isolated instance.",
   },
   {
-    question: "Do I need to prompt each AI model individually?",
+    question: "Which EHR systems does VITAL.AI integrate with?",
     answer:
-      "No. The models are designed to be autonomous and collaborative. For example, if Sherlock identifies a drop in customer retention, he automatically briefs Picasso to create a 'Win-back' email campaign and Stark to schedule a follow-up task for your team.",
+      "VITAL.AI integrates with major EHR platforms including Epic, Cerner, and others via secure API connectors. Notes, codes, and intake data flow directly into the patient chart — no copy-pasting or manual re-entry required. Custom field mapping is available for practice-specific workflows.",
   },
   {
-    question: "Is my business data used to train the global AI models?",
+    question: "Which dental practice management systems does Molaris.AI support?",
     answer:
-      "Absolutely not. Your data is siloed and encrypted. While our models learn your business patterns to provide better insights, that intelligence stays within your private instance and is never shared or used to train public models.",
+      "Molaris.AI works alongside any PMS including Dentally, Dentrix, Eaglesoft, Open Dental, and SOE. It doesn't replace your existing software — it adds a voice-first documentation layer on top of it. Setup takes under 2 minutes and requires no special hardware.",
   },
   {
-    question: "Can I customize the 'personality' or brand voice of Picasso.AI?",
+    question: "How does the 14-day free trial work?",
     answer:
-      "Yes. In the Picasso settings, you can upload your brand guidelines, past successful marketing copy, and preferred tone of voice. Picasso will then ensure all generated visuals and text align perfectly with your brand identity.",
+      "Both VITAL.AI and Molaris.AI offer a full-featured 14-day free trial with no credit card required. You get access to all features from day one. If you decide not to continue, simply cancel before the trial ends — no charges, no questions asked.",
   },
   {
-    question: "What happens if the AI suggests an action I don't agree with?",
+    question: "Can multiple clinicians in the same practice use VITAL.AI or Molaris.AI?",
     answer:
-      "You always have the final say. By default, Stark and Picasso operate in 'Draft Mode,' where they prepare tasks and content for your approval. You can toggle 'Full Auto' only when you are comfortable with their performance.",
+      "Yes. Both products support multi-user practices. Each clinician gets their own profile, preferences, and note history. Billing and practice analytics are aggregated at the practice level, while individual documentation remains private per clinician.",
   },
 ];
 

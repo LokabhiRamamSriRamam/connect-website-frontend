@@ -30,6 +30,7 @@ import SaarthiReport from "./pages/SaarthiReport";
 import SaarthiSuccess from "./pages/SaarthiSuccess";
 import SaarthiProduct from "./pages/Products/Saarthi";
 import DigitalTCO from "./pages/Products/DigitalTCO";
+import VitalAI from "./pages/Products/VitalAI";
 
 const router = createBrowserRouter([
   {
@@ -282,6 +283,10 @@ const router = createBrowserRouter([
       </div>
     ),
   },
+{
+  path: "/products/vital",
+  element: <VitalAI />,
+},
 {
   path: "/products/saarthi",
   element: (
