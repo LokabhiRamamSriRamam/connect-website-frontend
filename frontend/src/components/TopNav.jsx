@@ -35,17 +35,17 @@ const industries = [
 const products = {
   core: [
     {
-      name: "VITAL.AI",
+      name: "Vital AI",
       desc: "Clinical AI platform for every medical practice",
       slug: "/products/vital",
     },
     {
-      name: "Molaris.AI",
+      name: "Molaris AI",
       desc: "Voice-first clinical documentation for dentists",
       slug: "/industry/dentalclinics",
     },
     {
-      name: "Saarthi.AI",
+      name: "Saarthi AI",
       desc: "Conversational ERP & BI for MSMEs and Enterprises",
       slug: "/products/saarthi",
     },

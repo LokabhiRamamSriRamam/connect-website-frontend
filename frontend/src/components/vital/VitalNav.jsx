@@ -2,21 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const VitalLogo = () => (
   <a href="/products/vital" className="flex items-center gap-2">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="28" height="28" rx="8" fill="#0EA5E9" fillOpacity="0.15" />
-      <polyline
-        points="4,14 8,14 10,8 13,20 16,10 18,16 20,14 24,14"
-        stroke="#0EA5E9"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-    <span className="font-bold text-lg tracking-tight">
-      <span className="text-white">VITAL</span>
-      <span style={{ color: "#0EA5E9" }}>.AI</span>
-    </span>
+    <img src="/vital-landscape.png" alt="VITAL.AI" className="h-8 object-contain" />
   </a>
 );
 

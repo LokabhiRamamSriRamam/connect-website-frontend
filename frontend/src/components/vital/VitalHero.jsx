@@ -145,11 +145,13 @@ export default function VitalHero() {
 
           <div className="flex flex-wrap gap-4">
             <a
-              href="/get-in-touch"
+              href="https://vital-ai.connectgenai.in"
+              target="_blank"
+              rel="noopener noreferrer"
               style={{ backgroundColor: "#0EA5E9" }}
               className="inline-flex items-center gap-2 text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90 transition-opacity text-sm"
             >
-              Start Free
+              Start 14 Day Free Trial
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -158,11 +160,7 @@ export default function VitalHero() {
               href="/get-in-touch"
               className="inline-flex items-center gap-2 text-white/70 font-medium px-7 py-3.5 rounded-full border border-white/15 hover:border-white/30 hover:text-white transition-all text-sm"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M6.5 5.5l4 2.5-4 2.5V5.5z" fill="currentColor" />
-              </svg>
-              Watch Demo
+              Book a Free Demo
             </a>
           </div>
 

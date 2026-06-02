@@ -13,6 +13,8 @@ const products = [
       "From consultation to billing, VITAL.AI listens, transcribes, and structures clinical notes in under 60 seconds — covering every specialty, every practice type.",
     accentColor: "#0EA5E9",
     bgColor: "#0A1628",
+    image: "/vital-landscape.png",
+    thumbnail: "/vital-thumbnail.png",
     features: [
       { icon: "🎙️", text: "Real-time AI medical scribe — SOAP notes before the patient leaves" },
       { icon: "💊", text: "Auto ICD-10 & CPT coding from the clinical note" },
@@ -38,6 +40,8 @@ const products = [
       "Voice-first clinical documentation built exclusively for dentists. Dictate any scenario — Molaris.AI auto-formats it into a SOAP-compliant chart with legal boilerplates instantly.",
     accentColor: "#8B5CF6",
     bgColor: "#0F0A1E",
+    image: "/molaris-landscape.png",
+    thumbnail: "/molaris-thumbnail.png",
     features: [
       { icon: "🦷", text: "3-step workflow: Speak → Click → Done" },
       { icon: "📋", text: "Auto-generates referral letters, consent forms & patient replies" },

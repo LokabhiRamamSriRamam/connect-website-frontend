@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Dev/test routes — no indexing value
+Disallow: /world-map
+Disallow: /topnav
+Disallow: /features
+Disallow: /brands
+Disallow: /numbers
+Disallow: /final-poster
+Disallow: /industry-hero
+Disallow: /connect-mindmap
+
+# Internal flow pages
+Disallow: /saarthi/smartreport
+Disallow: /saarthi/get-saarthi
+
+Sitemap: https://connectgenai.in/sitemap.xml

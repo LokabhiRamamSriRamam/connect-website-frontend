@@ -1,5 +1,5 @@
 import React from "react";
-import VitalNav from "../../components/vital/VitalNav";
+import TopNav from "../../components/TopNav";
 import VitalHero from "../../components/vital/VitalHero";
 import VitalFeatures from "../../components/vital/VitalFeatures";
 import VitalSpecialties from "../../components/vital/VitalSpecialties";
@@ -10,7 +10,7 @@ import Footer from "../../components/Footer";
 export default function VitalAI() {
   return (
     <div style={{ backgroundColor: "#0A1628" }}>
-      <VitalNav />
+      <TopNav variant="glass" theme="dark" />
       <VitalHero />
       <VitalFeatures />
       <VitalSpecialties />

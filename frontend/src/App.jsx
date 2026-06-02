@@ -1,5 +1,6 @@
 import "./App.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import SEO from "./components/SEO";
 import GSAPWorldMap from "./components/GSAPWorldMap";
 import LandingPage from "./pages/LandingPage";
 import Industry from "./components/Industry";
@@ -37,9 +38,12 @@ const router = createBrowserRouter([
     path: "/",
     element: (
       <div>
-        <div>
-          <LandingPage />
-        </div>
+        <SEO
+          title="AI-Powered Business Automation"
+          description="Connect Gen AI helps businesses automate customer communication, bookings, and workflows using AI. Trusted by salons, restaurants, dental clinics, and more."
+          path="/"
+        />
+        <LandingPage />
       </div>
     ),
   },
@@ -47,9 +51,8 @@ const router = createBrowserRouter([
     path: "/world-map",
     element: (
       <div>
-        <div>
-          <GSAPWorldMap />
-        </div>
+        <SEO title="World Map" description="" path="/world-map" noindex />
+        <GSAPWorldMap />
       </div>
     ),
   },
@@ -57,9 +60,12 @@ const router = createBrowserRouter([
     path: "/industry",
     element: (
       <div>
-        <div>
-          <Industry />
-        </div>
+        <SEO
+          title="Industries We Serve"
+          description="Connect Gen AI serves salons, restaurants, dental clinics, healthcare, real estate, finance, e-commerce, and education with tailored AI automation."
+          path="/industry"
+        />
+        <Industry />
       </div>
     ),
   },
@@ -67,9 +73,8 @@ const router = createBrowserRouter([
     path: "/topnav",
     element: (
       <div>
-        <div>
-          <TopNav />
-        </div>
+        <SEO title="Navigation" description="" path="/topnav" noindex />
+        <TopNav />
       </div>
     ),
   },
@@ -77,9 +82,8 @@ const router = createBrowserRouter([
     path: "/features",
     element: (
       <div>
-        <div>
-          <Features />
-        </div>
+        <SEO title="Features" description="" path="/features" noindex />
+        <Features />
       </div>
     ),
   },
@@ -87,9 +91,8 @@ const router = createBrowserRouter([
     path: "/brands",
     element: (
       <div>
-        <div>
-          <BrandsSection />
-        </div>
+        <SEO title="Brands" description="" path="/brands" noindex />
+        <BrandsSection />
       </div>
     ),
   },
@@ -97,9 +100,8 @@ const router = createBrowserRouter([
     path: "/numbers",
     element: (
       <div>
-        <div>
-          <Numbers />
-        </div>
+        <SEO title="Numbers" description="" path="/numbers" noindex />
+        <Numbers />
       </div>
     ),
   },
@@ -107,9 +109,8 @@ const router = createBrowserRouter([
     path: "/final-poster",
     element: (
       <div>
-        <div>
-          <FinalPoster />
-        </div>
+        <SEO title="Final Poster" description="" path="/final-poster" noindex />
+        <FinalPoster />
       </div>
     ),
   },
@@ -117,9 +118,8 @@ const router = createBrowserRouter([
     path: "/industry-hero",
     element: (
       <div>
-        <div>
-          <IndustryHero />
-        </div>
+        <SEO title="Industry Hero" description="" path="/industry-hero" noindex />
+        <IndustryHero />
       </div>
     ),
   },
@@ -127,9 +127,8 @@ const router = createBrowserRouter([
     path: "/connect-mindmap",
     element: (
       <div>
-        <div>
-          <ConnectMindmap />
-        </div>
+        <SEO title="Connect Mindmap" description="" path="/connect-mindmap" noindex />
+        <ConnectMindmap />
       </div>
     ),
   },
@@ -137,9 +136,12 @@ const router = createBrowserRouter([
     path: "/industry/salon",
     element: (
       <div>
-        <div>
-          <Salon />
-        </div>
+        <SEO
+          title="AI for Salons & Spas"
+          description="Automate bookings, manage stylists, send reminders, and grow your salon with Connect Gen AI's WhatsApp AI chatbot."
+          path="/industry/salon"
+        />
+        <Salon />
       </div>
     ),
   },
@@ -147,9 +149,12 @@ const router = createBrowserRouter([
     path: "/industry/restaurant",
     element: (
       <div>
-        <div>
-          <Restaurant />
-        </div>
+        <SEO
+          title="AI for Restaurants"
+          description="Take reservations, handle menu queries, and automate customer follow-ups with Connect Gen AI for restaurants."
+          path="/industry/restaurant"
+        />
+        <Restaurant />
       </div>
     ),
   },
@@ -157,9 +162,12 @@ const router = createBrowserRouter([
     path: "/industry/healthcare",
     element: (
       <div>
-        <div>
-          <Healthcare />
-        </div>
+        <SEO
+          title="AI for Healthcare"
+          description="Streamline patient scheduling, appointment reminders, and communication with Connect Gen AI's AI-powered healthcare automation."
+          path="/industry/healthcare"
+        />
+        <Healthcare />
       </div>
     ),
   },
@@ -167,9 +175,12 @@ const router = createBrowserRouter([
     path: "/industry/ecommerce",
     element: (
       <div>
-        <div>
-          <Ecommerce />
-        </div>
+        <SEO
+          title="AI for E-Commerce"
+          description="Boost sales, automate order updates, and handle customer queries 24/7 with Connect Gen AI for e-commerce businesses."
+          path="/industry/ecommerce"
+        />
+        <Ecommerce />
       </div>
     ),
   },
@@ -177,9 +188,12 @@ const router = createBrowserRouter([
     path: "/industry/dentist",
     element: (
       <div>
-        <div>
-          <Dentist />
-        </div>
+        <SEO
+          title="AI for Dental Clinics"
+          description="Reduce no-shows, automate appointment reminders, and engage patients via WhatsApp with Connect Gen AI for dental clinics."
+          path="/industry/dentist"
+        />
+        <Dentist />
       </div>
     ),
   },
@@ -187,29 +201,38 @@ const router = createBrowserRouter([
     path: "/industry/realestate",
     element: (
       <div>
-        <div>
-          <RealEstate />
-        </div>
+        <SEO
+          title="AI for Real Estate"
+          description="Generate leads, schedule site visits, and follow up with prospects automatically using Connect Gen AI for real estate."
+          path="/industry/realestate"
+        />
+        <RealEstate />
       </div>
     ),
   },
-    {
+  {
     path: "/industry/finance",
     element: (
       <div>
-        <div>
-          <Finance />
-        </div>
+        <SEO
+          title="AI for Finance"
+          description="Automate client communication, document collection, and follow-ups for financial advisors and businesses with Connect Gen AI."
+          path="/industry/finance"
+        />
+        <Finance />
       </div>
     ),
   },
-      {
+  {
     path: "/industry/education",
     element: (
       <div>
-        <div>
-          <Education />
-        </div>
+        <SEO
+          title="AI for Education"
+          description="Engage students, automate admissions queries, and send course reminders with Connect Gen AI for educational institutions."
+          path="/industry/education"
+        />
+        <Education />
       </div>
     ),
   },
@@ -217,126 +240,162 @@ const router = createBrowserRouter([
     path: "/industry/dentalclinics",
     element: (
       <div>
-        <div>
-          <DentalClinics />
-        </div>
+        <SEO
+          title="Molaris AI — Dental Clinic Management System"
+          description="Molaris AI is a complete dental clinic management system with AI-powered WhatsApp automation, appointment reminders, follow-ups, and patient engagement."
+          path="/industry/dentalclinics"
+        />
+        <DentalClinics />
       </div>
     ),
   },
-        {
+  {
     path: "/pricing",
     element: (
       <div>
-        <div>
+        <SEO
+          title="Pricing — Vital AI & Molaris AI Plans"
+          description="Simple, transparent pricing for Vital AI and Molaris AI. Plans starting at ₹999/month. Find the right plan for your clinic or practice."
+          path="/pricing"
+        />
         <TopNav />
-          <Pricing />
-          
-          <div className = "bg-yellow-400">
-            <IntegrationSection />
-           <FinalPoster />
-           </div>
-           <div className="bg-yellow-200">
-             <Footer />
-           </div>
-         
+        <Pricing />
+        <div className="bg-yellow-400">
+          <IntegrationSection />
+          <FinalPoster />
+        </div>
+        <div className="bg-yellow-200">
+          <Footer />
         </div>
       </div>
     ),
   },
-          {
+  {
     path: "/careers",
     element: (
       <div>
-        <div>
+        <SEO
+          title="Careers"
+          description="Join the Connect Gen AI team. We're building AI products that transform how businesses communicate and operate. View open positions."
+          path="/careers"
+        />
         <TopNav />
-          <Careers />
-          
-          <div className = "bg-yellow-400">
-            <IntegrationSection />
-           <FinalPoster />
-           </div>
-           <div className="bg-yellow-200">
-             <Footer />
-           </div>
-         
+        <Careers />
+        <div className="bg-yellow-400">
+          <IntegrationSection />
+          <FinalPoster />
+        </div>
+        <div className="bg-yellow-200">
+          <Footer />
         </div>
       </div>
     ),
   },
-         {
+  {
     path: "/get-in-touch",
     element: (
       <div>
-        <div>
+        <SEO
+          title="Get in Touch"
+          description="Contact the Connect Gen AI sales team. Get a demo, ask questions, or find the right AI automation plan for your business."
+          path="/get-in-touch"
+        />
         <TopNav />
-          <GetInTouch />
-          
-          <div className = "bg-yellow-400">
-            <IntegrationSection />
-           <FinalPoster />
-           </div>
-           <div className="bg-yellow-200">
-             <Footer />
-           </div>
-         
+        <GetInTouch />
+        <div className="bg-yellow-400">
+          <IntegrationSection />
+          <FinalPoster />
+        </div>
+        <div className="bg-yellow-200">
+          <Footer />
         </div>
       </div>
     ),
   },
-{
-  path: "/products/vital",
-  element: <VitalAI />,
-},
-{
-  path: "/products/saarthi",
-  element: (
-    <div>
-      <TopNav />
-      <SaarthiProduct />
-    </div>
-  ),
-},
-{
-  path: "/products/digitaltco",
-  element: (
-    <div>
-      <TopNav />
-      <DigitalTCO />
-    </div>
-  ),
-},
-{
-  path: "/saarthi",
-  element: (
-    <div>
-      <TopNav />
-      <SaarthiGate />
-    </div>
-  ),
-},
-{
-  path: "/saarthi/smartreport",
-  element: (
-    <div>
-      <TopNav />
-      <SaarthiReport />
-    </div>
-  ),
-},
-{
-  path: "/saarthi/get-saarthi",
-  element: (
-    <div>
-      <TopNav />
-      <SaarthiSuccess />
-    </div>
-  ),
-},
-{
-  path: "/register/:role?",
-  element: (
-    <div>
+  {
+    path: "/products/vital",
+    element: (
       <div>
+        <SEO
+          title="Vital AI — AI Medical Transcriber"
+          description="Vital AI transcribes doctor-patient conversations in real-time and auto-generates clinical notes across 50+ medical specialties. Built for modern healthcare."
+          path="/products/vital"
+        />
+        <VitalAI />
+      </div>
+    ),
+  },
+  {
+    path: "/products/saarthi",
+    element: (
+      <div>
+        <SEO
+          title="Saarthi — AI Business Assistant"
+          description="Saarthi is Connect Gen AI's intelligent business assistant for retail and service businesses. Automate operations, track performance, and grow faster."
+          path="/products/saarthi"
+        />
+        <TopNav />
+        <SaarthiProduct />
+      </div>
+    ),
+  },
+  {
+    path: "/products/digitaltco",
+    element: (
+      <div>
+        <SEO
+          title="Digital TCO"
+          description="Calculate and optimize your total cost of ownership with Connect Gen AI's Digital TCO tool. Make smarter technology investment decisions."
+          path="/products/digitaltco"
+        />
+        <TopNav />
+        <DigitalTCO />
+      </div>
+    ),
+  },
+  {
+    path: "/saarthi",
+    element: (
+      <div>
+        <SEO
+          title="Saarthi — Smart Business Reports"
+          description="Access Saarthi's AI-powered smart reports and business intelligence dashboard for your retail or service business."
+          path="/saarthi"
+        />
+        <TopNav />
+        <SaarthiGate />
+      </div>
+    ),
+  },
+  {
+    path: "/saarthi/smartreport",
+    element: (
+      <div>
+        <SEO title="Saarthi Smart Report" description="View your Saarthi AI smart business report." path="/saarthi/smartreport" noindex />
+        <TopNav />
+        <SaarthiReport />
+      </div>
+    ),
+  },
+  {
+    path: "/saarthi/get-saarthi",
+    element: (
+      <div>
+        <SEO title="Get Saarthi" description="Get started with Saarthi by Connect Gen AI." path="/saarthi/get-saarthi" noindex />
+        <TopNav />
+        <SaarthiSuccess />
+      </div>
+    ),
+  },
+  {
+    path: "/register/:role?",
+    element: (
+      <div>
+        <SEO
+          title="Register"
+          description="Create your Connect Gen AI account and start automating your business with AI-powered tools for communication, bookings, and more."
+          path="/register"
+        />
         <TopNav />
         <ConnectRegistration />
         <div className="bg-yellow-400">
@@ -347,9 +406,8 @@ const router = createBrowserRouter([
           <Footer />
         </div>
       </div>
-    </div>
-  ),
-},
+    ),
+  },
 
 ]);
 

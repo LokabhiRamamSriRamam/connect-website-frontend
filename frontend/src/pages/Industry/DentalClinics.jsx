@@ -552,16 +552,18 @@ const DentalClinics = () => {
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
             <a
-              href="/get-in-touch"
+              href="https://molaris-ai.connectgenai.in"
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-indigo-500 hover:bg-indigo-400 text-white font-semibold px-8 py-4 rounded-full transition-all duration-200 flex items-center gap-2 justify-center"
             >
-              Book a Free Demo <ArrowRight className="w-4 h-4" />
+              Start 14 Day Free Trial <ArrowRight className="w-4 h-4" />
             </a>
             <a
-              href="/products/digitaltco"
+              href="/get-in-touch"
               className="bg-white/10 hover:bg-white/15 border border-white/20 text-white font-semibold px-8 py-4 rounded-full transition-all duration-200"
             >
-              See Molars.AI
+              Book a Free Demo
             </a>
           </motion.div>
 

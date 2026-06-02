@@ -51,11 +51,13 @@ export default function VitalCTA() {
 
         <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
           <a
-            href="/get-in-touch"
+            href="https://vital-ai.connectgenai.in"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{ backgroundColor: "#0EA5E9" }}
             className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-full hover:opacity-90 transition-opacity text-sm"
           >
-            Get Early Access — It's Free
+            Start 14 Day Free Trial
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -64,7 +66,7 @@ export default function VitalCTA() {
             href="/get-in-touch"
             className="inline-flex items-center gap-2 text-white/60 font-medium px-8 py-4 rounded-full border border-white/15 hover:border-white/30 hover:text-white transition-all text-sm"
           >
-            Talk to our team
+            Book a Free Demo
           </a>
         </div>
 
