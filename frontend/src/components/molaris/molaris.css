@@ -1,0 +1,92 @@
+/* Molaris — page theme and SVG animations.
+   Generic primitives (vt-bar, vt-dash, vt-reveal, vt-pop, vt-grow, vt-fill, vt-float, vt-pulse, vt-orbit, vt-ecg, vt-line, vt-blink)
+   come from ../vital/vital.css, which the page also imports. */
+
+.mo-root {
+  font-family: "Manrope", "Inter", sans-serif;
+  color: #0d1733;
+  background: #f4fafc;
+}
+
+.mo-root h1, .mo-root h2, .mo-root h3 { text-wrap: balance; }
+
+.mo-gradient-text {
+  background: linear-gradient(120deg, #13307e 0%, #2451c4 45%, #00b3c1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* soft "pixel" grid, echoing the squares in the logo */
+.mo-pixel-bg {
+  background-image:
+    linear-gradient(rgba(19, 48, 126, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(19, 48, 126, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.vt-anim [class*="mo-"] { transform-box: fill-box; transform-origin: center; }
+
+/* hero loop: six nodes light up in turn (12s, 2s each; delay inline) */
+.mo-node { animation: mo-node 12s ease-in-out infinite both; }
+@keyframes mo-node { 0%, 17%, 100% { transform: scale(1) } 3%, 14% { transform: scale(1.17) } }
+.mo-node-glow { opacity: 0; animation: mo-node-glow 12s ease-in-out infinite both; }
+@keyframes mo-node-glow { 0%, 17%, 100% { opacity: 0 } 3%, 14% { opacity: 1 } }
+
+/* the logo's pixel squares twinkle */
+.mo-pixel { animation: mo-pixel 2.4s ease-in-out infinite both; }
+@keyframes mo-pixel { 0%, 100% { opacity: 0.95 } 50% { opacity: 0.35 } }
+
+/* smile draws, holds, relaxes */
+/* gap > length and offset 105 so the round cap leaves no dot while hidden */
+.mo-smile { stroke-dasharray: 100 110; stroke-dashoffset: 105; animation: mo-smile 5s ease-in-out infinite; }
+@keyframes mo-smile { 0% { stroke-dashoffset: 105 } 25%, 85% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 105 } }
+
+/* three / four layers taking turns */
+.mo-c3 { opacity: 0; animation: mo-c3 6s ease infinite both; }
+@keyframes mo-c3 { 0% { opacity: 0 } 3%, 30% { opacity: 1 } 33.3%, 100% { opacity: 0 } }
+
+/* Discovery: our clinic climbs to the top result, others slide down */
+.mo-rise { animation: mo-rise 7s cubic-bezier(0.65, 0, 0.35, 1) infinite both; }
+@keyframes mo-rise { 0%, 20% { transform: translateY(140px) } 40%, 90% { transform: translateY(0) } 100% { transform: translateY(140px) } }
+.mo-sink { animation: mo-sink 7s cubic-bezier(0.65, 0, 0.35, 1) infinite both; }
+@keyframes mo-sink { 0%, 20% { transform: translateY(0) } 40%, 90% { transform: translateY(70px) } 100% { transform: translateY(0) } }
+.mo-top { opacity: 0; animation: mo-top 7s ease infinite both; }
+@keyframes mo-top { 0%, 38% { opacity: 0; transform: scale(0.6) } 45%, 88% { opacity: 1; transform: scale(1) } 96%, 100% { opacity: 0 } }
+.mo-caret { animation: vt-blink 1s steps(2, jump-none) infinite; }
+
+/* stars fill in one after another (6s; delay inline) */
+.mo-star { opacity: 0; animation: mo-star 6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes mo-star { 0%, 5% { opacity: 0; transform: scale(0.2) rotate(-40deg) } 12%, 90% { opacity: 1; transform: none } 100% { opacity: 0 } }
+
+/* tooth under discussion glows */
+.mo-glow { animation: mo-glow 1.8s ease-in-out infinite; }
+@keyframes mo-glow { 0%, 100% { opacity: 0.35 } 50% { opacity: 0.95 } }
+
+/* care timeline progress (7s, matches vt-reveal) */
+.mo-progress { transform-origin: left center !important; animation: mo-progress 7s ease-in-out infinite both; }
+@keyframes mo-progress { 0% { transform: scaleX(0) } 45%, 88% { transform: scaleX(1) } 96%, 100% { transform: scaleX(0) } }
+
+/* toast slides in from the right and leaves */
+.mo-toast { opacity: 0; animation: mo-toast 6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes mo-toast { 0%, 30% { opacity: 0; transform: translateX(30px) } 40%, 88% { opacity: 1; transform: none } 100% { opacity: 0 } }
+
+/* loop dial: arc that fills over one step */
+.mo-dial { animation: mo-dial linear forwards; }
+@keyframes mo-dial { from { stroke-dashoffset: var(--len) } to { stroke-dashoffset: 0 } }
+
+/* comparison: row check pops on reveal */
+.mo-tick { transform: scale(0.4); opacity: 0; transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease; }
+.mo-row-in .mo-tick { transform: none; opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-anim [class*="mo-"], .mo-dial { animation: none !important; }
+  .mo-node-glow, .mo-toast[data-hidden] { opacity: 0 !important; }
+  .mo-star, .mo-top, .mo-toast { opacity: 1 !important; }
+  .mo-smile { stroke-dashoffset: 0 !important; }
+  .mo-rise { transform: none !important; }
+  .mo-sink { transform: translateY(70px) !important; }
+  .mo-c3:not([data-first]) { opacity: 0 !important; }
+  .mo-c3[data-first] { opacity: 1 !important; }
+  .mo-tick { transition: none; transform: none; opacity: 1; }
+}

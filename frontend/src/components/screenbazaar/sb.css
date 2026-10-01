@@ -1,0 +1,320 @@
+/* Screen Bazaar — shared styles and SVG animations */
+
+.sb-root {
+  font-family: "Manrope", "Inter", sans-serif;
+  color: #191919;
+  background: #f8f6f2;
+}
+
+.sb-gradient-text {
+  background: linear-gradient(328deg, #1f30a0 19%, #914bfa 81%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Card: illustration morphs into "?" on hover ---------- */
+
+.sb-card .sb-illus {
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.45s ease,
+    filter 0.45s ease;
+  transform-origin: var(--sb-origin, 50% 50%);
+}
+
+.sb-card .sb-q {
+  opacity: 0;
+  transform: scale(0.35) rotate(-25deg);
+  transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s, opacity 0.35s ease 0.08s;
+}
+
+.sb-card .sb-q-label {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease 0.2s, transform 0.35s ease 0.2s;
+}
+
+@media (hover: hover) {
+  .sb-card:hover .sb-illus {
+    opacity: 0;
+    filter: blur(6px);
+  }
+  .sb-card:hover .sb-q,
+  .sb-card:hover .sb-q-label {
+    opacity: 1;
+    transform: none;
+  }
+  /* each morph gives the collapse its own direction */
+  .sb-card[data-morph="collapse"]:hover .sb-illus { transform: scale(0.2); }
+  .sb-card[data-morph="fold"]:hover .sb-illus { transform: scaleX(0.05) scaleY(0.6); }
+  .sb-card[data-morph="spin"]:hover .sb-illus { transform: rotate(160deg) scale(0.2); }
+  .sb-card[data-morph="rise"]:hover .sb-illus { transform: translateY(-30%) scale(0.3); }
+  .sb-card[data-morph="drop"]:hover .sb-illus { transform: translateY(20%) scale(0.25); }
+}
+
+.sb-card:focus-visible .sb-illus { opacity: 0; filter: blur(6px); transform: scale(0.2); }
+.sb-card:focus-visible .sb-q,
+.sb-card:focus-visible .sb-q-label { opacity: 1; transform: none; }
+
+/* ---------- SVG animation primitives ---------- */
+
+.sb-anim * { transform-box: fill-box; }
+.sb-anim .sb-o-center { transform-origin: center; }
+
+/* flowing dashed connection line */
+.sb-dash {
+  stroke-dasharray: 4 7;
+  animation: sb-dash 1.4s linear infinite;
+}
+@keyframes sb-dash { to { stroke-dashoffset: -22; } }
+
+/* cycle through N layers: each is visible for 1/N of the loop */
+.sb-c2, .sb-c3, .sb-c4, .sb-c5 { opacity: 0; animation-fill-mode: both; animation-iteration-count: infinite; animation-timing-function: ease; }
+.sb-c2 { animation-name: sb-c2; animation-duration: 6s; }
+.sb-c3 { animation-name: sb-c3; animation-duration: 7.5s; }
+.sb-c4 { animation-name: sb-c4; animation-duration: 8s; }
+.sb-c5 { animation-name: sb-c5; animation-duration: 10s; }
+@keyframes sb-c2 { 0% { opacity: 0 } 4%, 46% { opacity: 1 } 50%, 100% { opacity: 0 } }
+@keyframes sb-c3 { 0% { opacity: 0 } 3%, 30% { opacity: 1 } 33.3%, 100% { opacity: 0 } }
+@keyframes sb-c4 { 0% { opacity: 0 } 3%, 22% { opacity: 1 } 25%, 100% { opacity: 0 } }
+@keyframes sb-c5 { 0% { opacity: 0 } 2%, 18% { opacity: 1 } 20%, 100% { opacity: 0 } }
+
+/* gentle float */
+.sb-float { animation: sb-float 4s ease-in-out infinite; }
+@keyframes sb-float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
+
+/* pulse (scale + fade) */
+.sb-pulse { transform-origin: center; animation: sb-pulse 1.6s ease-out infinite; }
+@keyframes sb-pulse { 0% { transform: scale(0.6); opacity: 0.9 } 100% { transform: scale(2.2); opacity: 0 } }
+
+/* button press */
+.sb-press { transform-origin: center; animation: sb-press 6s ease infinite; }
+@keyframes sb-press { 0%, 40%, 50%, 100% { transform: scale(1) } 45% { transform: scale(0.9) } }
+
+/* soft blink */
+.sb-blink { animation: sb-blink 1.2s steps(2, jump-none) infinite; }
+@keyframes sb-blink { 0% { opacity: 1 } 100% { opacity: 0.25 } }
+
+/* notification slide-in (loops) */
+.sb-notify { animation: sb-notify 6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+@keyframes sb-notify {
+  0%, 25% { transform: translateY(-24px); opacity: 0 }
+  35%, 90% { transform: translateY(0); opacity: 1 }
+  100% { transform: translateY(0); opacity: 0 }
+}
+
+/* staggered fade-up reveal (loops) */
+.sb-reveal { opacity: 0; animation: sb-reveal 7s ease infinite both; }
+@keyframes sb-reveal {
+  0% { opacity: 0; transform: translateY(6px) }
+  8%, 88% { opacity: 1; transform: none }
+  96%, 100% { opacity: 0; transform: none }
+}
+
+/* pin drop */
+.sb-drop { transform-origin: bottom; animation: sb-drop 6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes sb-drop {
+  0% { transform: translateY(-30px); opacity: 0 }
+  10%, 85% { transform: none; opacity: 1 }
+  95%, 100% { opacity: 0 }
+}
+
+/* bar grow (vertical) */
+.sb-grow { transform-origin: bottom; animation: sb-grow 5s ease-in-out infinite both; }
+@keyframes sb-grow { 0% { transform: scaleY(0.15) } 30%, 80% { transform: scaleY(1) } 100% { transform: scaleY(0.15) } }
+
+/* bar fill (horizontal) */
+.sb-fill { transform-origin: left; animation: sb-fill 7s ease-in-out infinite both; }
+@keyframes sb-fill { 0% { transform: scaleX(0) } 30%, 88% { transform: scaleX(1) } 100% { transform: scaleX(0) } }
+
+/* timeline playhead: holds on each of 5 slots (75 units apart) */
+.sb-playhead { animation: sb-playhead 10s ease-in-out infinite; }
+@keyframes sb-playhead {
+  0%, 17% { transform: translateX(0) }
+  20%, 37% { transform: translateX(75px) }
+  40%, 57% { transform: translateX(150px) }
+  60%, 77% { transform: translateX(225px) }
+  80%, 97% { transform: translateX(300px) }
+  100% { transform: translateX(0) }
+}
+
+/* sun arcs across the sky */
+.sb-sun { animation: sb-sun 8s ease-in-out infinite; }
+@keyframes sb-sun { 0% { transform: rotate(0deg) } 90% { transform: rotate(180deg) } 100% { transform: rotate(180deg) } }
+
+/* steam */
+.sb-steam { animation: sb-steam 3s ease-in-out infinite; }
+@keyframes sb-steam { 0% { transform: translateY(4px); opacity: 0 } 40% { opacity: 0.8 } 100% { transform: translateY(-10px); opacity: 0 } }
+
+/* lift (dumbbell) */
+.sb-lift { animation: sb-lift 2.4s ease-in-out infinite; }
+@keyframes sb-lift { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
+
+/* flag wave */
+.sb-wave { transform-origin: left center; animation: sb-wave 2s ease-in-out infinite; }
+@keyframes sb-wave { 0%, 100% { transform: skewY(0deg) } 50% { transform: skewY(-8deg) } }
+
+/* drive in */
+.sb-drive { animation: sb-drive 7s ease-in-out infinite; }
+@keyframes sb-drive { 0% { transform: translateX(-40px); opacity: 0 } 15%, 85% { transform: translateX(0); opacity: 1 } 100% { transform: translateX(40px); opacity: 0 } }
+
+/* strike-through then replace */
+.sb-strike { transform-origin: left; animation: sb-strike 6s ease infinite both; }
+@keyframes sb-strike { 0%, 20% { transform: scaleX(0) } 35%, 90% { transform: scaleX(1) } 100% { transform: scaleX(0) } }
+.sb-after { opacity: 0; animation: sb-after 6s ease infinite both; }
+@keyframes sb-after { 0%, 40% { opacity: 0; transform: translateY(4px) } 50%, 90% { opacity: 1; transform: none } 100% { opacity: 0 } }
+
+/* windows lighting up */
+.sb-light { animation: sb-light 3s ease-in-out infinite both; }
+@keyframes sb-light { 0%, 100% { opacity: 0.25 } 50% { opacity: 1 } }
+
+/* hero status chips */
+.sb-chip { animation: sb-chip 9s ease infinite both; opacity: 0; }
+@keyframes sb-chip {
+  0% { opacity: 0; transform: translateY(10px) scale(0.96) }
+  6%, 30% { opacity: 1; transform: none }
+  36%, 100% { opacity: 0; transform: translateY(-6px) }
+}
+
+/* ---------- Testimonial scenes: before / now layers ---------- */
+
+.sb-anim .sb-tt-layer {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.65, 0, 0.35, 1), filter 0.6s ease;
+}
+.sb-anim .sb-tt-layer[data-on="false"] { opacity: 0; transform: scale(0.94); filter: blur(4px); }
+
+/* pen drive hops Thane → Dadar → Branch 3 */
+.sb-tt-usb { animation: sb-tt-usb 6s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+@keyframes sb-tt-usb {
+  0%, 12% { transform: translate(0, 0) }
+  30%, 45% { transform: translate(120px, 0) }
+  63%, 80% { transform: translate(60px, 30px) }
+  100% { transform: translate(0, 0) }
+}
+
+/* someone climbing floor to floor */
+.sb-tt-climb { animation: sb-tt-climb 8s ease-in-out infinite; }
+@keyframes sb-tt-climb {
+  0%, 15% { transform: translateY(0) }
+  25%, 40% { transform: translateY(-57px) }
+  50%, 65% { transform: translateY(-114px) }
+  75%, 90% { transform: translateY(-171px) }
+  100% { transform: translateY(0) }
+}
+
+/* ringing phone */
+.sb-tt-ring { transform-origin: center; animation: sb-tt-ring 2s ease-in-out infinite; }
+@keyframes sb-tt-ring {
+  0%, 40%, 100% { transform: rotate(0) }
+  5%, 15%, 25% { transform: rotate(-8deg) }
+  10%, 20%, 30% { transform: rotate(8deg) }
+}
+
+/* clock hands (one lap of the menu cycle) */
+.sb-tt-minute { animation: sb-tt-spin 3s linear infinite; }
+.sb-tt-hour { animation: sb-tt-spin 36s linear infinite; }
+@keyframes sb-tt-spin { to { transform: rotate(360deg) } }
+
+/* stopwatch ring fills */
+.sb-tt-timer { stroke-dasharray: 94.2; stroke-dashoffset: 94.2; animation: sb-tt-timer 5s ease-in-out infinite; }
+@keyframes sb-tt-timer { 0% { stroke-dashoffset: 94.2 } 60%, 90% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 94.2 } }
+
+/* testimonial portrait: pops out of its frame on card hover */
+.sb-tt-card .sb-tt-face { transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: bottom center; }
+.sb-tt-card:hover .sb-tt-face { transform: scale(1.08) rotate(-2deg); }
+.sb-tt-card .sb-tt-quote { transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.sb-tt-card:hover .sb-tt-quote { transform: rotate(-10deg) scale(1.15); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-tt-card .sb-tt-face, .sb-tt-card .sb-tt-quote { transition: none !important; transform: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-anim *, .sb-chip, .sb-card .sb-illus, .sb-card .sb-q, .sb-card .sb-q-label {
+    animation: none !important;
+    transition: none !important;
+  }
+  .sb-anim [data-first], .sb-chip[data-first] { opacity: 1 !important; }
+  .sb-anim .sb-reveal, .sb-anim .sb-drop, .sb-anim .sb-notify, .sb-anim .sb-after { opacity: 1 !important; }
+}
+
+/* ---------- Decorative "markety" graphics ---------- */
+
+/* self-drawing squiggle / arrow */
+.sb-draw { stroke-dasharray: 600; stroke-dashoffset: 600; animation: sb-draw 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards; }
+.sb-draw-loop { stroke-dasharray: 600; stroke-dashoffset: 600; animation: sb-draw-loop 5s ease-in-out infinite; }
+@keyframes sb-draw { to { stroke-dashoffset: 0; } }
+@keyframes sb-draw-loop { 0% { stroke-dashoffset: 600 } 35%, 80% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: -600 } }
+
+/* sparkle twinkle */
+.sb-twinkle { transform-origin: center; transform-box: fill-box; animation: sb-twinkle 2.2s ease-in-out infinite; }
+@keyframes sb-twinkle { 0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.5 } 50% { transform: scale(1.1) rotate(45deg); opacity: 1 } }
+
+/* slow spin (sticker badge) */
+.sb-spin { animation: sb-spin 14s linear infinite; }
+@keyframes sb-spin { to { transform: rotate(360deg) } }
+
+/* wiggle (stickers) */
+.sb-wiggle { animation: sb-wiggle 3.2s ease-in-out infinite; }
+@keyframes sb-wiggle { 0%, 100% { transform: rotate(-6deg) } 50% { transform: rotate(6deg) } }
+
+/* bounce */
+.sb-bounce { animation: sb-bounce 2.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+@keyframes sb-bounce { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+
+/* marquee ticker */
+.sb-marquee { display: flex; width: max-content; animation: sb-marquee 28s linear infinite; }
+.sb-marquee-wrap:hover .sb-marquee { animation-play-state: paused; }
+@keyframes sb-marquee { to { transform: translateX(-50%) } }
+
+/* marker highlight behind a word */
+.sb-mark { position: relative; white-space: nowrap; z-index: 0; }
+.sb-mark::before {
+  content: ""; position: absolute; left: -0.12em; right: -0.12em; bottom: 0.08em; height: 0.42em; z-index: -1;
+  background: #f5c542; border-radius: 0.2em; transform: skewX(-8deg) scaleX(0); transform-origin: left;
+  animation: sb-mark 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.6s forwards;
+}
+.sb-mark[data-tone="lilac"]::before { background: #eee5ff; }
+@keyframes sb-mark { to { transform: skewX(-8deg) scaleX(1) } }
+
+/* morphing blob */
+.sb-blob { animation: sb-blob 12s ease-in-out infinite; }
+@keyframes sb-blob {
+  0%, 100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; transform: rotate(0deg) }
+  50% { border-radius: 60% 40% 35% 65% / 58% 36% 64% 42%; transform: rotate(20deg) }
+}
+
+/* ---------- Contact Us ---------- */
+
+/* letter peeks out of the envelope */
+.sb-c-letter { animation: sb-c-letter 3.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+@keyframes sb-c-letter { 0%, 15% { transform: translateY(14px) } 40%, 80% { transform: translateY(0) } 100% { transform: translateY(14px) } }
+
+/* dotted connector flows left → right */
+.sb-dots-flow { animation: sb-dots-flow 1.2s linear infinite; }
+@keyframes sb-dots-flow { to { stroke-dashoffset: -14; } }
+
+/* success: screen powers on, tick pops and draws, confetti flies out (all play once) */
+.sb-power-on { animation: sb-power-on 0.6s ease-out both; transform-origin: center; }
+@keyframes sb-power-on { from { transform: scaleY(0.02); opacity: 0.2 } 60% { transform: scaleY(1.04); opacity: 1 } }
+.sb-pop { transform-origin: center; animation: sb-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both; }
+@keyframes sb-pop { from { transform: scale(0) } }
+.sb-tick { stroke-dasharray: 40; animation: sb-tick 0.45s ease-out 0.8s both; }
+@keyframes sb-tick { from { stroke-dashoffset: 40 } to { stroke-dashoffset: 0 } }
+.sb-confetti { transform-origin: center; transform: rotate(var(--r, 0deg)); animation: sb-confetti 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes sb-confetti { from { transform: translate(0, 60px) scale(0) rotate(0deg); opacity: 0 } }
+
+/* form field shake on error */
+.sb-shake { animation: sb-shake 0.4s ease; }
+@keyframes sb-shake { 20%, 60% { transform: translateX(-5px) } 40%, 80% { transform: translateX(5px) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-shake, .sb-dots-flow { animation: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-draw, .sb-draw-loop { animation: none !important; stroke-dashoffset: 0 !important; }
+  .sb-twinkle, .sb-spin, .sb-wiggle, .sb-bounce, .sb-marquee, .sb-blob { animation: none !important; }
+  .sb-mark::before { animation: none !important; transform: skewX(-8deg) scaleX(1); }
+}

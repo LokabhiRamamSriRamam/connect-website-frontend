@@ -1,85 +1,42 @@
-import React from "react";
+import { Arrow, TRIAL_URL, VITAL_DEMO_URL } from "./VitalHero";
+import { EcgLine, VMark } from "./art";
 
 export default function VitalCTA() {
   return (
-    <section
-      className="relative py-32 overflow-hidden"
-      style={{ backgroundColor: "#0A1628" }}
-    >
-      {/* Radial glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 80% at 50% 50%, rgba(14,165,233,0.1) 0%, transparent 70%)",
-        }}
-      />
+    <section className="px-4 py-20 sm:px-6 sm:py-24">
+      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[36px] bg-vt-gradient px-6 py-16 text-center text-white sm:px-12 sm:py-20">
+        <EcgLine className="pointer-events-none absolute inset-x-0 top-1/2 h-24 w-full -translate-y-1/2 opacity-25" color="#FFFFFF" width={2} />
+        <svg className="pointer-events-none absolute -right-10 -top-10 h-64 w-56 opacity-15 sm:h-80 sm:w-64" viewBox="0 0 100 120" aria-hidden="true">
+          <VMark tone="light" />
+        </svg>
 
-      {/* Horizontal rule glow */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-px"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(14,165,233,0.5), transparent)" }}
-      />
-
-      <div className="relative max-w-3xl mx-auto px-6 text-center space-y-8">
-        {/* Pulse icon */}
-        <div
-          className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mx-auto mb-2"
-          style={{ backgroundColor: "rgba(14,165,233,0.12)", border: "1px solid rgba(14,165,233,0.25)" }}
-        >
-          <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-            <polyline
-              points="3,15 7,15 9,7 13,23 17,10 19,18 21,15 27,15"
-              stroke="#0EA5E9"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
+        <div className="relative mx-auto max-w-2xl">
+          <h2 className="text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl">
+            Your patients deserve your full attention.
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/75">
+            Let Vital handle the paperwork. Join clinicians already saving hours every week on documentation, coding and
+            admin.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={TRIAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-extrabold text-vt-navy transition-transform hover:-translate-y-0.5"
+            >
+              Start 14 Day Free Trial <Arrow />
+            </a>
+            <a
+              href={VITAL_DEMO_URL}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-white/40 px-8 py-4 text-sm font-extrabold text-white transition-colors hover:border-white hover:bg-white/10"
+            >
+              Book a Free Demo
+            </a>
+          </div>
+          <p className="mt-6 text-xs font-semibold text-white/60">No credit card required · HIPAA compliant · Cancel any time</p>
         </div>
-
-        <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
-          Your patients deserve<br />
-          <span style={{ color: "#0EA5E9" }}>your full attention.</span>
-        </h2>
-
-        <p className="text-white/50 text-lg leading-relaxed max-w-xl mx-auto">
-          Let VITAL.AI handle the paperwork. Join hundreds of clinicians already saving
-          hours every week on documentation, coding, and admin.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-          <a
-            href="https://vital-ai.connectgenai.in"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ backgroundColor: "#0EA5E9" }}
-            className="inline-flex items-center gap-2 text-white font-semibold px-8 py-4 rounded-full hover:opacity-90 transition-opacity text-sm"
-          >
-            Start 14 Day Free Trial
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
-          <a
-            href="/get-in-touch"
-            className="inline-flex items-center gap-2 text-white/60 font-medium px-8 py-4 rounded-full border border-white/15 hover:border-white/30 hover:text-white transition-all text-sm"
-          >
-            Book a Free Demo
-          </a>
-        </div>
-
-        <p className="text-white/25 text-xs pt-2">
-          No credit card required · HIPAA compliant · Cancel any time
-        </p>
       </div>
-
-      {/* Bottom rule glow */}
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-px"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(14,165,233,0.5), transparent)" }}
-      />
     </section>
   );
 }

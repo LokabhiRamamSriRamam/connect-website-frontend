@@ -35,7 +35,17 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://connectgenai.in/products/nexus</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://connectgenai.in/products/saarthi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://connectgenai.in/products/saarthi/contractors</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -49,6 +59,17 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- Screen Bazaar: digital signage by industry -->
+  <url><loc>https://connectgenai.in/digital-signage/retail</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/restaurants</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/healthcare</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/hospitality</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/fitness</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/education</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/automotive</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/real-estate</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://connectgenai.in/digital-signage/corporate</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
 
   <!-- Industry overview -->
   <url>
@@ -103,5 +124,14 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- Screen Bazaar blog -->
+  <url><loc>https://connectgenai.in/blogs</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://connectgenai.in/blogs/digital-menu-boards-indian-restaurants-qsr</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://connectgenai.in/blogs/multi-location-retail-digital-signage-campaigns</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://connectgenai.in/blogs/commercial-display-vs-consumer-tv-digital-signage</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://connectgenai.in/blogs/corporate-office-communication-screens-multiple-floors</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://connectgenai.in/blogs/printed-standees-to-digital-displays-mistakes</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://connectgenai.in/blogs/digital-signage-cms-features-checklist</loc><lastmod>2026-10-01</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
 </urlset>

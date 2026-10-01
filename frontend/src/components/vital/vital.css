@@ -1,0 +1,168 @@
+/* Vital — page theme and SVG animations */
+
+.vt-root {
+  font-family: "Manrope", "Inter", sans-serif;
+  color: #0e1b2e;
+  background: #f4f8f9;
+}
+
+.vt-root h1, .vt-root h2, .vt-root h3 { text-wrap: balance; }
+
+.vt-gradient-text {
+  background: linear-gradient(120deg, #0b2b5c 0%, #1d5fa8 45%, #0fb2a4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* faint clinical grid */
+.vt-grid-bg {
+  background-image: radial-gradient(rgba(11, 43, 92, 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ---------- SVG animation primitives ---------- */
+
+/* only animated elements get a centred origin, so static rotate(a cx cy) attributes are untouched */
+.vt-anim [class*="vt-"] { transform-box: fill-box; transform-origin: center; }
+
+/* flowing dashed connector */
+.vt-dash { stroke-dasharray: 4 7; animation: vt-dash 1.4s linear infinite; }
+@keyframes vt-dash { to { stroke-dashoffset: -22; } }
+
+/* heartbeat trace that draws, holds, then clears */
+.vt-ecg { stroke-dasharray: 420; stroke-dashoffset: 420; animation: vt-ecg 3.6s ease-in-out infinite; }
+@keyframes vt-ecg { 0% { stroke-dashoffset: 420 } 45%, 75% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: -420 } }
+
+/* one-shot draw (used on scroll-in and hover) */
+.vt-draw-once { stroke-dasharray: 600; stroke-dashoffset: 600; animation: vt-draw 1.8s cubic-bezier(0.65, 0, 0.35, 1) 0.4s forwards; }
+@keyframes vt-draw { to { stroke-dashoffset: 0 } }
+
+/* waveform bar */
+.vt-bar { animation: vt-bar 0.9s ease-in-out infinite alternate; }
+@keyframes vt-bar { 0% { transform: scaleY(0.25) } 100% { transform: scaleY(1) } }
+
+/* orbit ring spin (around the view-box point given by --o) */
+.vt-orbit { transform-box: view-box !important; transform-origin: var(--o) !important; animation: vt-spin 20s linear infinite; }
+@keyframes vt-spin { to { transform: rotate(360deg) } }
+.vt-spin-slow { animation: vt-spin 6s linear infinite; }
+
+/* the five V·I·T·A·L nodes light up in turn (10s loop, 2s each; delay set inline) */
+.vt-node { animation: vt-node 10s ease-in-out infinite both; }
+@keyframes vt-node { 0%, 22%, 100% { transform: scale(1) } 4%, 18% { transform: scale(1.16) } }
+.vt-node-glow { opacity: 0; animation: vt-node-glow 10s ease-in-out infinite both; }
+@keyframes vt-node-glow { 0%, 22%, 100% { opacity: 0 } 4%, 18% { opacity: 1 } }
+
+/* gentle float */
+.vt-float { animation: vt-float 5s ease-in-out infinite; }
+@keyframes vt-float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+
+/* pulse ring */
+.vt-pulse { animation: vt-pulse 1.8s ease-out infinite; }
+@keyframes vt-pulse { 0% { transform: scale(0.7); opacity: 0.8 } 100% { transform: scale(2); opacity: 0 } }
+
+/* chips taking turns (9s, three chips, delay set inline) */
+.vt-chip { opacity: 0; animation: vt-chip 9s ease infinite both; }
+@keyframes vt-chip {
+  0% { opacity: 0; transform: translateY(10px) }
+  5%, 30% { opacity: 1; transform: none }
+  35%, 100% { opacity: 0; transform: translateY(-6px) }
+}
+
+/* two layers alternating */
+.vt-c2 { opacity: 0; animation: vt-c2 6s ease infinite both; }
+@keyframes vt-c2 { 0% { opacity: 0; transform: translateY(6px) } 5%, 45% { opacity: 1; transform: none } 50%, 100% { opacity: 0 } }
+
+/* V scene: cursor tours the templates, clicks SOAP */
+.vt-cursor { animation: vt-cursor 6s cubic-bezier(0.65, 0, 0.35, 1) infinite both; transform-box: view-box !important; transform-origin: 0 0 !important; }
+@keyframes vt-cursor {
+  0% { transform: translate(400px, 320px) }
+  22% { transform: translate(110px, 250px) }
+  45%, 90% { transform: translate(236px, 130px) }
+  100% { transform: translate(400px, 320px) }
+}
+.vt-click { animation: vt-click 6s ease infinite both; }
+@keyframes vt-click { 0%, 46% { transform: scale(1) } 50% { transform: scale(0.94) } 55%, 100% { transform: scale(1) } }
+.vt-pick { opacity: 0; animation: vt-pick 6s ease infinite both; }
+@keyframes vt-pick { 0%, 48% { opacity: 0 } 54%, 92% { opacity: 1 } 100% { opacity: 0 } }
+
+/* T scene: highlighter sweep and note line fill (8s; delay set inline) */
+.vt-hl { transform-origin: left center !important; animation: vt-hl 8s ease infinite both; }
+@keyframes vt-hl { 0% { transform: scaleX(0) } 7%, 88% { transform: scaleX(1) } 96%, 100% { transform: scaleX(0) } }
+.vt-line { transform-origin: left center !important; animation: vt-line 8s ease infinite both; }
+@keyframes vt-line { 0%, 6% { transform: scaleX(0); opacity: 0 } 14%, 88% { transform: scaleX(1); opacity: 1 } 96%, 100% { transform: scaleX(1); opacity: 0 } }
+
+/* A scene: scanning lens, flagged line replaced, checks, stamp */
+.vt-scan { animation: vt-scan 8s ease-in-out infinite both; }
+@keyframes vt-scan { 0% { transform: translateY(0) } 30%, 46% { transform: translateY(210px) } 70%, 100% { transform: translateY(0) } }
+.vt-flag { opacity: 0; animation: vt-flag 8s ease infinite both; }
+@keyframes vt-flag { 0%, 26% { opacity: 0 } 30%, 44% { opacity: 1 } 50%, 100% { opacity: 0 } }
+.vt-strike { transform-origin: left center !important; animation: vt-strike 8s ease infinite both; }
+@keyframes vt-strike { 0%, 32% { transform: scaleX(0); opacity: 1 } 40%, 46% { transform: scaleX(1); opacity: 1 } 50%, 100% { transform: scaleX(1); opacity: 0 } }
+.vt-fixed { opacity: 0; animation: vt-fixed 8s ease infinite both; }
+@keyframes vt-fixed { 0%, 46% { opacity: 0; transform: translateY(4px) } 52%, 94% { opacity: 1; transform: none } 100% { opacity: 0 } }
+.vt-old { animation: vt-old 8s ease infinite both; }
+@keyframes vt-old { 0%, 46% { opacity: 1 } 50%, 96% { opacity: 0 } 100% { opacity: 1 } }
+.vt-pop { opacity: 0; animation: vt-pop 8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes vt-pop { 0%, 60% { opacity: 0; transform: scale(0.3) } 66%, 94% { opacity: 1; transform: scale(1) } 100% { opacity: 0; transform: scale(1) } }
+.vt-stamp { opacity: 0; animation: vt-stamp 8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes vt-stamp { 0%, 76% { opacity: 0; transform: scale(1.8) rotate(-4deg) } 82%, 95% { opacity: 1; transform: scale(1) rotate(-10deg) } 100% { opacity: 0 } }
+
+/* L scene: packets travel from the note to each destination (--dx/--dy set inline) */
+.vt-packet { animation: vt-packet 4s cubic-bezier(0.65, 0, 0.35, 1) infinite both; }
+@keyframes vt-packet { 0% { transform: translate(0, 0); opacity: 0 } 8% { opacity: 1 } 55% { transform: translate(var(--dx), var(--dy)); opacity: 1 } 62%, 100% { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
+.vt-arrive { opacity: 0; animation: vt-arrive 4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes vt-arrive { 0%, 52% { opacity: 0; transform: scale(0.3) } 60%, 92% { opacity: 1; transform: scale(1) } 100% { opacity: 0 } }
+
+/* generic staggered reveal (7s loop) */
+.vt-reveal { opacity: 0; animation: vt-reveal 7s ease infinite both; }
+@keyframes vt-reveal { 0% { opacity: 0; transform: translateY(6px) } 8%, 88% { opacity: 1; transform: none } 96%, 100% { opacity: 0 } }
+
+/* bar grow (vertical) */
+.vt-grow { transform-origin: bottom center !important; animation: vt-grow 5s ease-in-out infinite both; }
+@keyframes vt-grow { 0% { transform: scaleY(0.15) } 30%, 80% { transform: scaleY(1) } 100% { transform: scaleY(0.15) } }
+
+/* horizontal fill */
+.vt-fill { transform-origin: left center !important; animation: vt-fill 5s ease-in-out infinite both; }
+@keyframes vt-fill { 0% { transform: scaleX(0) } 45%, 85% { transform: scaleX(1) } 100% { transform: scaleX(0) } }
+
+/* soft blink */
+.vt-blink { animation: vt-blink 1.1s steps(2, jump-none) infinite; }
+@keyframes vt-blink { 0% { opacity: 1 } 100% { opacity: 0.2 } }
+
+/* two capsules nudge together */
+.vt-nudge-l { animation: vt-nudge-l 3s ease-in-out infinite; }
+.vt-nudge-r { animation: vt-nudge-r 3s ease-in-out infinite; }
+@keyframes vt-nudge-l { 0%, 100% { transform: translateX(-10px) rotate(-30deg) } 50% { transform: translateX(4px) rotate(-30deg) } }
+@keyframes vt-nudge-r { 0%, 100% { transform: translateX(10px) rotate(30deg) } 50% { transform: translateX(-4px) rotate(30deg) } }
+
+/* ---------- Page-level interactions ---------- */
+
+/* specialty icon redraws on hover */
+.vt-spec svg path, .vt-spec svg circle, .vt-spec svg rect, .vt-spec svg ellipse { stroke-dasharray: 80; stroke-dashoffset: 0; }
+@media (hover: hover) {
+  .vt-spec:hover svg path, .vt-spec:hover svg circle, .vt-spec:hover svg rect, .vt-spec:hover svg ellipse {
+    animation: vt-redraw 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+}
+@keyframes vt-redraw { from { stroke-dashoffset: 80 } to { stroke-dashoffset: 0 } }
+
+/* marquee */
+.vt-marquee { display: flex; width: max-content; animation: vt-marquee 36s linear infinite; }
+.vt-marquee-wrap:hover .vt-marquee { animation-play-state: paused; }
+@keyframes vt-marquee { to { transform: translateX(-50%) } }
+
+/* workflow progress bar */
+.vt-progress { transform-origin: left; animation: vt-progress linear forwards; }
+@keyframes vt-progress { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-anim *, .vt-marquee, .vt-progress, .vt-spec svg * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .vt-ecg, .vt-draw-once { stroke-dashoffset: 0 !important; }
+  .vt-chip, .vt-c2, .vt-pick, .vt-fixed, .vt-pop, .vt-stamp, .vt-arrive, .vt-reveal, .vt-line { opacity: 1 !important; }
+  .vt-chip:not([data-first]), .vt-c2:not([data-first]) { opacity: 0 !important; }
+  .vt-old, .vt-flag, .vt-packet { opacity: 0 !important; }
+}

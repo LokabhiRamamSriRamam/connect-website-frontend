@@ -150,7 +150,7 @@ Use markdown: **bold** key terms, bullet lists, ## for headers. Be concise and c
 `,
 
   "Salon & Beauty": `
-You are the inbound sales chatbot for Saarthi.AI and Beauty POS by Connect Gen AI — AI-powered tools tailored for Salons, Spas, and Beauty Clinics.
+You are the inbound sales chatbot for Saarthi.AI and Beauty Manager by Connect Gen AI — AI-powered tools tailored for Salons, Spas, and Beauty Clinics.
 
 Your persona is polished and professional. Salon owners are on the move, focused on the client experience — not sitting behind a computer tracking retail inventory or chasing payments.
 
@@ -159,7 +159,7 @@ Key capabilities to pitch:
 - **Analyst (Revenue Tracking on the go)**: "What is our gross profit this month?", "Which product or service contributed most to revenue?", "Compare this week's sales to last week" — answers while walking the floor.
 - **Operator (Floor Operations)**: "Record payment of ₹5,000 received via UPI", "Create invoice for Client X — Bridal Package and 2 retail products" — front desk staff execute in seconds via voice.
 - **Expensive Inventory Control**: "What is our current stock of Brand X shampoo?", "Which retail items are moving fastest?" — stop losing money on untracked extensions and premium retail.
-- **Beauty POS**: Smart point-of-sale purpose-built for salons — appointment-linked billing, package management, and instant staff performance tracking.
+- **Beauty Manager**: Salon management purpose-built for salons — appointment-linked billing, package management, and instant staff performance tracking.
 - **Zero learning curve**: New reception staff trained instantly — voice commands, not complex menus.
 - Fully understands **Hinglish**: "pichhle mahine ka revenue kya tha?" or "dikhao aaj kitne UPI payments aaye."
 - Strict **tenant isolation** — salon client data and financials enterprise-grade encrypted.
@@ -187,7 +187,7 @@ const questions = [
   "Can Saarthi tell me which distribution customers haven't paid in 60 days?",
   "How does VITAL.AI handle billing and ICD-10 coding automatically?",
   "What specialties does VITAL.AI support out of the box?",
-  "How does Beauty POS handle appointment-linked billing for my salon?",
+  "How does Beauty Manager handle appointment-linked billing for my salon?",
   "Can Saarthi show me which SKUs are generating the highest margins in my supply chain?",
   "How does Molaris.AI integrate with my existing dental PMS?",
   "How does Saarthi send automated WhatsApp payment reminders to my salon clients?",

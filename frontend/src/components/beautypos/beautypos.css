@@ -1,0 +1,68 @@
+/* Beauty Manager — page theme and SVG animations.
+   Generic primitives (vt-*) come from ../vital/vital.css, which the page also imports. */
+
+.bp-root {
+  font-family: "Manrope", "Inter", sans-serif;
+  color: #2b1626;
+  background: #fbf4ef;
+}
+.bp-root h1, .bp-root h2, .bp-root h3 { text-wrap: balance; }
+
+.bp-gradient-text {
+  background: linear-gradient(120deg, #4a1d3f 0%, #8e2c6b 45%, #e05780 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* soft terrazzo speckle */
+.bp-speckle-bg {
+  background-image:
+    radial-gradient(rgba(224, 87, 128, 0.14) 1.5px, transparent 1.6px),
+    radial-gradient(rgba(201, 162, 39, 0.16) 1.2px, transparent 1.3px);
+  background-size: 34px 34px, 22px 22px;
+  background-position: 0 0, 11px 17px;
+}
+
+.vt-anim [class*="bp-"] { transform-box: fill-box; transform-origin: center; }
+
+/* hero bill (7s loop, in step with vt-reveal): paid stamp, then the WhatsApp invoice */
+.bp-paid { opacity: 0; animation: bp-paid 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes bp-paid { 0%, 48% { opacity: 0; transform: scale(1.7) rotate(-4deg) } 55%, 90% { opacity: 1; transform: scale(1) rotate(-8deg) } 97%, 100% { opacity: 0 } }
+.bp-send { opacity: 0; animation: bp-send 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes bp-send { 0%, 60% { opacity: 0; transform: translateX(40px) } 68%, 90% { opacity: 1; transform: none } 97%, 100% { opacity: 0 } }
+.bp-total { opacity: 0; animation: bp-total 7s ease infinite both; }
+@keyframes bp-total { 0%, 40% { opacity: 0 } 46%, 90% { opacity: 1 } 97%, 100% { opacity: 0 } }
+
+/* sparkle twinkle */
+.bp-twinkle { animation: bp-twinkle 2.4s ease-in-out infinite; }
+@keyframes bp-twinkle { 0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.55 } 50% { transform: scale(1.1) rotate(45deg); opacity: 1 } }
+
+/* mirror glint sweeps across */
+.bp-glint { animation: bp-glint 4s ease-in-out infinite; }
+@keyframes bp-glint { 0%, 55% { transform: translateX(-60px) skewX(-20deg); opacity: 0 } 65% { opacity: 0.8 } 85%, 100% { transform: translateX(60px) skewX(-20deg); opacity: 0 } }
+
+/* package: one more session gets ticked (6s) */
+.bp-session { opacity: 0; animation: bp-session 6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes bp-session { 0%, 30% { opacity: 0; transform: scale(0.2) } 40%, 92% { opacity: 1; transform: scale(1) } 100% { opacity: 0 } }
+.bp-count-a { animation: bp-count-a 6s ease infinite both; }
+.bp-count-b { opacity: 0; animation: bp-count-b 6s ease infinite both; }
+@keyframes bp-count-a { 0%, 36% { opacity: 1 } 40%, 94% { opacity: 0 } 100% { opacity: 1 } }
+@keyframes bp-count-b { 0%, 38% { opacity: 0 } 42%, 92% { opacity: 1 } 100% { opacity: 0 } }
+
+/* stock level drains, then the alert pops */
+.bp-drain { transform-origin: bottom center !important; animation: bp-drain 6s ease-in-out infinite both; }
+@keyframes bp-drain { 0% { transform: scaleY(1) } 45%, 92% { transform: scaleY(0.18) } 100% { transform: scaleY(1) } }
+.bp-alert { opacity: 0; animation: bp-alert 6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes bp-alert { 0%, 45% { opacity: 0; transform: translateY(10px) scale(0.9) } 52%, 92% { opacity: 1; transform: none } 100% { opacity: 0 } }
+
+/* the day ribbon thumb */
+.bp-thumb { transition: left 0.6s cubic-bezier(0.65, 0, 0.35, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-anim [class*="bp-"] { animation: none !important; }
+  .bp-paid, .bp-send, .bp-total, .bp-session, .bp-count-b, .bp-alert { opacity: 1 !important; }
+  .bp-count-a, .bp-glint { opacity: 0 !important; }
+  .bp-drain { transform: scaleY(0.18) !important; }
+  .bp-thumb { transition: none; }
+}

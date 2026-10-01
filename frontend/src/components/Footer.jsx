@@ -1,4 +1,5 @@
 import React from "react";
+import FooterWordmark from "./FooterWordmark";
 
 const Footer = ({ enableGradient = false }) => {
   return (
@@ -37,11 +38,7 @@ const Footer = ({ enableGradient = false }) => {
           </p>
           <p>
             <span className="font-semibold text-gray-900">Email:</span>{" "}
-            sales@connectgenai.in
-          </p>
-          <p>
-            <span className="font-semibold text-gray-900">Support:</span>{" "}
-            support@connectgenai.in
+            connectgenai@gmail.com
           </p>
 
           <div className="flex items-center gap-4">
@@ -94,6 +91,8 @@ const Footer = ({ enableGradient = false }) => {
       <div className="mt-10 text-center text-xs text-gray-600 relative z-10">
         © {new Date().getFullYear()} Sreeji Growth Advisory. All rights reserved.
       </div>
+
+      <FooterWordmark className="relative -mb-12 mt-8" />
 
       {/* Animation */}
       <style>{`

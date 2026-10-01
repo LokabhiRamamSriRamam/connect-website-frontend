@@ -1,58 +1,15 @@
-import React from "react";
+import { motion } from "framer-motion";
 
 const badges = [
-  {
-    label: "HIPAA",
-    sub: "Compliant",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M10 2l6 3v5c0 4-2.5 7-6 8-3.5-1-6-4-6-8V5l6-3z" stroke="#0EA5E9" strokeWidth="1.4" strokeLinejoin="round" />
-        <path d="M7 10l2 2 4-4" stroke="#0EA5E9" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "GDPR",
-    sub: "Ready",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="7.5" stroke="#0EA5E9" strokeWidth="1.4" />
-        <path d="M10 6v4l3 2" stroke="#0EA5E9" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    label: "SOC 2",
-    sub: "Type II",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect x="3" y="8" width="14" height="10" rx="2" stroke="#0EA5E9" strokeWidth="1.4" />
-        <path d="M6 8V6a4 4 0 018 0v2" stroke="#0EA5E9" strokeWidth="1.4" strokeLinecap="round" />
-        <circle cx="10" cy="13" r="1.5" fill="#0EA5E9" />
-      </svg>
-    ),
-  },
-  {
-    label: "256-bit",
-    sub: "Encryption",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M5 9V7a5 5 0 0110 0v2" stroke="#0EA5E9" strokeWidth="1.4" strokeLinecap="round" />
-        <rect x="3" y="9" width="14" height="9" rx="2" stroke="#0EA5E9" strokeWidth="1.4" />
-      </svg>
-    ),
-  },
-];
-
-const stats = [
-  { value: "< 60s", label: "Average note generation time" },
-  { value: "99.2%", label: "Transcription accuracy" },
-  { value: "3+ hrs", label: "Saved per clinician per day" },
+  { label: "HIPAA", sub: "Compliant" },
+  { label: "GDPR", sub: "Ready" },
+  { label: "SOC 2", sub: "Type II" },
+  { label: "256-bit", sub: "Encryption" },
 ];
 
 const testimonials = [
   {
-    quote: "I used to spend 2 hours after clinic just finishing notes. With VITAL.AI, I'm done before I leave the room.",
+    quote: "I used to spend 2 hours after clinic just finishing notes. With Vital, I'm done before I leave the room.",
     author: "Dr. Priya Menon",
     role: "Family Medicine Physician",
   },
@@ -68,82 +25,87 @@ const testimonials = [
   },
 ];
 
+/** Shield that draws itself, with a lock and an orbiting scan ring. */
+function ShieldArt() {
+  return (
+    <svg viewBox="0 0 240 240" className="vt-anim h-full w-full" role="img" aria-label="Patient data protected">
+      <defs>
+        <linearGradient id="vt-shield" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="#0B2B5C" />
+          <stop offset="0.5" stopColor="#1D5FA8" />
+          <stop offset="1" stopColor="#0FB2A4" />
+        </linearGradient>
+      </defs>
+      <circle cx="120" cy="120" r="104" fill="none" stroke="#DCE6EC" strokeWidth="1.5" strokeDasharray="2 9" className="vt-orbit" style={{ "--o": "120px 120px" }} />
+      <g className="vt-orbit" style={{ "--o": "120px 120px", animationDuration: "8s" }}>
+        <circle cx="120" cy="16" r="6" fill="#0FB2A4" />
+      </g>
+      <path d="M120 30 L186 56 V116 C186 158 158 190 120 206 C82 190 54 158 54 116 V56 Z" fill="url(#vt-shield)" />
+      <path d="M120 30 L186 56 V116 C186 158 158 190 120 206 C82 190 54 158 54 116 V56 Z" fill="none" stroke="#5FD4C8" strokeWidth="3" pathLength="420" className="vt-ecg" />
+      <rect x="96" y="108" width="48" height="40" rx="8" fill="#FFFFFF" />
+      <path d="M104 108 V96 a16 16 0 0 1 32 0 V108" fill="none" stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" />
+      <path d="M108 128 l8 8 l16 -16" fill="none" stroke="#3AA655" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function VitalTrust() {
   return (
-    <section id="trust" className="py-24 bg-white">
-      <div className="max-w-6xl mx-auto px-6 space-y-20">
-
-        {/* Compliance badges */}
-        <div className="text-center space-y-10">
-          <div className="space-y-3">
-            <span
-              className="inline-block text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
-              style={{ color: "#0EA5E9", backgroundColor: "rgba(14,165,233,0.08)" }}
-            >
-              Compliance
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-              Compliance built in,{" "}
-              <span style={{ color: "#0EA5E9" }}>not bolted on.</span>
+    <section id="trust" className="scroll-mt-24 bg-white py-20 sm:py-28">
+      <div className="mx-auto max-w-6xl space-y-20 px-4 sm:px-6">
+        <div className="grid items-center gap-10 rounded-[32px] border border-vt-line bg-vt-mist p-6 sm:p-10 lg:grid-cols-[0.8fr_1.2fr]">
+          <div className="mx-auto aspect-square w-full max-w-[280px]">
+            <ShieldArt />
+          </div>
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-vt-teal">Compliance</p>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-vt-ink sm:text-[2.4rem] sm:leading-tight">
+              Compliance built in, <span className="vt-gradient-text">not bolted on.</span>
             </h2>
-            <p className="text-gray-500 max-w-lg mx-auto text-base">
-              VITAL.AI was designed with healthcare data governance at its core —
-              so your practice stays protected without extra configuration.
+            <p className="mt-4 max-w-lg text-lg leading-relaxed text-vt-slate">
+              Vital was designed with healthcare data governance at its core — so your practice stays protected without
+              extra configuration.
             </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {badges.map((b) => (
-              <div
-                key={b.label}
-                className="flex items-center gap-3 px-5 py-3 rounded-2xl border"
-                style={{ borderColor: "rgba(14,165,233,0.25)", backgroundColor: "rgba(14,165,233,0.04)" }}
-              >
-                {b.icon}
-                <div className="text-left">
-                  <p className="text-sm font-bold text-gray-900">{b.label}</p>
-                  <p className="text-xs text-gray-400">{b.sub}</p>
+            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {badges.map((b) => (
+                <div key={b.label} className="rounded-2xl border border-vt-line bg-white px-4 py-3">
+                  <p className="text-base font-extrabold text-vt-navy">{b.label}</p>
+                  <p className="text-xs font-semibold text-vt-muted">{b.sub}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div
-          className="rounded-3xl p-10 grid md:grid-cols-3 gap-8 text-center"
-          style={{ backgroundColor: "#0A1628" }}
-        >
-          {stats.map((s) => (
-            <div key={s.label} className="space-y-2">
-              <p className="text-4xl font-bold text-white">{s.value}</p>
-              <p className="text-sm text-white/50">{s.label}</p>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
-        {/* Testimonials */}
-        <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <h3 className="text-2xl font-bold text-gray-900">Clinicians who've made the switch</h3>
-            <p className="text-gray-400 text-sm">Early access feedback from practices across India</p>
+        <div>
+          <div className="text-center">
+            <h3 className="text-2xl font-extrabold tracking-tight text-vt-ink sm:text-3xl">Clinicians who've made the switch</h3>
+            <p className="mt-2 text-sm text-vt-muted">Early access feedback from practices across India</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {testimonials.map((t, i) => (
+              <motion.figure
                 key={t.author}
-                className="rounded-2xl p-6 border border-gray-100"
-                style={{ backgroundColor: "#F8FAFC" }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="group flex flex-col rounded-[28px] border border-vt-line bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-vt-teal"
               >
-                <svg width="28" height="20" viewBox="0 0 28 20" fill="none" className="mb-4 opacity-20">
-                  <path d="M0 20V12C0 5.373 3.627 1.493 10.88 0l1.12 2C8.72 3.093 6.667 5.44 6 9h6v11H0zm16 0V12c0-6.627 3.627-10.507 10.88-12L28 2c-3.28 1.093-5.333 3.44-6 7h6v11H16z" fill="#0EA5E9" />
+                <svg width="34" height="24" viewBox="0 0 28 20" className="transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110" aria-hidden="true">
+                  <path d="M0 20V12C0 5.373 3.627 1.493 10.88 0l1.12 2C8.72 3.093 6.667 5.44 6 9h6v11H0zm16 0V12c0-6.627 3.627-10.507 10.88-12L28 2c-3.28 1.093-5.333 3.44-6 7h6v11H16z" fill="#0FB2A4" opacity="0.35" />
                 </svg>
-                <p className="text-sm text-gray-700 leading-relaxed mb-5 italic">"{t.quote}"</p>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{t.author}</p>
-                  <p className="text-xs text-gray-400">{t.role}</p>
-                </div>
-              </div>
+                <blockquote className="mt-4 flex-1 text-[15.5px] font-semibold leading-relaxed text-vt-ink">"{t.quote}"</blockquote>
+                <figcaption className="mt-6 flex items-center gap-3 border-t border-vt-line pt-5">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-vt-gradient text-sm font-extrabold text-white">
+                    {t.author.replace("Dr. ", "").split(" ").map((w) => w[0]).join("")}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-extrabold text-vt-ink">{t.author}</span>
+                    <span className="block text-xs text-vt-muted">{t.role}</span>
+                  </span>
+                </figcaption>
+              </motion.figure>
             ))}
           </div>
         </div>

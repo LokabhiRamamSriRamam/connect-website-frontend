@@ -1,487 +1,579 @@
-import React, { useState } from 'react';
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, Check, LayoutGrid, MapPin, Minus, Monitor, Plus } from "lucide-react";
+import SignageChrome from "./signage/SignageChrome";
+import { Blob, Sparkle, Squiggle, StickerBadge, Ticker } from "../components/screenbazaar/Decor";
+import { IconCarefree, IconOneTime, IconTransparent, IconWarranty, QuotePreview } from "../components/pricing/art";
+import OtherProductsPricing from "../components/pricing/OtherProductsPricing";
+import "../components/pricing/pricing.css";
 
-// ── Icons ────────────────────────────────────────────────────────────────────
-const Check = ({ color = '#22c55e' }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
-    <path d="M5 13l4 4L19 7" />
-  </svg>
-);
+/* ------------------------------------------------------------------ */
+/* Owner's pricing facts (2026-10-01): starts from ₹15,000 one-time,  */
+/* includes the display screen, annual maintenance as applicable,     */
+/* 12-month warranty, price varies by screen / count / project size.  */
 
-// ── Data ─────────────────────────────────────────────────────────────────────
-
-// Vital AI — Medical Transcriber plans
-const VITAL_PLANS = [
-  { name: 'Solo',          patientsDay: 'Up to 10',  doctors: 1, receptionists: 1, owners: 1, monthly: 1999,   annual: 17999  },
-  { name: 'Clinic',        patientsDay: 'Up to 20',  doctors: 1, receptionists: 2, owners: 1, monthly: 3999,   annual: 35999  },
-  { name: 'Busy Clinic',   patientsDay: 'Up to 40',  doctors: 2, receptionists: 3, owners: 2, monthly: 6999,   annual: 65999,  popular: true },
-  { name: 'Multi-Doctor',  patientsDay: 'Up to 60',  doctors: 4, receptionists: 5, owners: 2, monthly: 9999,   annual: 95999  },
-  { name: 'Practice Plus', patientsDay: 'Up to 100', doctors: 8, receptionists: 10, owners: 3, monthly: 14999, annual: 143999 },
+const TICKER = [
+  "Starts from ₹15,000",
+  "Includes the display screen",
+  "One-time pricing",
+  "12-month warranty",
+  "Apt and transparent",
+  "Priced to your requirement",
 ];
 
-// Molaris AI — Dental Clinic Management System (WhatsApp Automation)
-const MOLARIS_WHATSAPP = {
-  shared: {
-    name: 'Shared WhatsApp',
-    subtitle: "Use Molaris.AI's verified number",
-    icon: '💬',
-    monthly:  999,
-    annual:   599,
-    fiveYear: 299,
-    features: [
-      "Molaris.AI's verified WhatsApp number",
-      "AI-powered appointment reminders",
-      "Automated follow-ups & recalls",
-      "Patient engagement workflows",
-      "Treatment reminders",
-      "No dedicated number required",
-    ],
-  },
-  personal: {
-    name: 'Personal WhatsApp',
-    subtitle: "Molaris.AI on your clinic's own number",
-    icon: '📱',
-    monthly:  1999,
-    annual:   1499,
-    fiveYear: 999,
-    features: [
-      "Your clinic's own WhatsApp number",
-      "AI-powered appointment reminders",
-      "Automated follow-ups & recalls",
-      "Patient engagement workflows",
-      "Treatment reminders",
-      "Maintain existing patient channel",
-    ],
-  },
-};
-
-// Molaris Dental Transcriber add-on — same plan structure as Vital AI
-const MOLARIS_TRANSCRIBER_PLANS = VITAL_PLANS;
-
-const fmt = (n) => '₹' + n.toLocaleString('en-IN');
-
-const MOLARIS_DURATION_OPTS = [
-  { key: 'monthly',  label: '1 Month'  },
-  { key: 'annual',   label: '1 Year',   badge: 'Save 40%'  },
-  { key: 'fiveYear', label: '5 Years',  badge: 'Save 70%'  },
+const SOURCES = [
+  { key: "buy", label: "Buy the screen from us" },
+  { key: "own", label: "Use my own screen" },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+const KINDS = [
+  { key: "compact", label: "Compact", hint: "Counters and desks" },
+  { key: "standard", label: "Standard", hint: "Menu boards and shop walls" },
+  { key: "large", label: "Large", hint: "Lobbies and showrooms" },
+  { key: "unsure", label: "Help me choose", hint: "We'll suggest one" },
+];
 
-function BillingToggle({ value, onChange }) {
+// Same buckets as the "How many screens?" field on /get-in-touch, so the choice carries over.
+const COUNTS = ["1", "2–5", "6–20", "20+"];
+
+const SCALES = [
+  { key: "one", label: "One location" },
+  { key: "few", label: "A few locations" },
+  { key: "many", label: "Many locations" },
+];
+
+const PROMISES = [
+  {
+    Icon: IconOneTime,
+    title: "One-time",
+    body: "Pricing is one-time. Annual maintenance charges apply only as and when applicable.",
+  },
+  {
+    Icon: IconTransparent,
+    title: "Transparent",
+    body: "Whatever your requirement, the price will be apt and transparent.",
+  },
+  {
+    Icon: IconWarranty,
+    title: "12-month warranty",
+    body: "The products come with a warranty of 12 months.",
+  },
+  {
+    Icon: IconCarefree,
+    title: "Carefree",
+    body: "One-time and transparent, so you can be carefree about the price.",
+  },
+];
+
+const FAQS = [
+  {
+    q: "Why isn't there a fixed price?",
+    a: "Pricing can't be uniform, because every business has its own requirement. It depends on the kind of screen you choose (if you're buying the screen as well), how many screens you need and how big the project is. Whatever that adds up to, the price will be apt and transparent.",
+  },
+  {
+    q: "Does the ₹15,000 starting price include the screen?",
+    a: "Yes. Pricing starts from ₹15,000 one-time, and that includes the display screen.",
+  },
+  {
+    q: "Is it a one-time payment?",
+    a: "Yes, pricing is one-time. Annual maintenance charges apply as and when applicable.",
+  },
+  {
+    q: "Is there a warranty?",
+    a: "Yes. The products come with a 12-month warranty.",
+  },
+  {
+    q: "Can I use a screen I already have?",
+    a: "Yes. You can buy the screen from us or use your own compatible display. Whether you're buying the screen is one of the things that changes your price.",
+  },
+  {
+    q: "Can I try it first?",
+    a: "Yes. There's a 14-day free trial.",
+  },
+  {
+    q: "How do I get my price?",
+    a: "Tell us about your space and what you need on the Contact Us page. We'll call you back and work out the price for your exact requirement.",
+  },
+];
+
+const EASE = [0.22, 1, 0.36, 1];
+
+/* ------------------------------------------------------------------ */
+
+function PriceTag() {
   return (
-    <div className="inline-flex items-center bg-gray-100 rounded-xl p-1 gap-1">
-      {['monthly', 'annual'].map((b) => (
-        <button
-          key={b}
-          onClick={() => onChange(b)}
-          className={`relative px-5 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
-            value === b ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {b === 'monthly' ? 'Monthly' : 'Annual'}
-          {b === 'annual' && (
-            <span className="ml-2 text-[10px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
-              ~25% off
-            </span>
-          )}
-        </button>
-      ))}
-    </div>
-  );
-}
+    <div className="relative mx-auto w-full max-w-md pt-14">
+      {/* string */}
+      <svg className="absolute left-1/2 top-0 h-[74px] w-10 -translate-x-1/2" viewBox="0 0 40 74" aria-hidden="true">
+        <circle cx="20" cy="5" r="4.5" fill="#191919" />
+        <path d="M20 8c-6 18 6 34 0 62" stroke="#191919" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      </svg>
 
-function DurationSelector({ value, onChange }) {
-  return (
-    <div className="inline-flex items-center bg-gray-100 rounded-xl p-1 gap-1">
-      {MOLARIS_DURATION_OPTS.map((opt) => (
-        <button
-          key={opt.key}
-          onClick={() => onChange(opt.key)}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center gap-1.5 ${
-            value === opt.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {opt.label}
-          {opt.badge && (
-            <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
-              {opt.badge}
-            </span>
-          )}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── Vital AI tab ──────────────────────────────────────────────────────────────
-function VitalTab() {
-  const [billing, setBilling] = useState('annual');
-
-  return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-black text-gray-900">Transcriber Plans</h2>
-          <p className="text-sm text-gray-500 mt-1">AI-powered clinical note transcription for every practice size.</p>
-        </div>
-        <BillingToggle value={billing} onChange={setBilling} />
-      </div>
-
-      {/* Plan grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {VITAL_PLANS.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative rounded-2xl p-5 flex flex-col transition-transform duration-200 hover:-translate-y-1 ${
-              plan.popular
-                ? 'bg-[#0A1628] text-white shadow-2xl ring-2 ring-indigo-400'
-                : 'bg-white text-gray-900 border border-gray-100 shadow-sm'
-            }`}
-          >
-            {plan.popular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
-                Most Popular
-              </span>
-            )}
-
-            <p className={`text-[11px] font-black uppercase tracking-widest mb-2 ${plan.popular ? 'text-indigo-300' : 'text-gray-400'}`}>
-              {plan.name}
-            </p>
-
-            <div className="mb-4">
-              {billing === 'annual' ? (
-                <>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black leading-none">
-                      {fmt(Math.round(plan.annual / 12))}
-                    </span>
-                    <span className={`text-xs font-semibold ${plan.popular ? 'text-white/50' : 'text-gray-400'}`}>/mo</span>
-                  </div>
-                  <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black ${
-                    plan.popular ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-50 text-emerald-700'
-                  }`}>
-                    <span>{fmt(plan.annual)}/yr</span>
-                    <span className="opacity-50">·</span>
-                    <span>Save {fmt(plan.monthly * 12 - plan.annual)}</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className="text-3xl font-black leading-none">{fmt(plan.monthly)}</span>
-                  <span className={`text-xs font-semibold ml-1 ${plan.popular ? 'text-white/50' : 'text-gray-400'}`}>/mo</span>
-                </>
-              )}
-            </div>
-
-            <div className={`space-y-1.5 text-xs mb-5 flex-1 ${plan.popular ? 'text-white/70' : 'text-gray-500'}`}>
-              {[
-                ['Patients/day', plan.patientsDay],
-                ['Doctors', plan.doctors],
-                ['Receptionists', plan.receptionists],
-                ['Owners / Admins', plan.owners],
-              ].map(([label, val]) => (
-                <div key={label} className="flex justify-between items-center py-1 border-b border-white/5 last:border-0">
-                  <span>{label}</span>
-                  <span className={`font-black text-xs ${plan.popular ? 'text-white' : 'text-gray-900'}`}>{val}</span>
-                </div>
-              ))}
-            </div>
-
-            <a
-              href="/get-in-touch"
-              className={`block text-center py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-opacity hover:opacity-80 ${
-                plan.popular ? 'bg-indigo-500 text-white' : 'bg-gray-900 text-white'
-              }`}
-            >
-              Get Started
-            </a>
-          </div>
-        ))}
-      </div>
-
-      {/* Features note */}
-      <div className="mt-10 bg-indigo-50 border border-indigo-100 rounded-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { icon: '🎙️', label: 'Real-time Transcription' },
-          { icon: '📋', label: 'Auto Clinical Notes' },
-          { icon: '🔒', label: 'HIPAA-Safe Storage' },
-          { icon: '🩺', label: '50+ Medical Specialties' },
-        ].map((f) => (
-          <div key={f.label} className="flex items-center gap-3">
-            <span className="text-2xl">{f.icon}</span>
-            <span className="text-xs font-bold text-indigo-900 leading-tight">{f.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Molaris AI tab ────────────────────────────────────────────────────────────
-function MolarisTab() {
-  const [duration, setDuration] = useState('annual');
-  const [transcBilling, setTranscBilling] = useState('annual');
-
-  const shared = MOLARIS_WHATSAPP.shared;
-  const personal = MOLARIS_WHATSAPP.personal;
-
-  const sharedPrice  = shared[duration];
-  const personalPrice = personal[duration];
-
-  return (
-    <div className="space-y-14">
-
-      {/* ── DCMS + WhatsApp ── */}
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl font-black text-gray-900">Clinic Management + WhatsApp</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Full dental clinic management system with AI-powered WhatsApp patient communication.
-            </p>
-          </div>
-          <DurationSelector value={duration} onChange={setDuration} />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Shared card */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-sm flex flex-col">
-            <div className="flex items-center gap-2.5 mb-1">
-              <span className="text-xl">{shared.icon}</span>
-              <h3 className="text-lg font-black text-gray-900">{shared.name}</h3>
-            </div>
-            <p className="text-sm text-gray-400 font-medium mb-5">{shared.subtitle}</p>
-
-            <div className="mb-1">
-              <span className="text-5xl font-black text-gray-900">{fmt(sharedPrice)}</span>
-              <span className="text-gray-400 font-bold text-sm ml-1.5">/ month</span>
-            </div>
-            <p className="text-xs text-gray-400 font-semibold mb-6">
-              {duration === 'monthly' ? 'Billed monthly' : duration === 'annual' ? 'Billed annually' : 'Billed every 5 years'}
-            </p>
-
-            <ul className="space-y-2.5 mb-7 flex-1">
-              {shared.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-gray-600 font-medium">
-                  <Check />
-                  {f}
-                </li>
-              ))}
-            </ul>
-
-            <a href="/get-in-touch" className="block text-center bg-gray-900 text-white py-3 rounded-xl font-black text-sm uppercase tracking-wide hover:opacity-80 transition-opacity">
-              Get Started
-            </a>
-          </div>
-
-          {/* Personal card — highlighted */}
-          <div className="bg-[#0D1F3C] rounded-2xl p-7 shadow-2xl flex flex-col ring-2 ring-teal-400/40">
-            <div className="flex items-center gap-2.5 mb-1">
-              <span className="text-xl">{personal.icon}</span>
-              <h3 className="text-lg font-black text-teal-300">{personal.name}</h3>
-            </div>
-            <p className="text-sm text-white/40 font-medium mb-5">{personal.subtitle}</p>
-
-            <div className="mb-1">
-              <span className="text-5xl font-black text-white">{fmt(personalPrice)}</span>
-              <span className="text-white/40 font-bold text-sm ml-1.5">/ month</span>
-            </div>
-            <p className="text-xs text-white/30 font-semibold mb-6">
-              {duration === 'monthly' ? 'Billed monthly' : duration === 'annual' ? 'Billed annually' : 'Billed every 5 years'}
-            </p>
-
-            <ul className="space-y-2.5 mb-7 flex-1">
-              {personal.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-white/70 font-medium">
-                  <Check color="#2dd4bf" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-
-            <a href="/get-in-touch" className="block text-center bg-teal-400 text-gray-900 py-3 rounded-xl font-black text-sm uppercase tracking-wide hover:opacity-80 transition-opacity">
-              Get Started
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Dental Transcriber add-on ── */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="bg-teal-100 text-teal-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">Add-on</span>
-          <h2 className="text-2xl font-black text-gray-900">Dental Transcriber</h2>
-        </div>
-        <p className="text-sm text-gray-500 mb-6">
-          AI-powered dental note transcription — available as a standalone add-on for Molaris clinics.
-        </p>
-
-        <div className="flex justify-end mb-5">
-          <BillingToggle value={transcBilling} onChange={setTranscBilling} />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {MOLARIS_TRANSCRIBER_PLANS.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-2xl p-5 flex flex-col transition-transform duration-200 hover:-translate-y-1 ${
-                plan.popular
-                  ? 'bg-[#0D1F3C] text-white shadow-2xl ring-2 ring-teal-400/50'
-                  : 'bg-white text-gray-900 border border-gray-100 shadow-sm'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-teal-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wide whitespace-nowrap">
-                  Most Popular
-                </span>
-              )}
-
-              <p className={`text-[11px] font-black uppercase tracking-widest mb-2 ${plan.popular ? 'text-teal-300' : 'text-gray-400'}`}>
-                {plan.name}
+      <motion.div
+        initial={{ opacity: 0, y: -30, rotate: -6 }}
+        animate={{ opacity: 1, y: 0, rotate: 0 }}
+        transition={{ duration: 0.9, delay: 0.2, ease: EASE }}
+      >
+        <div className="pr-swing">
+          <div className="relative overflow-hidden rounded-[32px] border-2 border-sb-ink bg-white shadow-[8px_8px_0_#191919]">
+            <div className="pr-shine relative bg-sb-gradient px-7 pb-8 pt-12 text-white sm:px-9">
+              <div
+                className="pointer-events-none absolute inset-0 opacity-20"
+                style={{ backgroundImage: "radial-gradient(#fff 1.2px, transparent 1.2px)", backgroundSize: "18px 18px" }}
+              />
+              {/* tag hole */}
+              <span className="absolute left-1/2 top-4 h-5 w-5 -translate-x-1/2 rounded-full border-2 border-sb-ink bg-sb-cream" />
+              <p className="relative text-xs font-extrabold uppercase tracking-[0.24em] text-white/80">Starts from</p>
+              <p className="relative mt-2 flex flex-wrap items-baseline gap-x-3">
+                <span className="text-6xl font-extrabold tracking-tight sm:text-7xl">₹15,000</span>
+                <span className="text-lg font-extrabold text-sb-gold">one-time</span>
               </p>
+              <p className="relative mt-5 inline-flex items-center gap-2 rounded-full border-2 border-sb-ink bg-sb-gold px-4 py-2 text-sm font-extrabold text-sb-ink shadow-[3px_3px_0_#191919]">
+                <Monitor size={17} strokeWidth={2.5} />
+                Includes the display screen
+              </p>
+            </div>
 
-              <div className="mb-4">
-                {transcBilling === 'annual' ? (
-                  <>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black leading-none">
-                        {fmt(Math.round(plan.annual / 12))}
-                      </span>
-                      <span className={`text-xs font-semibold ${plan.popular ? 'text-white/50' : 'text-gray-400'}`}>/mo</span>
-                    </div>
-                    <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black ${
-                      plan.popular ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-50 text-emerald-700'
-                    }`}>
-                      <span>{fmt(plan.annual)}/yr</span>
-                      <span className="opacity-50">·</span>
-                      <span>Save {fmt(plan.monthly * 12 - plan.annual)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-3xl font-black leading-none">{fmt(plan.monthly)}</span>
-                    <span className={`text-xs font-semibold ml-1 ${plan.popular ? 'text-white/50' : 'text-gray-400'}`}>/mo</span>
-                  </>
-                )}
-              </div>
+            <ul className="space-y-3 px-7 py-7 sm:px-9">
+              {[
+                "12-month warranty on the products",
+                "Annual maintenance charges, as and when applicable",
+                "Final price set by your requirement",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-3 font-semibold text-sb-slate">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-sb-mint text-sb-green">
+                    <Check size={13} strokeWidth={3.5} />
+                  </span>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.div>
 
-              <div className={`space-y-1.5 text-xs mb-5 flex-1 ${plan.popular ? 'text-white/70' : 'text-gray-500'}`}>
-                {[
-                  ['Patients/day', plan.patientsDay],
-                  ['Doctors', plan.doctors],
-                  ['Receptionists', plan.receptionists],
-                  ['Owners / Admins', plan.owners],
-                ].map(([label, val]) => (
-                  <div key={label} className="flex justify-between items-center py-1 border-b border-white/5 last:border-0">
-                    <span>{label}</span>
-                    <span className={`font-black text-xs ${plan.popular ? 'text-white' : 'text-gray-900'}`}>{val}</span>
-                  </div>
+      <StickerBadge
+        text="ONE-TIME • TRANSPARENT • APT • "
+        size={108}
+        className="absolute -right-10 -top-2 z-10 hidden sm:block"
+        center={<Sparkle size={30} color="#914BFA" />}
+      />
+    </div>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative overflow-hidden bg-sb-warm pb-20 pt-32 sm:pt-36 lg:pb-28">
+      <Blob className="absolute -left-24 top-24 h-72 w-72 bg-sb-lilac opacity-70 blur-2xl" />
+      <Blob className="absolute -right-20 -top-16 h-96 w-96 bg-sb-violet/25 blur-3xl" style={{ animationDelay: "-4s" }} />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        style={{
+          backgroundImage: "radial-gradient(rgba(75,63,208,0.18) 1px, transparent 1px)",
+          backgroundSize: "22px 22px",
+          maskImage: "linear-gradient(180deg, black, transparent 80%)",
+          WebkitMaskImage: "linear-gradient(180deg, black, transparent 80%)",
+        }}
+      />
+
+      <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:px-8">
+        <div className="relative z-10 text-center lg:text-left">
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 rounded-full border-2 border-sb-ink bg-white px-4 py-1.5 text-xs font-extrabold uppercase tracking-[0.2em] text-sb-ink shadow-[3px_3px_0_#191919]"
+          >
+            <Sparkle size={14} color="#914BFA" />
+            Digital signage pricing
+          </motion.span>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="mt-6 text-5xl font-extrabold leading-[1.02] tracking-tight text-sb-ink sm:text-6xl lg:text-7xl"
+          >
+            Priced to your{" "}
+            <span className="relative inline-block">
+              <span className="sb-gradient-text">requirement.</span>
+              <Squiggle className="absolute -bottom-3 left-0 h-4 w-full sm:-bottom-4 sm:h-5" />
+            </span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mx-auto mt-9 max-w-xl text-lg font-semibold leading-relaxed text-sb-slate sm:text-xl lg:mx-0"
+          >
+            Every business needs something different, so pricing can&apos;t be uniform. Whatever you need, your price
+            will be <span className="sb-mark">apt and transparent.</span>
+          </motion.p>
+
+          <div className="relative mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <motion.a
+              href="/get-in-touch"
+              whileHover={{ scale: 1.04, rotate: -1 }}
+              whileTap={{ scale: 0.97 }}
+              className="group inline-flex items-center gap-3 rounded-full border-2 border-sb-ink bg-sb-gradient px-8 py-4 text-lg font-extrabold text-white shadow-[5px_5px_0_#191919] transition-shadow hover:shadow-[7px_7px_0_#191919]"
+            >
+              Get your price
+              <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+            </motion.a>
+            <a
+              href="#shape"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-sb-ink bg-white px-7 py-4 font-extrabold text-sb-ink transition-colors hover:bg-sb-ink hover:text-white"
+            >
+              What changes the price?
+            </a>
+          </div>
+
+          <ul className="mt-8 flex flex-wrap justify-center gap-2 text-xs font-extrabold text-sb-slate lg:justify-start">
+            {["One-time pricing", "Display screen included", "12-month warranty"].map((t) => (
+              <li key={t} className="rounded-full border border-sb-line bg-white/80 px-3.5 py-2 backdrop-blur">
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <PriceTag />
+      </div>
+    </section>
+  );
+}
+
+function Strip() {
+  return (
+    <div className="overflow-hidden bg-sb-cream pt-3">
+      <div className="-mx-6 rotate-1 border-y-2 border-sb-ink bg-sb-ink py-3 text-base font-extrabold uppercase tracking-wider text-white">
+        <Ticker items={TICKER} className="[&_svg]:text-sb-gold" />
+      </div>
+    </div>
+  );
+}
+
+function SectionHead({ eyebrow, title, sub, dark = false, center = false }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.6, ease: EASE }}
+      className={center ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}
+    >
+      <p className={`text-xs font-extrabold uppercase tracking-[0.22em] ${dark ? "text-sb-gold" : "text-sb-violet"}`}>{eyebrow}</p>
+      <h2 className={`mt-3 text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl ${dark ? "text-white" : "text-sb-ink"}`}>{title}</h2>
+      {sub && <p className={`mt-4 text-lg font-semibold leading-relaxed ${dark ? "text-white/75" : "text-sb-slate"}`}>{sub}</p>}
+    </motion.div>
+  );
+}
+
+function Choice({ active, onClick, children, hint }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-2xl border-2 px-4 py-3 text-left font-extrabold transition-all ${
+        active
+          ? "border-sb-ink bg-sb-violet text-white shadow-[3px_3px_0_#191919]"
+          : "border-sb-ink/15 bg-white text-sb-ink hover:border-sb-ink"
+      }`}
+    >
+      <span className="block text-[15px]">{children}</span>
+      {hint && <span className={`mt-0.5 block text-xs font-semibold ${active ? "text-white/80" : "text-sb-muted"}`}>{hint}</span>}
+    </button>
+  );
+}
+
+function Factor({ n, Icon, title, body, children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.5, ease: EASE }}
+      className="relative rounded-[28px] border-2 border-sb-ink bg-white p-6 shadow-[5px_5px_0_#191919] sm:p-7"
+    >
+      <span className="absolute -top-4 right-6 grid h-9 w-9 place-items-center rounded-full border-2 border-sb-ink bg-sb-gold text-sm font-extrabold text-sb-ink">
+        {n}
+      </span>
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-sb-lilac text-sb-violet">
+          <Icon size={20} strokeWidth={2.4} />
+        </span>
+        <h3 className="text-xl font-extrabold text-sb-ink">{title}</h3>
+      </div>
+      <p className="mt-3 font-semibold text-sb-slate">{body}</p>
+      <div className="mt-5">{children}</div>
+    </motion.div>
+  );
+}
+
+function ShapeYourQuote() {
+  const [source, setSource] = useState("buy");
+  const [kind, setKind] = useState("standard");
+  const [count, setCount] = useState("2–5");
+  const [scale, setScale] = useState("one");
+
+  const kindLabel = KINDS.find((x) => x.key === kind).label;
+  const scaleLabel = SCALES.find((x) => x.key === scale).label;
+  const screensLabel = count === "1" ? "1 screen" : `${count} screens`;
+  const screenLabel =
+    source === "own" ? "Using my own screen" : kind === "unsure" ? "Buying the screen · help me choose" : `Buying ${kindLabel.toLowerCase()} screens`;
+
+  const message = `Pricing enquiry: ${screenLabel.toLowerCase()}, ${screensLabel}, ${scaleLabel.toLowerCase()}.`;
+  // Values must match the options on /get-in-touch.
+  const FORM_KINDS = { compact: "Compact — counters and desks", standard: "Standard — menu boards and shop walls", large: "Large — lobbies and showrooms", unsure: "Help me choose" };
+  const FORM_SCALES = { one: "One location", few: "A few locations", many: "Many locations" };
+  const params = new URLSearchParams({
+    service: "Screen Bazaar (digital signage)",
+    source: source === "own" ? "Use my own screen" : "Buy the screen from you",
+    scale: FORM_SCALES[scale],
+    screens: count,
+    message,
+  });
+  if (source === "buy") params.set("kind", FORM_KINDS[kind]);
+  const quoteHref = `/get-in-touch?${params.toString()}`;
+
+  return (
+    <section id="shape" className="scroll-mt-24 bg-sb-cream px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <div className="mx-auto max-w-6xl">
+        <SectionHead
+          eyebrow="Why there's no price list"
+          title={
+            <>
+              Every requirement is different. <span className="sb-gradient-text">So is every price.</span>
+            </>
+          }
+          sub="Three things move the price. Pick yours to see your setup, then send it to us for your price."
+        />
+
+        <div className="mt-14 grid items-start gap-10 lg:grid-cols-[1fr_1.05fr]">
+          <div className="space-y-8">
+            <Factor
+              n="1"
+              Icon={Monitor}
+              title="The screen"
+              body="If you're buying the screen as well, the kind of screen you choose changes the price."
+            >
+              <div className="grid gap-2 sm:grid-cols-2">
+                {SOURCES.map((s) => (
+                  <Choice key={s.key} active={source === s.key} onClick={() => setSource(s.key)}>
+                    {s.label}
+                  </Choice>
                 ))}
               </div>
+              <AnimatePresence initial={false}>
+                {source === "buy" && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.35, ease: EASE }}
+                    className="overflow-hidden"
+                  >
+                    <p className="mb-2 mt-5 text-xs font-extrabold uppercase tracking-[0.16em] text-sb-muted">Kind of screen</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {KINDS.map((k) => (
+                        <Choice key={k.key} active={kind === k.key} onClick={() => setKind(k.key)} hint={k.hint}>
+                          {k.label}
+                        </Choice>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Factor>
 
-              <a
-                href="/get-in-touch"
-                className={`block text-center py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-opacity hover:opacity-80 ${
-                  plan.popular ? 'bg-teal-500 text-white' : 'bg-gray-900 text-white'
-                }`}
-              >
-                Add On
-              </a>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+            <Factor n="2" Icon={LayoutGrid} title="How many screens" body="The number of screens you need changes the price.">
+              <div className="grid grid-cols-4 gap-2">
+                {COUNTS.map((c) => (
+                  <Choice key={c} active={count === c} onClick={() => setCount(c)}>
+                    <span className="block text-center">{c}</span>
+                  </Choice>
+                ))}
+              </div>
+            </Factor>
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-const TABS = [
-  {
-    key: 'vital',
-    label: 'Vital AI',
-    tag: 'Medical Transcriber',
-    tagColor: 'bg-indigo-100 text-indigo-700',
-    activeColor: 'border-indigo-500 text-indigo-600',
-  },
-  {
-    key: 'molaris',
-    label: 'Molaris AI',
-    tag: 'Dental Clinic Management',
-    tagColor: 'bg-teal-100 text-teal-700',
-    activeColor: 'border-teal-500 text-teal-600',
-  },
-];
-
-const Pricing = () => {
-  const [activeTab, setActiveTab] = useState('vital');
-
-  return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #f8f9fb 0%, #eef0f5 100%)' }}>
-
-      {/* ── Hero ── */}
-      <div className="max-w-4xl mx-auto px-6 pt-20 pb-10 text-center">
-        <span className="inline-block bg-yellow-400 text-gray-900 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4">
-          Connect Gen AI
-        </span>
-        <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-gray-900 leading-tight mb-4">
-          Simple, Transparent<br />Pricing
-        </h1>
-        <p className="text-base text-gray-500 font-medium max-w-lg mx-auto">
-          Two AI products. One mission — transforming how clinics work, communicate, and grow.
-        </p>
-      </div>
-
-      {/* ── Tab bar ── */}
-      <div className="max-w-4xl mx-auto px-6 mb-10">
-        <div className="flex gap-0 bg-white border border-gray-200 rounded-2xl p-1.5 shadow-sm">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 py-3.5 px-4 rounded-xl text-sm font-black transition-all duration-200 ${
-                activeTab === tab.key
-                  ? `bg-gray-900 text-white shadow-md`
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
+            <Factor
+              n="3"
+              Icon={MapPin}
+              title="How big the project is"
+              body="One counter or a whole chain: the bigger the project, the more the price will vary."
             >
-              <span>{tab.label}</span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                activeTab === tab.key ? 'bg-white/20 text-white' : tab.tagColor
-              }`}>
-                {tab.tag}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {SCALES.map((s) => (
+                  <Choice key={s.key} active={scale === s.key} onClick={() => setScale(s.key)}>
+                    {s.label}
+                  </Choice>
+                ))}
+              </div>
+            </Factor>
+          </div>
 
-      {/* ── Tab content ── */}
-      <div className="max-w-6xl mx-auto px-6 pb-20">
-        {activeTab === 'vital'   && <VitalTab />}
-        {activeTab === 'molaris' && <MolarisTab />}
-      </div>
+          {/* live preview */}
+          <div className="lg:sticky lg:top-28">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.6, ease: EASE }}
+              className="relative rounded-[32px] border-2 border-sb-ink bg-white p-5 shadow-[8px_8px_0_#914BFA] sm:p-7"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-sb-muted">Your setup</p>
+                <p className="text-[11px] font-semibold text-sb-muted">Illustration</p>
+              </div>
 
-      {/* ── Footer CTA ── */}
-      <div className="max-w-3xl mx-auto px-6 pb-20">
-        <div className="bg-gray-900 rounded-3xl p-10 text-center">
-          <h2 className="text-3xl font-black text-white tracking-tight mb-2">Not sure which plan fits?</h2>
-          <p className="text-white/50 font-medium text-sm mb-7">
-            Our team will help you find the right fit for your clinic — no pressure.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="/get-in-touch" className="bg-yellow-400 text-gray-900 font-black py-3 px-8 rounded-xl text-sm uppercase tracking-wide hover:opacity-90 transition-opacity">
-              Talk to Sales
-            </a>
-            <a href="mailto:sales@connectgenai.in" className="bg-white/10 text-white/80 font-bold py-3 px-8 rounded-xl text-sm hover:bg-white/15 transition-colors">
-              sales@connectgenai.in
-            </a>
+              <div className="mt-3 overflow-hidden rounded-2xl border border-sb-line bg-sb-ivory">
+                <QuotePreview source={source} kind={kind} count={count} scale={scale} />
+              </div>
+
+              <ul className="mt-5 flex flex-wrap gap-2" aria-live="polite">
+                {[screenLabel, screensLabel, scaleLabel].map((t, i) => (
+                  <motion.li
+                    key={t}
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                    className={`rounded-full px-3.5 py-1.5 text-sm font-extrabold ${
+                      i === 0 ? "bg-sb-violet text-white" : "bg-sb-lilac text-sb-ink"
+                    }`}
+                  >
+                    {t}
+                  </motion.li>
+                ))}
+              </ul>
+
+              <p className="mt-5 font-semibold text-sb-slate">
+                Each of these moves the price, so we work out yours instead of printing a price list. It starts from{" "}
+                <span className="font-extrabold text-sb-ink">₹15,000 one-time</span>, display screen included.
+              </p>
+
+              <motion.a
+                href={quoteHref}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="group mt-6 flex w-full items-center justify-center gap-3 rounded-full border-2 border-sb-ink bg-sb-gradient px-6 py-4 text-base font-extrabold text-white shadow-[4px_4px_0_#191919]"
+              >
+                Get my price for this setup
+                <ArrowRight className="transition-transform group-hover:translate-x-1" size={18} />
+              </motion.a>
+
+              <p className="mt-3 text-center text-xs font-semibold text-sb-muted">Your choices are filled into the contact form for you.</p>
+            </motion.div>
           </div>
         </div>
       </div>
-
-    </div>
+    </section>
   );
-};
+}
 
-export default Pricing;
+function PricingPromise() {
+  return (
+    <section className="relative overflow-hidden bg-sb-ink px-4 py-20 text-white sm:px-6 lg:px-8 lg:py-28">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.12]"
+        style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "22px 22px" }}
+      />
+      <Blob className="absolute -right-32 -top-32 h-96 w-96 bg-sb-violet/40 blur-3xl" />
+      <div className="relative mx-auto max-w-6xl">
+        <SectionHead
+          dark
+          center
+          eyebrow="The pricing promise"
+          title={
+            <>
+              One-time. Transparent. <span className="text-sb-gold">Carefree.</span>
+            </>
+          }
+          sub="However your requirement shapes the price, it stays apt and transparent."
+        />
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {PROMISES.map(({ Icon, title, body }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ delay: i * 0.1, type: "spring", stiffness: 200, damping: 20 }}
+              whileHover={{ y: -6 }}
+              className={`rounded-[28px] border-2 p-6 ${i === 0 ? "border-sb-gold bg-white/[0.08]" : "border-white/15 bg-white/[0.04]"}`}
+            >
+              <div className="grid h-20 w-20 place-items-center rounded-2xl bg-white">
+                <Icon />
+              </div>
+              <h3 className="mt-5 text-xl font-extrabold">{title}</h3>
+              <p className="mt-2 font-semibold leading-relaxed text-white/70">{body}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const [open, setOpen] = useState(0);
+  return (
+    <section className="bg-sb-cream px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <div className="mx-auto max-w-3xl">
+        <SectionHead center eyebrow="Questions" title="Pricing, answered." />
+        <div className="mt-12 space-y-3">
+          {FAQS.map(({ q, a }, i) => {
+            const isOpen = open === i;
+            return (
+              <div
+                key={q}
+                className={`overflow-hidden rounded-2xl border-2 bg-white transition-shadow ${
+                  isOpen ? "border-sb-ink shadow-[4px_4px_0_#191919]" : "border-sb-ink/15"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? -1 : i)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-[17px] font-extrabold text-sb-ink"
+                >
+                  {q}
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${isOpen ? "bg-sb-violet text-white" : "bg-sb-lilac text-sb-violet"}`}>
+                    {isOpen ? <Minus size={16} strokeWidth={3} /> : <Plus size={16} strokeWidth={3} />}
+                  </span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: EASE }}
+                    >
+                      <p className="px-5 pb-5 font-semibold leading-relaxed text-sb-slate">{a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function Pricing() {
+  return (
+    <SignageChrome>
+      <Hero />
+      <Strip />
+      <ShapeYourQuote />
+      <PricingPromise />
+      <FAQ />
+      <OtherProductsPricing />
+    </SignageChrome>
+  );
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { VITAL_DEMO_URL } from "./VitalHero";
 
 const VitalLogo = () => (
   <a href="/products/vital" className="flex items-center gap-2">
@@ -46,13 +47,13 @@ export default function VitalNav() {
 
         <div className="hidden md:flex items-center gap-3">
           <a
-            href="/get-in-touch"
+            href={VITAL_DEMO_URL}
             className="text-sm text-white/70 hover:text-white transition-colors"
           >
             Sign in
           </a>
           <a
-            href="/get-in-touch"
+            href={VITAL_DEMO_URL}
             style={{ backgroundColor: "#0EA5E9" }}
             className="text-sm text-white font-semibold px-5 py-2 rounded-full hover:opacity-90 transition-opacity"
           >
@@ -95,7 +96,7 @@ export default function VitalNav() {
             </a>
           ))}
           <a
-            href="/get-in-touch"
+            href={VITAL_DEMO_URL}
             style={{ backgroundColor: "#0EA5E9" }}
             className="text-sm text-white font-semibold px-5 py-2.5 rounded-full text-center mt-2 hover:opacity-90"
             onClick={() => setMobileOpen(false)}

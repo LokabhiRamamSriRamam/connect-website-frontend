@@ -1,0 +1,60 @@
+/* Nexus CRM — page theme and SVG animations.
+   Generic primitives (vt-*) come from ../vital/vital.css, which the page also imports. */
+
+.nx-root {
+  font-family: "Manrope", "Inter", sans-serif;
+  color: #14152e;
+  background: #f7f8fc;
+}
+.nx-root h1, .nx-root h2, .nx-root h3 { text-wrap: balance; }
+
+.nx-gradient-text {
+  background: linear-gradient(120deg, #1e1b4b 0%, #4338ca 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* constellation dots, echoing the node mark */
+.nx-dots-bg {
+  background-image: radial-gradient(rgba(67, 56, 202, 0.12) 1.2px, transparent 1.2px);
+  background-size: 26px 26px;
+}
+
+.vt-anim [class*="nx-"] { transform-box: fill-box; transform-origin: center; }
+
+/* hero: four interactions take turns (10s, 2.5s each; delay inline) … */
+.nx-c4 { opacity: 0; animation: nx-c4 10s ease infinite both; }
+@keyframes nx-c4 { 0% { opacity: 0; transform: translateY(8px) } 3%, 22% { opacity: 1; transform: none } 25%, 100% { opacity: 0 } }
+
+/* … and the lead card steps one column per interaction (130px apart) */
+.nx-slide { animation: nx-slide 10s cubic-bezier(0.65, 0, 0.35, 1) infinite both; }
+@keyframes nx-slide {
+  0%, 6% { transform: translateX(0) }
+  12%, 31% { transform: translateX(0) }
+  37%, 56% { transform: translateX(130px) }
+  62%, 81% { transform: translateX(260px) }
+  87%, 97% { transform: translateX(390px) }
+  100% { transform: translateX(0) }
+}
+/* the Won column lights up while the card sits there */
+.nx-won { opacity: 0; animation: nx-won 10s ease infinite both; }
+@keyframes nx-won { 0%, 84% { opacity: 0 } 88%, 97% { opacity: 1 } 100% { opacity: 0 } }
+/* "logged" spark pulses at each hand-off */
+.nx-spark { animation: nx-spark 2.5s ease-in-out infinite; }
+@keyframes nx-spark { 0%, 100% { transform: scale(0.85) rotate(0deg); opacity: 0.7 } 50% { transform: scale(1.15) rotate(45deg); opacity: 1 } }
+
+/* anatomy: extracted fields fade in (8s; delay inline) */
+.nx-in { opacity: 0; animation: nx-in 8s ease infinite both; }
+@keyframes nx-in { 0%, 4% { opacity: 0; transform: translateX(-6px) } 10%, 90% { opacity: 1; transform: none } 97%, 100% { opacity: 0 } }
+
+/* mini pipeline in the feature card (3 columns, 92px apart) */
+.nx-mini { animation: nx-mini 6s cubic-bezier(0.65, 0, 0.35, 1) infinite both; }
+@keyframes nx-mini { 0%, 25% { transform: translateX(0) } 38%, 60% { transform: translateX(92px) } 73%, 95% { transform: translateX(184px) } 100% { transform: translateX(0) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vt-anim [class*="nx-"] { animation: none !important; }
+  .nx-c4:not([data-first]) { opacity: 0 !important; }
+  .nx-c4[data-first], .nx-in { opacity: 1 !important; }
+  .nx-won { opacity: 0 !important; }
+}

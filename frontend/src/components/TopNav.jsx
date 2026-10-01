@@ -1,278 +1,187 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { ScreenBazaarMark } from "./screenbazaar/ScreenBazaarLogo";
+import { INDUSTRIES, industryPath } from "./screenbazaar/content";
 
-const CONNECT_LOGO_SRC = "/connect.png";
+const CONNECT_LOGO_SRC = "/connect-wordmark.png";
 
 const THEMES = {
-  salon: {
-    bg: "bg-pink-600/90",
-    text: "text-white",
-  },
-  healthcare: {
-    bg: "bg-emerald-600/90",
-    text: "text-white",
-  },
-  finance: {
-    bg: "bg-indigo-700/90",
-    text: "text-white",
-  },
-  light: {
-    bg: "bg-white/80",
-    text: "text-gray-900",
-  },
-  dark: {
-    bg: "bg-gray-900/80",
-    text: "text-white",
-  },
+  salon: { bg: "bg-pink-600/90", text: "text-white", dark: true },
+  healthcare: { bg: "bg-emerald-600/90", text: "text-white", dark: true },
+  finance: { bg: "bg-indigo-700/90", text: "text-white", dark: true },
+  light: { bg: "bg-white/80 border border-sb-line", text: "text-sb-ink", dark: false },
+  cream: { bg: "bg-white/75 border-2 border-sb-ink shadow-[4px_4px_0_#191919]", text: "text-sb-ink", dark: false },
+  dark: { bg: "bg-gray-900/80", text: "text-white", dark: true },
 };
 
-const industries = [
-  { name: "Healthcare", icon: "/industry/healthcare.svg", slug: "/products/vital" },
-  { name: "Dental Hospitals & Clinics", icon: "/industry/healthcare.svg", slug: "/industry/dentalclinics" },
-  { name: "Supply Chain & Distribution", icon: "/industry/d2c.svg", slug: "/industry/ecommerce" },
-  { name: "Salon & Beauty", icon: "/industry/salon.svg", slug: "/industry/salon" },
+const industries = INDUSTRIES.map((i) => ({ name: i.label, href: industryPath(i.slug) }));
+
+const otherProducts = [
+  { name: "Vital AI", desc: "Clinical AI platform for every medical practice", href: "/products/vital" },
+  { name: "Molaris AI", desc: "Voice-first clinical documentation for dentists", href: "/industry/dentalclinics" },
+  { name: "Saarthi AI", desc: "Conversational ERP & BI for MSMEs and Enterprises", href: "/products/saarthi" },
+  { name: "Saarthi for Contractors", desc: "Workers, attendance, advances and automatic payroll", href: "/products/saarthi/contractors" },
+  { name: "Nexus CRM", desc: "The CRM you never have to update", href: "/products/nexus" },
+  { name: "Beauty Manager", desc: "Billing, clients & WhatsApp for salons and spas", href: "/industry/salon" },
 ];
 
-const products = {
-  core: [
-    {
-      name: "Vital AI",
-      desc: "Clinical AI platform for every medical practice",
-      slug: "/products/vital",
-    },
-    {
-      name: "Molaris AI",
-      desc: "Voice-first clinical documentation for dentists",
-      slug: "/industry/dentalclinics",
-    },
-    {
-      name: "Saarthi AI",
-      desc: "Conversational ERP & BI for MSMEs and Enterprises",
-      slug: "/products/saarthi",
-    },
-    {
-      name: "Nexus CRM",
-      desc: "AI-powered CRM for modern sales teams",
-      slug: "/get-in-touch",
-    },
-    {
-      name: "Beauty POS",
-      desc: "Smart point-of-sale for salons and spas",
-      slug: "/industry/salon",
-    },
-  ],
-};
+const OTHERS_LABEL = "Also from Connect Gen AI";
 
-const desktopLinks = ["Pricing", "Careers", "Industries", "Products"];
+function Dropdown({ open, children, width = "w-64", align = "left-0" }) {
+  if (!open) return null;
+  return (
+    <div className={`absolute top-full ${align} z-50 pt-3`}>
+      <div className={`${width} rounded-2xl border-2 border-sb-ink bg-white p-2 text-sb-ink shadow-[5px_5px_0_#191919]`}>{children}</div>
+    </div>
+  );
+}
 
 const TopNav = ({ variant = "glass", theme = "dark" }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileIndustriesOpen, setMobileIndustriesOpen] = useState(false);
-  const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
+  const [mobileSection, setMobileSection] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
   const closeTimer = useRef(null);
 
-  const themeClasses = THEMES[theme] || THEMES.light;
+  const t = THEMES[theme] || THEMES.light;
 
   const openMenu = (name) => {
     clearTimeout(closeTimer.current);
     setOpenDropdown(name);
   };
-
   const scheduleClose = () => {
-    closeTimer.current = setTimeout(() => setOpenDropdown(null), 120);
+    closeTimer.current = setTimeout(() => setOpenDropdown(null), 140);
   };
+
+  const hoverProps = (name) => ({
+    onMouseEnter: () => openMenu(name),
+    onMouseLeave: scheduleClose,
+    onFocus: () => openMenu(name),
+    onBlur: scheduleClose,
+  });
+
+  const logo = (cls) => (
+    <a href="/" aria-label="Connect — home">
+      <img src={CONNECT_LOGO_SRC} alt="Connect" className={`${cls} ${t.dark ? "invert" : ""}`} />
+    </a>
+  );
 
   return (
     <nav
-      className={`
-        fixed top-6 left-1/2 -translate-x-1/2 z-50
-        w-[95%] max-w-6xl
-        rounded-full px-4 py-2
-        flex items-center justify-between
-        transition-all duration-500 backdrop-blur-xl
-        ${themeClasses.bg}
-        ${themeClasses.text}
-        ${variant === "solid" ? "shadow-xl" : "bg-opacity-40"}
-      `}
+      className={`fixed left-1/2 top-5 z-50 flex w-[95%] max-w-6xl -translate-x-1/2 items-center justify-between rounded-full px-4 py-2 font-manrope backdrop-blur-xl transition-all duration-500 ${t.bg} ${t.text} ${
+        variant === "solid" ? "shadow-xl" : ""
+      }`}
     >
       {/* MOBILE */}
-      <div className="flex lg:hidden items-center justify-between w-full relative">
-        {/* Hamburger Button */}
-        {/* Hamburger Button */}
+      <div className="relative flex w-full items-center justify-between lg:hidden">
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-full hover:bg-white/10"
+          className="rounded-full p-2"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
         >
-          <svg
-            className="w-6 h-6 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
-
-        {/* Logo */}
-        <a href="/">
-          <img src={CONNECT_LOGO_SRC} alt="Connect" className="h-7" />
+        {logo("h-5")}
+        <a href="/get-in-touch" className="rounded-full bg-sb-gradient px-4 py-2 text-xs font-extrabold text-white">
+          Get Started
         </a>
 
-        {/* Book Demo */}
-        <a
-          href="/get-in-touch"
-          className="bg-purple-600 text-white text-xs px-4 py-2 rounded-full"
-        >
-          Book Demo
-        </a>
-
-        {/* MOBILE MENU */}
         {mobileOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900/90 backdrop-blur-xl rounded-xl shadow-xl p-4 flex flex-col space-y-2 z-50">
-            {/* Desktop links */}
-            {desktopLinks.map((link) => (
-              <div key={link} className="relative">
-                {link === "Industries" && (
-                  <div>
-                    <p className="font-semibold text-white mb-1">Industries</p>
-                    {industries.map((ind) => (
+          <div className="absolute left-0 right-0 top-full z-50 mt-4 max-h-[75vh] overflow-y-auto rounded-3xl border-2 border-sb-ink bg-white p-3 text-sb-ink shadow-[5px_5px_0_#191919]">
+            <a href="/" className="flex items-center gap-2 rounded-xl px-3 py-3 font-bold hover:bg-sb-lavender">
+              <ScreenBazaarMark size={22} /> Screen Bazaar
+            </a>
+            {[
+              { key: "Industries", items: industries },
+              { key: OTHERS_LABEL, items: otherProducts },
+            ].map(({ key, items }) => (
+              <div key={key}>
+                <button
+                  onClick={() => setMobileSection(mobileSection === key ? null : key)}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-3 font-bold hover:bg-sb-lavender"
+                  aria-expanded={mobileSection === key}
+                >
+                  {key}
+                  <ChevronDown size={18} className={`transition-transform ${mobileSection === key ? "rotate-180" : ""}`} />
+                </button>
+                {mobileSection === key && (
+                  <div className="pb-2 pl-3">
+                    {items.map((it) => (
                       <a
-                        key={ind.name}
-                        href={ind.slug}
-                        className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-800 text-white"
+                        key={it.name}
+                        href={it.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="block rounded-xl px-3 py-2 text-sm font-semibold text-sb-slate hover:bg-sb-lavender hover:text-sb-ink"
                       >
-                        <img src={ind.icon} className="w-5 h-5 invert" />
-                        <span>{ind.name}</span>
+                        {it.name}
                       </a>
                     ))}
                   </div>
-                )}
-
-                {link === "Products" && (
-                  <div>
-                    <p className="font-semibold text-white mb-1">Products</p>
-                    {products.core.map((item) => (
-                      <a
-                        key={item.name}
-                        href={item.slug}
-                        className="block px-3 py-2 rounded-lg hover:bg-gray-800 text-white"
-                      >
-                        <p className="font-medium text-sm">{item.name}</p>
-                        <p className="text-xs text-white/50">{item.desc}</p>
-                      </a>
-                    ))}
-                  </div>
-                )}
-                {link !== "Industries" && link !== "Products" && (
-                  <a
-                    href={
-                      link === "Careers"
-                        ? "/careers"
-                        : link === "Pricing"
-                        ? "/pricing"
-                        : "#"
-                    }
-                    className="block px-3 py-2 rounded-lg hover:bg-gray-800 text-white"
-                  >
-                    {link}
-                  </a>
                 )}
               </div>
             ))}
+            <a href="/pricing" className="block rounded-xl px-3 py-3 font-bold hover:bg-sb-lavender">
+              Pricing
+            </a>
+            <a href="/blogs" className="block rounded-xl px-3 py-3 font-bold hover:bg-sb-lavender">
+              Blogs
+            </a>
           </div>
         )}
       </div>
 
       {/* DESKTOP */}
-      <div className="hidden lg:flex items-center justify-between w-full">
-        <a href="/">
-          <img src={CONNECT_LOGO_SRC} alt="Connect" className="h-8 invert" />
-        </a>
+      <div className="hidden w-full items-center justify-between lg:flex">
+        {logo("h-6")}
 
-        <div className="flex items-center space-x-6">
-          {desktopLinks.map((link) => (
-            <div
-              key={link}
-              className="relative"
-              onMouseEnter={() => (link === "Industries" || link === "Products") && openMenu(link)}
-              onMouseLeave={() => (link === "Industries" || link === "Products") && scheduleClose()}
-            >
-              {link === "Industries" && (
-                <>
-                  <button className="text-sm font-medium">Industries</button>
-                  {openDropdown === "Industries" && (
-                    <div className="absolute top-full left-0 pt-2">
-                      <div className="bg-gray-900 rounded-xl shadow-lg py-2 w-64">
-                        {industries.map((ind) => (
-                          <a
-                            key={ind.name}
-                            href={ind.slug}
-                            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-800 text-white"
-                          >
-                            <img src={ind.icon} className="w-5 h-5 invert" />
-                            <span>{ind.name}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+        <div className="flex items-center gap-7 text-sm font-bold">
+          <a href="/" className="flex items-center gap-1.5 hover:opacity-80">
+            <ScreenBazaarMark size={22} /> Screen Bazaar
+          </a>
 
-              {link === "Products" && (
-                <>
-                  <button className="text-sm font-medium">Products</button>
-                  {openDropdown === "Products" && (
-                    <div className="absolute top-full left-0 pt-2">
-                      <div className="w-72 bg-gray-900 rounded-xl shadow-xl p-4">
-                        <p className="text-xs uppercase text-white/50 mb-3 tracking-widest">
-                          Our Products
-                        </p>
-                        {products.core.map((item) => (
-                          <a
-                            key={item.name}
-                            href={item.slug}
-                            className="block p-3 rounded-lg hover:bg-gray-800 text-white mb-1"
-                          >
-                            <p className="font-semibold text-sm">{item.name}</p>
-                            <p className="text-xs text-white/50 mt-0.5">{item.desc}</p>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+          <div className="relative" {...hoverProps("Industries")}>
+            <button className="flex items-center gap-1 hover:opacity-80" aria-expanded={openDropdown === "Industries"}>
+              Industries <ChevronDown size={15} />
+            </button>
+            <Dropdown open={openDropdown === "Industries"} width="w-[420px]">
+              <div className="grid grid-cols-2 gap-1">
+                {industries.map((ind) => (
+                  <a key={ind.name} href={ind.href} className="rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-sb-lavender">
+                    {ind.name}
+                  </a>
+                ))}
+              </div>
+            </Dropdown>
+          </div>
 
-              {link !== "Industries" && link !== "Products" && (
-                <a
-                  href={
-                    link === "Careers"
-                      ? "/careers"
-                      : link === "Pricing"
-                      ? "/pricing"
-                      : "#"
-                  }
-                  className="text-sm font-medium"
-                >
-                  {link}
+          <a href="/pricing" className="hover:opacity-80">
+            Pricing
+          </a>
+
+          <a href="/blogs" className="hover:opacity-80">
+            Blogs
+          </a>
+
+          <div className="relative" {...hoverProps("Others")}>
+            <button className="flex items-center gap-1 hover:opacity-80" aria-expanded={openDropdown === "Others"}>
+              {OTHERS_LABEL} <ChevronDown size={15} />
+            </button>
+            <Dropdown open={openDropdown === "Others"} width="w-80" align="right-0">
+              {otherProducts.map((p) => (
+                <a key={p.name} href={p.href} className="block rounded-xl p-3 hover:bg-sb-lavender">
+                  <p className="text-sm font-extrabold">{p.name}</p>
+                  <p className="mt-0.5 text-xs font-medium text-sb-muted">{p.desc}</p>
                 </a>
-              )}
-            </div>
-          ))}
+              ))}
+            </Dropdown>
+          </div>
         </div>
 
         <a
           href="/get-in-touch"
-          className="bg-purple-600 text-white text-sm px-6 py-2 rounded-full"
+          className="rounded-full border-2 border-sb-ink bg-sb-gradient px-6 py-2 text-sm font-extrabold text-white transition-transform hover:-translate-y-0.5"
         >
-          Book Demo
+          Get Started
         </a>
       </div>
     </nav>

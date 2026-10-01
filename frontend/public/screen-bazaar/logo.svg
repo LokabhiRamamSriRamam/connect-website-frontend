@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 56">
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0.19" stop-color="#1F30A0"/><stop offset="0.81" stop-color="#914BFA"/></linearGradient>
+    <linearGradient id="t" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1F30A0"/><stop offset="1" stop-color="#914BFA"/></linearGradient>
+    <clipPath id="a"><path d="M4 5h40v6a5 5 0 0 1-10 0 5 5 0 0 1-10 0 5 5 0 0 1-10 0 5 5 0 0 1-10 0z"/></clipPath>
+  </defs>
+  <g transform="translate(0 4)">
+    <rect x="21" y="36" width="6" height="5" fill="#191919"/>
+    <rect x="14" y="40.5" width="20" height="3" rx="1.5" fill="#191919"/>
+    <rect x="6" y="10" width="36" height="27" rx="4.5" fill="url(#g)"/>
+    <path d="M21 20.5v9l7.5-4.5z" fill="#fff"/>
+    <g clip-path="url(#a)">
+      <rect x="4" y="3" width="40" height="15" fill="#914BFA"/>
+      <rect x="9" y="3" width="5" height="15" fill="#F6F1FF"/><rect x="19" y="3" width="5" height="15" fill="#F6F1FF"/>
+      <rect x="29" y="3" width="5" height="15" fill="#F6F1FF"/><rect x="39" y="3" width="5" height="15" fill="#F6F1FF"/>
+    </g>
+    <rect x="3" y="3" width="42" height="3.5" rx="1.75" fill="#1F30A0"/>
+  </g>
+  <text x="58" y="37" font-family="Manrope, Inter, sans-serif" font-weight="800" font-size="28" letter-spacing="-0.6" fill="#191919">Screen <tspan fill="url(#t)">Bazaar</tspan></text>
+</svg>

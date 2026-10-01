@@ -1,0 +1,40 @@
+/* Pricing page — animations (builds on screenbazaar/sb.css) */
+
+/* the price tag hangs from its string and sways */
+.pr-swing { transform-origin: 50% 0; animation: pr-swing 5.5s ease-in-out infinite; }
+@keyframes pr-swing { 0%, 100% { transform: rotate(-1.2deg) } 50% { transform: rotate(1.2deg) } }
+
+/* light sweep across the price */
+.pr-shine { position: relative; overflow: hidden; }
+.pr-shine::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  transform: translateX(-120%); animation: pr-shine 5s ease-in-out 1.2s infinite;
+}
+@keyframes pr-shine { 0% { transform: translateX(-120%) } 35%, 100% { transform: translateX(120%) } }
+
+/* "PAID" stamp lands on the receipt */
+.pr-stamp { transform-origin: center; animation: pr-stamp 4.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite both; }
+@keyframes pr-stamp {
+  0%, 20% { transform: scale(1.9) rotate(-28deg); opacity: 0 }
+  32%, 86% { transform: scale(1) rotate(-14deg); opacity: 1 }
+  100% { transform: scale(1) rotate(-14deg); opacity: 0 }
+}
+
+/* magnifier glides over the bill */
+.pr-scan { animation: pr-scan 3.6s ease-in-out infinite; }
+@keyframes pr-scan { 0%, 100% { transform: translate(0, 0) } 50% { transform: translate(12px, 14px) } }
+
+/* soft glow */
+.pr-glow { animation: pr-glow 2.6s ease-in-out infinite; }
+@keyframes pr-glow { 0%, 100% { opacity: 0.35 } 50% { opacity: 0.9 } }
+
+/* floating up and fading (carefree bubbles) */
+.pr-rise { animation: pr-rise 3.4s ease-out infinite both; }
+@keyframes pr-rise { 0% { transform: translateY(6px); opacity: 0 } 25% { opacity: 1 } 100% { transform: translateY(-16px); opacity: 0 } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-swing, .pr-shine::after, .pr-stamp, .pr-scan, .pr-glow, .pr-rise { animation: none !important; }
+  .pr-stamp, .pr-rise { opacity: 1 !important; transform: rotate(-14deg); }
+  .pr-rise { transform: none; }
+}
