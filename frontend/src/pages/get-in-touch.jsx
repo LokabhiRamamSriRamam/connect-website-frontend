@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { ArrowRight, Loader2, AlertCircle, RotateCcw } from "lucide-react";
 import TopNav from "../components/TopNav";
@@ -14,6 +14,18 @@ import {
   StepConnector,
 } from "../components/screenbazaar/ContactArt";
 import { INDUSTRIES } from "../components/screenbazaar/content";
+import { inputCls, PillGroup, Field, useFormErrors } from "../components/forms/fields";
+import {
+  SERVICES,
+  SB_SERVICE,
+  VITAL_SERVICE,
+  MOLARIS_SERVICE,
+  NEXUS_SERVICE,
+  SAARTHI_SERVICE,
+  CONTRACTORS_SERVICE,
+  BEAUTY_SERVICE,
+  LEAD_SOURCE_CONTACT,
+} from "../components/forms/services";
 import "../components/screenbazaar/sb.css";
 
 /* Contact Us — Screen Bazaar. Same look as the landing page (see SCREEN_BAZAAR_PLAN.md §1). */
@@ -70,8 +82,6 @@ const NEXT_STEPS = [
 
 const SCREEN_COUNTS = ["1", "2–5", "6–20", "20+", "Not sure"];
 
-const SERVICES = ["Screen Bazaar (digital signage)", "Vital.AI", "Molaris.AI", "Nexus CRM", "Saarthi AI", "Saarthi for Contractors", "Beauty Manager", "Not sure yet"];
-const [SB_SERVICE, VITAL_SERVICE, MOLARIS_SERVICE, NEXUS_SERVICE, SAARTHI_SERVICE, CONTRACTORS_SERVICE, BEAUTY_SERVICE] = SERVICES;
 
 // Same options as "Shape your quote" on /pricing, so a visitor's choices carry over.
 const SCREEN_SOURCES = ["Buy the screen from you", "Use my own screen"];
@@ -147,34 +157,6 @@ function validate(f) {
   return e;
 }
 
-const inputCls = (err) =>
-  `w-full scroll-mt-32 rounded-2xl border-2 bg-white px-4 py-3 font-manrope text-base font-semibold text-sb-ink placeholder:font-medium placeholder:text-sb-muted/70 transition-shadow focus:outline-none ${
-    err
-      ? "border-red-500 shadow-[3px_3px_0_#ef4444]"
-      : "border-sb-ink focus:shadow-[4px_4px_0_#914BFA]"
-  }`;
-
-function PillGroup({ legend, name, value, options, onChange, optional }) {
-  return (
-    <fieldset>
-      <legend className="mb-2 flex w-full items-baseline justify-between font-manrope text-xs font-extrabold uppercase tracking-[0.16em] text-sb-ink">
-        {legend}
-        {optional && <span className="text-[10px] font-bold normal-case tracking-normal text-sb-muted">optional</span>}
-      </legend>
-      <div className="flex flex-wrap gap-2">
-        {options.map((c) => (
-          <label key={c} className="cursor-pointer">
-            <input type="radio" name={name} value={c} checked={value === c} onChange={onChange} className="peer sr-only" />
-            <span className="inline-block rounded-full border-2 border-sb-ink bg-white px-4 py-2 font-manrope text-sm font-extrabold text-sb-ink transition-all peer-checked:-translate-y-0.5 peer-checked:bg-sb-gradient peer-checked:text-white peer-checked:shadow-[3px_3px_0_#191919] peer-focus-visible:ring-4 peer-focus-visible:ring-sb-violet/40 hover:bg-sb-lilac">
-              {c}
-            </span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
 // Per-service qualifying questions shown under the service dropdown. Each field name must exist in EMPTY.
 const SERVICE_QUESTIONS = {
   [SB_SERVICE]: [
@@ -211,23 +193,6 @@ const SERVICE_QUESTIONS = {
 // that don't apply to the chosen service before submitting.
 const ALL_SERVICE_FIELDS = [...new Set(Object.values(SERVICE_QUESTIONS).flat().map((q) => q.name))];
 
-function Field({ id, label, optional, error, shakeKey, children }) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-2 flex items-baseline justify-between font-manrope text-xs font-extrabold uppercase tracking-[0.16em] text-sb-ink">
-        {label}
-        {optional && <span className="text-[10px] font-bold normal-case tracking-normal text-sb-muted">optional</span>}
-      </label>
-      {children}
-      {error && (
-        <p key={shakeKey} id={`${id}-err`} className="sb-shake mt-1.5 flex items-center gap-1.5 font-manrope text-sm font-bold text-red-600">
-          <AlertCircle size={14} /> {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
 function ContactForm() {
   // The pricing page links here with ?screens=…&message=… to carry the visitor's setup over.
   const [form, setForm] = useState(() => {
@@ -255,27 +220,16 @@ function ContactForm() {
       message: (q.get("message") || "").slice(0, 2000),
     };
   });
-  const [errors, setErrors] = useState({});
-  const [shakeKey, setShakeKey] = useState(0);
+  const { errors, setErrors, shakeKey, formRef, fail, clearError, errProps } = useFormErrors();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
   const [sent, setSent] = useState(null);
-  const formRef = useRef(null);
-
-  // After a failed submit, move focus to the first field with an error.
-  useEffect(() => {
-    if (!shakeKey) return;
-    formRef.current?.querySelector('[aria-invalid="true"]')?.focus();
-  }, [shakeKey]);
 
   const set = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
-    if (errors[name]) setErrors((er) => ({ ...er, [name]: undefined }));
+    clearError(name);
   };
-
-  const errProps = (name) =>
-    errors[name] ? { "aria-invalid": true, "aria-describedby": `${name}-err` } : {};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -283,8 +237,7 @@ function ContactForm() {
 
     const found = validate(form);
     if (Object.keys(found).length) {
-      setErrors(found);
-      setShakeKey((k) => k + 1);
+      fail(found);
       return;
     }
 
@@ -312,7 +265,7 @@ function ContactForm() {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, source: "website_contact_form" }),
+        body: JSON.stringify({ ...body, source: LEAD_SOURCE_CONTACT }),
       });
       const data = await response.json().catch(() => ({}));
 
