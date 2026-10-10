@@ -131,7 +131,7 @@ export default {
       fontFamily: {
         sans: ["Inter", "sans-serif"],
         display: ["Sora", "sans-serif"],
-        manrope: ["Manrope", "sans-serif"],
+        manrope: ["Manrope", "Noto Sans Devanagari", "sans-serif"],
         serif: ["Playfair Display", "Georgia", "serif"],
       },
       borderRadius: {

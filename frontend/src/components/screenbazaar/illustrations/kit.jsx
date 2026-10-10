@@ -24,7 +24,7 @@ export const C = {
   white: "#FFFFFF",
 };
 
-export const FONT = "Manrope, Inter, sans-serif";
+export const FONT = "Manrope, \"Noto Sans Devanagari\", Inter, sans-serif";
 
 export function Svg({ children, label }) {
   return (

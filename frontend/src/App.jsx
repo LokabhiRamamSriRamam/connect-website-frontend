@@ -46,6 +46,8 @@ import SignageAutomotive from "./pages/signage/Automotive";
 import SignageRealEstate from "./pages/signage/RealEstate";
 import SignageCorporate from "./pages/signage/Corporate";
 import BlogIndex from "./pages/blog/BlogIndex";
+// The test drive is a heavy, self-contained app surface — keep it out of the main bundle.
+const TestDrive = lazy(() => import("./pages/test-drive/TestDrive"));
 import { BLOGS, BLOG_BASE, BLOG_INDEX, SITE_NAME as BLOG_SITE_NAME, blogPath, blogOgImage, blogSchema, blogIndexSchema } from "./pages/blog/meta";
 
 // Blogs — each one lazy-loaded so the landing page doesn't download every article.
@@ -144,6 +146,23 @@ const router = createBrowserRouter([
   },
   ...signageRoutes,
   ...blogRoutes,
+  {
+    path: "/test-drive",
+    element: (
+      <div>
+        {/* noindex: an app surface personalised per visitor, not a content page. */}
+        <SEO
+          title="Screen Bazaar — Test Drive"
+          description="Try a digital signage environment built for your business. Five virtual screens, real scheduling, instant previews."
+          path="/test-drive"
+          noindex
+        />
+        <Suspense fallback={<div className="min-h-screen bg-[#F8F6F2]" />}>
+          <TestDrive />
+        </Suspense>
+      </div>
+    ),
+  },
   {
     path: "/world-map",
     element: (

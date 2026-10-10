@@ -1,0 +1,196 @@
+/**
+ * Test-drive-only styles.
+ *
+ * Deliberately NOT added to components/screenbazaar/sb.css — that file is shared by
+ * the landing page, 9 industry pages and 6 blogs, so a stray selector there would
+ * hit all of them. Everything here is scoped under .td-root.
+ *
+ * Mirrors sb.css conventions, including a prefers-reduced-motion guard for every
+ * animation.
+ */
+
+.td-root {
+  font-family: "Manrope", "Noto Sans Devanagari", "Inter", sans-serif;
+  color: #191919;
+  background: #f8f6f2;
+  /* Respect notches and home indicators — this is a full-bleed app surface. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Sticky bars sit above the home indicator. */
+.td-safe-bottom {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+.td-safe-top {
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+}
+
+/* ---------- 24-hour timeline ---------- */
+
+/* The rail is a plain positioned box; blocks are placed by percentage so the
+   geometry stays truthful at any width and reflows on rotate with no JS. */
+.td-rail {
+  position: relative;
+  overflow: hidden;
+}
+
+.td-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(25, 25, 25, 0.12);
+  pointer-events: none;
+}
+
+/* A 15-minute slot is ~1% of the day — far too small to tap. The block keeps its
+   true proportional width (the timeline must not lie about duration) and gets an
+   invisible, centred 44px target instead. */
+.td-slot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.td-slot::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 44px;
+  transform: translateX(-50%);
+  min-width: 100%;
+}
+
+.td-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #191919;
+  pointer-events: none;
+  transition: left 0.3s linear;
+}
+.td-playhead::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #191919;
+}
+
+/* ---------- Screen previews ---------- */
+
+/* A lit screen gets a soft bloom; an idle/offline one stays flat. */
+.td-screen-on {
+  box-shadow: 0 0 0 2px #191919, 0 8px 24px -6px rgba(145, 75, 250, 0.45);
+}
+.td-screen-off {
+  box-shadow: 0 0 0 2px #191919;
+}
+
+/* Scanline shimmer on the selected screen's large preview. */
+.td-scan {
+  animation: td-scan 7s ease-in-out infinite;
+}
+@keyframes td-scan {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  50% {
+    opacity: 0.35;
+    transform: translateY(100%);
+  }
+}
+
+/* ---------- Tutorial spotlight ---------- */
+
+/* Drawn OUTSIDE the target with pointer-events:none so it never blocks the very
+   control it is pointing at. */
+.td-spotlight {
+  position: fixed;
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 60;
+  box-shadow: 0 0 0 3px #914bfa, 0 0 0 9999px rgba(25, 25, 25, 0.45);
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+.td-spotlight-pulse {
+  animation: td-pulse 2s ease-in-out infinite;
+}
+@keyframes td-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px #914bfa, 0 0 0 9999px rgba(25, 25, 25, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(145, 75, 250, 0.55), 0 0 0 9999px rgba(25, 25, 25, 0.45);
+  }
+}
+
+/* ---------- Save status chip ---------- */
+
+.td-chip-flash {
+  animation: td-chip-flash 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes td-chip-flash {
+  from {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* A per-screen unsaved marker. */
+.td-dot-dirty {
+  animation: td-dot-dirty 1.8s ease-in-out infinite;
+}
+@keyframes td-dot-dirty {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---------- Bottom sheets ---------- */
+
+.td-sheet {
+  max-height: 92vh;
+  max-height: 92dvh;
+}
+
+/* ---------- Hindi typography ---------- */
+
+/* Devanagari sits taller than Latin; a little extra leading stops tight headings
+   from clipping their matras. */
+.td-root:lang(hi) h1,
+.td-root:lang(hi) h2,
+.td-root:lang(hi) h3 {
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .td-scan,
+  .td-spotlight-pulse,
+  .td-chip-flash,
+  .td-dot-dirty {
+    animation: none !important;
+  }
+  .td-playhead,
+  .td-spotlight {
+    transition: none !important;
+  }
+  .td-scan {
+    opacity: 0 !important;
+  }
+}
