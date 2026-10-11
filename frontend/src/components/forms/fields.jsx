@@ -38,13 +38,18 @@ export function PillGroup({ legend, name, value, options, onChange, optional }) 
   );
 }
 
-/** Label + control + animated error line. `shakeKey` re-triggers the shake on repeat submits. */
+/**
+ * Label + control + animated error line. `shakeKey` re-triggers the shake on repeat submits.
+ *
+ * `optional` may be `true` for the default English word, or a string — the test
+ * drive passes a translated one, since it runs in Hindi too.
+ */
 export function Field({ id, label, optional, error, shakeKey, children }) {
   return (
     <div>
       <label htmlFor={id} className="mb-2 flex items-baseline justify-between font-manrope text-xs font-extrabold uppercase tracking-[0.16em] text-sb-ink">
         {label}
-        {optional && <span className="text-[10px] font-bold normal-case tracking-normal text-sb-muted">optional</span>}
+        {optional && <span className="text-[10px] font-bold normal-case tracking-normal text-sb-muted">{typeof optional === "string" ? optional : "optional"}</span>}
       </label>
       {children}
       {error && (

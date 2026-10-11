@@ -16,7 +16,7 @@ export default function TdShell({ children, actions, showBadge = false }) {
     <div className="td-root flex min-h-screen flex-col overflow-x-clip">
       <header className="td-safe-top sticky top-0 z-40 border-b-2 border-sb-ink bg-sb-cream/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 pb-2 sm:px-6">
-          <a href="/" className="flex items-center gap-2" aria-label={t("brand.name")}>
+          <a href="/" className="td-tap flex items-center gap-2" aria-label={t("brand.name")}>
             <ScreenBazaarMark size={28} />
             <span className="hidden text-sm font-extrabold tracking-tight sm:block">
               {t("brand.name")}

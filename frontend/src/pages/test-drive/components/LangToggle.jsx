@@ -28,7 +28,7 @@ export default function LangToggle({ className = "", size = "md" }) {
             lang={code}
             onClick={() => setLang(code)}
             aria-pressed={on}
-            className={`rounded-full font-extrabold transition-all ${pad} ${
+            className={`td-tap rounded-full font-extrabold transition-all ${pad} ${
               on
                 ? "bg-sb-gradient text-white shadow-[2px_2px_0_#191919]"
                 : "text-sb-ink hover:bg-sb-lilac"
