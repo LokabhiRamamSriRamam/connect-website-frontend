@@ -111,8 +111,15 @@ export const initialState = {
   /** The preview clock. nowMin defaults to 13:00, a plausible lunch rush. */
   sim: { nowMin: 780, playing: false, speed: 60 },
 
-  /** Simulated, and labelled as such everywhere it surfaces. */
-  health: {}, // { [screenId]: { status, lastSeenMin, uptimePct } }
+  /**
+   * Simulated, and labelled as such everywhere it surfaces.
+   *
+   * Only a tick counter is stored, never the figures themselves: domain/health.js
+   * derives status, lastSeenMin and uptimePct from (screenId, tick) with a seeded
+   * hash. That keeps HEALTH_TICK a pure reducer case and means a refresh at the
+   * same tick shows the same numbers instead of reshuffling the whole fleet.
+   */
+  health: { tick: 0 },
 
   tutorial: {
     missionIndex: 0,
@@ -125,6 +132,7 @@ export const initialState = {
   /** Never persisted and never restored — transient view state only. */
   ui: {
     panel: null, // null | "creative" | "schedule" | "hours" | "mirror" | "health"
+    wallView: "grid", // "grid" | "list" — how the five screens are laid out
     scheduleView: "list", // "list" | "timeline"
     editingSlotId: null,
     toast: null,

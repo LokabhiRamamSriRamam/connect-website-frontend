@@ -1,12 +1,13 @@
 /**
- * Node test run for the test drive's domain layer (plan §13, phase 3).
+ * Node test run for the test drive's pure layers: all of domain/ (phase 3) and
+ * the reducer cases that drive the screen wall (phase 4). Plan §13.
  *
- * There is no UI for any of this yet — correctness is won here, in node, before
- * pixels. Run with:  node scripts/test-domain.mjs
+ * Everything here is plain .js with no React, so correctness is settled in node
+ * rather than by clicking. Run with:  npm run test:td
  *
- * No test framework: the repo has none, and adding one for five modules would be
- * a bigger decision than this phase. Assertions are plain, failures are named and
- * the process exits non-zero, which is all CI would need.
+ * No test framework: the repo has none, and adding one would be a bigger decision
+ * than these phases. Assertions are plain, failures are named and the process
+ * exits non-zero, which is all CI would need.
  */
 import assert from "node:assert/strict";
 
@@ -59,6 +60,20 @@ import {
   screenHealth,
   seededUnit,
 } from "../src/pages/test-drive/domain/health.js";
+
+import { initialState, reducer } from "../src/pages/test-drive/state/reducer.js";
+import {
+  healthTick,
+  selectScreen,
+  simPause,
+  simPlay,
+  simSetSpeed,
+  simSetTime,
+  simTick,
+  toggleScreenOnline,
+  uiSetScheduleView,
+  uiSetWallView,
+} from "../src/pages/test-drive/state/actions.js";
 
 import { en } from "../src/pages/test-drive/i18n/en.js";
 import { hi } from "../src/pages/test-drive/i18n/hi.js";
@@ -952,6 +967,157 @@ test("i18n: en and hi key trees are still identical", () => {
   assert.equal(a.length, b.length);
 });
 
+// ------------------------------------------------- reducer (phase 4 cases) ----
+
+test("SELECT_SCREEN changes selection and ignores unknown ids", () => {
+  const next = reducer(initialState, selectScreen("s3"));
+  assert.equal(next.selectedScreenId, "s3");
+  assert.equal(
+    reducer(next, selectScreen("s99")),
+    next,
+    "an unknown id returns the same object"
+  );
+  assert.equal(reducer(next, selectScreen("s3")), next, "re-selecting is a no-op");
+});
+
+test("SELECT_SCREEN never marks anything dirty", () => {
+  const next = reducer(initialState, selectScreen("s4"));
+  assert.equal(next.save.status, "clean", "looking around is not an edit");
+  assert.deepEqual(next.save.dirtyScreens, []);
+  assert.equal(next.draft, initialState.draft, "draft untouched");
+  assert.equal(next.saved, initialState.saved, "saved untouched");
+});
+
+test("SIM_SET_TIME clamps, and scrubbing by hand pauses the clock", () => {
+  const playing = reducer(initialState, simPlay());
+  assert.equal(playing.sim.playing, true);
+  const scrubbed = reducer(playing, simSetTime(615));
+  assert.equal(scrubbed.sim.nowMin, 615);
+  assert.equal(scrubbed.sim.playing, false, "a manual scrub stops playback");
+  assert.equal(reducer(initialState, simSetTime(-10)).sim.nowMin, 0);
+  assert.equal(reducer(initialState, simSetTime(99999)).sim.nowMin, 1440);
+});
+
+test("SIM_TICK advances by speed and wraps at midnight", () => {
+  const s = { ...initialState, sim: { nowMin: 1400, playing: true, speed: 60 } };
+  assert.equal(reducer(s, simTick()).sim.nowMin, 20, "1400 + 60 wraps to 00:20");
+});
+
+test("SIM_PLAY / SIM_PAUSE are idempotent", () => {
+  const playing = reducer(initialState, simPlay());
+  assert.equal(reducer(playing, simPlay()), playing);
+  const paused = reducer(playing, simPause());
+  assert.equal(paused.sim.playing, false);
+  assert.equal(reducer(paused, simPause()), paused);
+});
+
+test("SIM_SET_SPEED rejects zero and nonsense", () => {
+  assert.equal(reducer(initialState, simSetSpeed(30)).sim.speed, 30);
+  assert.equal(reducer(initialState, simSetSpeed(0)), initialState);
+  assert.equal(reducer(initialState, simSetSpeed(-5)), initialState);
+  assert.equal(reducer(initialState, simSetSpeed("fast")), initialState);
+});
+
+test("HEALTH_TICK only bumps a counter, so figures are reproducible", () => {
+  const once = reducer(initialState, healthTick());
+  assert.equal(once.health.tick, 1);
+  assert.equal(reducer(once, healthTick()).health.tick, 2);
+  // The same tick must yield the same fleet figures, which is the whole point of
+  // storing a counter rather than the numbers.
+  const a = allScreenHealth(once.screens, once.sim.nowMin, once.health.tick);
+  const b = allScreenHealth(once.screens, once.sim.nowMin, once.health.tick);
+  assert.deepEqual(a, b);
+});
+
+test("TOGGLE_SCREEN_ONLINE writes both screens and saved.screens", () => {
+  const next = reducer(initialState, toggleScreenOnline("s2"));
+  assert.equal(next.screens.find((s) => s.id === "s2").online, false);
+  assert.equal(
+    next.saved.screens.find((s) => s.id === "s2").online,
+    false,
+    "previews resolve against saved.screens, so it must be written too"
+  );
+  assert.equal(next.screens.find((s) => s.id === "s1").online, true, "others untouched");
+  const back = reducer(next, toggleScreenOnline("s2"));
+  assert.equal(back.screens.find((s) => s.id === "s2").online, true, "it toggles");
+  assert.equal(reducer(initialState, toggleScreenOnline("s99")), initialState);
+});
+
+test("taking a screen offline changes what the wall resolves", () => {
+  const before = resolveScreen(
+    initialState.saved.byScreen,
+    initialState.saved.screens,
+    initialState.creativeInstances,
+    "s2",
+    780
+  );
+  assert.notEqual(before.kind, "offline");
+  const next = reducer(initialState, toggleScreenOnline("s2"));
+  const after = resolveScreen(
+    next.saved.byScreen,
+    next.saved.screens,
+    next.creativeInstances,
+    "s2",
+    780
+  );
+  assert.equal(after.kind, "offline");
+  assert.equal(after.reason, "play.reason.offline");
+});
+
+test("UI view actions validate their input", () => {
+  assert.equal(reducer(initialState, uiSetWallView("list")).ui.wallView, "list");
+  assert.equal(reducer(initialState, uiSetWallView("sideways")), initialState);
+  assert.equal(
+    reducer(initialState, uiSetScheduleView("timeline")).ui.scheduleView,
+    "timeline"
+  );
+  assert.equal(reducer(initialState, uiSetScheduleView("nope")), initialState);
+});
+
+test("the reducer never mutates the state it is given", () => {
+  const frozen = deepFreeze(JSON.parse(JSON.stringify(initialState)));
+  for (const action of [
+    selectScreen("s5"),
+    simSetTime(1000),
+    simPlay(),
+    simTick(),
+    simSetSpeed(10),
+    healthTick(),
+    toggleScreenOnline("s3"),
+    uiSetWallView("list"),
+    uiSetScheduleView("timeline"),
+  ]) {
+    reducer(frozen, action); // throws if any case writes in place
+  }
+  assert.equal(frozen.selectedScreenId, "s1");
+  assert.equal(frozen.sim.nowMin, 780);
+  assert.equal(frozen.health.tick, 0);
+});
+
+test("the default screen wall resolves to a sensible starting state", () => {
+  // Nothing is scheduled yet at intake, so every screen should say so rather than
+  // showing an invented creative.
+  const all = resolveAllScreens(
+    initialState.saved.byScreen,
+    initialState.saved.screens,
+    initialState.creativeInstances,
+    initialState.sim.nowMin
+  );
+  assert.equal(Object.keys(all).length, 5);
+  for (const [id, r] of Object.entries(all)) {
+    assert.equal(r.kind, "no-content", `${id} should be empty, not playing`);
+    assert.equal(r.reason, "play.reason.gap");
+  }
+  // And outside the default 09:00-21:00 window they are idle, not empty.
+  const night = resolveAllScreens(
+    initialState.saved.byScreen,
+    initialState.saved.screens,
+    initialState.creativeInstances,
+    120
+  );
+  for (const r of Object.values(night)) assert.equal(r.kind, "idle");
+});
+
 // ------------------------------------------------------------------ report ----
 
 for (const { name, err } of failures) {
@@ -959,7 +1125,7 @@ for (const { name, err } of failures) {
 }
 const total = passed + failures.length;
 console.log(
-  `\n${failures.length ? "FAILED" : "PASSED"}  ${passed}/${total} domain tests` +
+  `\n${failures.length ? "FAILED" : "PASSED"}  ${passed}/${total} test-drive tests` +
     (failures.length ? ` (${failures.length} failing)` : "")
 );
 process.exit(failures.length ? 1 : 0);

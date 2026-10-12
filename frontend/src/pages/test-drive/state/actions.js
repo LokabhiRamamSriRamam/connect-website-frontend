@@ -22,6 +22,9 @@ export const A = {
   SET_SCREEN_ROLE: "SET_SCREEN_ROLE",
   SET_MIRROR: "SET_MIRROR",
   CLEAR_MIRROR: "CLEAR_MIRROR",
+  // Simulated connectivity. Without a way to take a screen dark, the offline and
+  // primaryOffline playback states are unreachable in the UI.
+  TOGGLE_SCREEN_ONLINE: "TOGGLE_SCREEN_ONLINE",
 
   // ---- creatives (phase 5) ----
   CREATIVE_ADD: "CREATIVE_ADD",
@@ -66,6 +69,7 @@ export const A = {
   UI_OPEN_PANEL: "UI_OPEN_PANEL",
   UI_CLOSE_PANEL: "UI_CLOSE_PANEL",
   UI_SET_SCHEDULE_VIEW: "UI_SET_SCHEDULE_VIEW",
+  UI_SET_WALL_VIEW: "UI_SET_WALL_VIEW",
   UI_EDIT_SLOT: "UI_EDIT_SLOT",
   UI_TOAST: "UI_TOAST",
 
@@ -100,3 +104,40 @@ export const businessSubmitFail = (error = null) => ({
 
 /** Leave intake for the console. Independent of lead status, deliberately. */
 export const enterConsole = () => ({ type: A.ENTER_CONSOLE });
+
+// ---- creators: screens and simulation (phase 4) ----
+
+/** Focus a screen. Selection is navigation, not an edit — it never marks dirty. */
+export const selectScreen = (screenId) => ({ type: A.SELECT_SCREEN, screenId });
+
+/** Scrub the preview clock. `nowMin` is minutes since midnight. */
+export const simSetTime = (nowMin) => ({ type: A.SIM_SET_TIME, nowMin });
+
+export const simPlay = () => ({ type: A.SIM_PLAY });
+export const simPause = () => ({ type: A.SIM_PAUSE });
+
+/** One clock step. The interval lives in a component effect, not in state. */
+export const simTick = () => ({ type: A.SIM_TICK });
+
+/** Simulated minutes advanced per real second. */
+export const simSetSpeed = (speed) => ({ type: A.SIM_SET_SPEED, speed });
+
+/**
+ * Re-roll simulated health. Carries no figures: the reducer bumps a counter and
+ * domain/health.js derives everything from (screenId, tick), so the same tick
+ * always yields the same numbers and a rehydrate does not reshuffle them.
+ */
+export const healthTick = () => ({ type: A.HEALTH_TICK });
+
+/** Flip a screen's simulated connectivity — what makes the offline state reachable. */
+export const toggleScreenOnline = (screenId) => ({
+  type: A.TOGGLE_SCREEN_ONLINE,
+  screenId,
+});
+
+// ---- creators: ui (phase 4) ----
+
+export const uiSetScheduleView = (view) => ({ type: A.UI_SET_SCHEDULE_VIEW, view });
+
+/** "list" | "grid" — how the screen wall itself is laid out. */
+export const uiSetWallView = (view) => ({ type: A.UI_SET_WALL_VIEW, view });

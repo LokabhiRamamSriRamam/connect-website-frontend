@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { MotionConfig } from "framer-motion";
-import { I18nProvider, useI18n } from "./i18n/I18nContext.jsx";
+import { I18nProvider } from "./i18n/I18nContext.jsx";
 import { TestDriveProvider, useTd } from "./state/TestDriveContext.jsx";
 import TdShell from "./components/TdShell.jsx";
 import Welcome from "./components/Welcome.jsx";
 import IntakeForm from "./components/IntakeForm.jsx";
+import Console from "./components/Console.jsx";
 import "../../components/screenbazaar/sb.css";
 import "./td.css";
 
@@ -74,49 +75,6 @@ function TestDriveStages() {
   return (
     <TdShell showBadge>
       <IntakeForm onBack={() => setStarted(false)} />
-    </TdShell>
-  );
-}
-
-/**
- * PLACEHOLDER — the console stage.
- *
- * Phase 4 replaces this with ScreenWall plus the Control Panel. It stays in this
- * file for now so the intake handoff is reviewable; it moves to
- * components/Console.jsx when there is something to put in it.
- */
-function Console() {
-  const { t } = useI18n();
-  const { business, lead } = useTd();
-
-  return (
-    <TdShell showBadge>
-      <section className="mx-auto w-full max-w-2xl px-4 py-16 sm:px-6">
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-          {business.businessName
-            ? t("intro.arrival", { business: business.businessName })
-            : t("intro.arrivalGeneric")}
-        </h1>
-        <p className="mt-3 text-[15px] font-semibold leading-relaxed text-sb-slate">
-          {t("intro.reveal")}
-        </p>
-
-        {lead.status === "error" && (
-          <p
-            role="status"
-            className="mt-6 rounded-2xl border-2 border-sb-taupe bg-white px-4 py-3 text-[13px] font-bold text-sb-muted"
-          >
-            {t("intake.leadFailed")}
-          </p>
-        )}
-
-        <p
-          data-td-target="console-placeholder"
-          className="mt-8 rounded-2xl border-2 border-dashed border-sb-taupe bg-white px-5 py-4 text-sm font-bold text-sb-muted"
-        >
-          Screen wall arrives in phase 4.
-        </p>
-      </section>
     </TdShell>
   );
 }
