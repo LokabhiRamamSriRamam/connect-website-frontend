@@ -38,8 +38,14 @@ export const INDUSTRY_LEAD_LABEL = {
 export const DEFAULT_ACTIVE_HOURS = { start: 540, end: 1260 };
 
 /**
- * The five virtual screens. Labels are generated, not translated: "Screen 1" reads
- * the same in both languages and these are user-renameable later.
+ * The five virtual screens.
+ *
+ * `label` is a NON-TRANSLATED fallback, not what the UI shows. Display names are
+ * derived from the id at render by i18n's screenLabel(), per plan §2's rule that
+ * no translated string is ever stored: this object is persisted to localStorage,
+ * so a label written here would be frozen in whichever language created it and
+ * would not follow a language switch. It is kept only for a screen whose id is
+ * not the generated `s<n>` form, which is what a rename feature would produce.
  *
  * s1 is primary and the others start as independent primaries too — the tutorial
  * teaches mirroring by having the visitor create it, so nothing is pre-linked.

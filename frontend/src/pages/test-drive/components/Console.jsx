@@ -58,7 +58,15 @@ export default function Console() {
           </p>
         )}
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* grid-cols-[minmax(0,1fr)] on the base, not just at lg: an implicit grid
+            column is `auto`, which sizes to max-content, so below lg the single
+            column grew to the widest tile and pushed the whole wall off a 360px
+            screen. The minmax(0,…) floor is what lets it shrink. */}
+        {/* items-start: a grid row stretches its items by default, so the wall's
+            white panel was being pulled down to the control panel's height and
+            trailing ~460px of empty cream below the thumbnails. Each column should
+            size to its own content. */}
+        <div className="mt-5 grid grid-cols-[minmax(0,1fr)] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <ScreenWall />
 
           <aside className="flex flex-col gap-4">

@@ -1,4 +1,5 @@
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { screenLabel } from "../i18n/index.js";
 import { minutesToHHMM } from "../domain/time.js";
 import ScreenPreview from "./ScreenPreview.jsx";
 
@@ -49,14 +50,40 @@ export default function ScreenTile({
           : "border-sb-ink shadow-[3px_3px_0_#191919] hover:-translate-y-0.5"
       }`}
     >
-      <ScreenPreview
-        resolution={resolution}
-        scan={false}
-        className={compact ? "aspect-video w-full" : "aspect-video w-full"}
-      />
+      {/* In the grid the tile is narrow and the preview fills it, with the details
+          stacked below. In the list a tile spans the full column: an uncapped
+          aspect-video preview made each row ~517px tall and five of them turned
+          the "list" into a 3000px scroll — taller than the thumbnail view it is
+          meant to compress. So the list lays the row out horizontally, with a
+          capped preview beside the details rather than above them. */}
+      <div className={compact ? "" : "flex flex-wrap items-start gap-3"}>
+        <ScreenPreview
+          resolution={resolution}
+          scan={false}
+          /* w-32 at phone width, not w-40: the row also carries the health line
+             ("Uptime 98.7%"), which overflowed a 360px tile at the wider size.
+             flex-wrap on the row is the backstop if it still cannot fit. */
+          className={compact ? "aspect-video w-full" : "aspect-video w-32 shrink-0 sm:w-56"}
+        />
 
-      <div className="mt-2 flex items-start gap-2">
-        <div className="min-w-0 flex-1">
+        {/* The details: beside the preview in the list, below it in the grid. */}
+        <div className={compact ? "" : "min-w-0 flex-1"}>
+      {/* Compact tiles stack the label above the role badge. Side by side in a
+          5-up grid the badge is ~100px of a ~145px tile and, being shrink-0, it
+          squeezed the truncating label down to "N..". The screen's name is what
+          the visitor is picking from, so it gets the full width. */}
+      {/* The name and the role badge stack until there is room for both. Side by
+          side the badge is shrink-0 and ~100px wide, which in a 5-up grid tile
+          (~145px) and in a phone-width list row left the truncating name as
+          "Scre…". The screen's name is what the visitor is choosing between. */}
+      <div
+        className={`gap-2 ${
+          compact
+            ? "mt-2 flex flex-col items-start"
+            : "flex flex-col items-start sm:flex-row sm:items-start"
+        }`}
+      >
+        <div className="w-full min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {/* Connectivity, as colour AND text: colour alone would fail anyone
                 who cannot distinguish it. */}
@@ -66,7 +93,9 @@ export default function ScreenTile({
                 online ? "bg-sb-green" : "bg-sb-muted"
               }`}
             />
-            <span className="truncate text-[13px] font-extrabold">{screen.label}</span>
+            <span className="truncate text-[13px] font-extrabold">
+              {screenLabel(t, screen)}
+            </span>
             {/* This screen has edits the preview above does not yet show — which
                 is exactly the thing a visitor could otherwise misread as the save
                 having done nothing. save.dirtyScreens makes it per-screen for
@@ -104,7 +133,7 @@ export default function ScreenTile({
       )}
 
       {!compact && health && (
-        <dl className="mt-2 flex items-center gap-3 border-t-2 border-sb-mist pt-1.5 text-[10px] font-bold text-sb-muted">
+        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t-2 border-sb-mist pt-1.5 text-[10px] font-bold text-sb-muted">
           <div className="flex items-center gap-1">
             <dt>{t("health.connectivity")}</dt>
             <dd className="font-extrabold text-sb-ink">
@@ -127,6 +156,8 @@ export default function ScreenTile({
           )}
         </dl>
       )}
+        </div>
+      </div>
     </button>
   );
 }

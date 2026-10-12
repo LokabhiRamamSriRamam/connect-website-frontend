@@ -119,14 +119,18 @@ export default function CreativePicker({ onEdit }) {
           {t("library.addNew")}
         </h4>
 
+        {/* The template list is two up, like "yours" above. Eight single-column
+            cards each carrying a 16:9 preview ran the console past 2800px on
+            desktop and 3900px on a phone, burying the save bar and the schedule
+            under a long scroll of a tab that is merely the default. */}
         {shown.length === 0 ? (
           <p className="mt-2 text-[11px] font-bold text-sb-muted">{t("library.empty")}</p>
         ) : (
-          <ul className="mt-1.5 flex flex-col gap-2">
+          <ul className="mt-1.5 grid grid-cols-2 gap-2">
             {shown.map((tpl) => (
               <li
                 key={tpl.id}
-                className="overflow-hidden rounded-xl border-2 border-sb-ink bg-white shadow-[2px_2px_0_#191919]"
+                className="flex flex-col overflow-hidden rounded-xl border-2 border-sb-ink bg-white shadow-[2px_2px_0_#191919]"
               >
                 <div className="aspect-video w-full">
                   {/* Previewed with the manifest defaults — a template has no
@@ -137,15 +141,18 @@ export default function CreativePicker({ onEdit }) {
                     label={t(tpl.nameKey)}
                   />
                 </div>
-                <div className="p-2">
+                {/* flex-1 + mt-auto on the button keeps every "use" aligned along
+                    the bottom of the row, whatever length the description runs to
+                    in either language. */}
+                <div className="flex flex-1 flex-col p-2">
                   <p className="text-[12px] font-extrabold">{t(tpl.nameKey)}</p>
-                  <p className="mt-0.5 text-[10px] font-bold leading-snug text-sb-muted">
+                  <p className="mt-0.5 flex-1 text-[10px] font-bold leading-snug text-sb-muted">
                     {t(tpl.descKey)}
                   </p>
                   <button
                     type="button"
                     onClick={() => use(tpl)}
-                    className="td-tap mt-1.5 rounded-full border-2 border-sb-ink bg-sb-gradient px-3 py-1 text-[11px] font-extrabold text-white shadow-[2px_2px_0_#191919]"
+                    className="td-tap mt-2 self-start rounded-full border-2 border-sb-ink bg-sb-gradient px-3 py-1 text-[11px] font-extrabold text-white shadow-[2px_2px_0_#191919]"
                   >
                     {t("library.use")}
                   </button>

@@ -78,6 +78,11 @@ export const en = {
 
   screens: {
     title: "Your screens",
+    /* The display name of a screen, numbered from its id. Rendered through t(),
+       never stored: a label held in reducer state could not follow a language
+       switch, which left "Screen 1" sitting in English on an otherwise Hindi
+       console. */
+    label: "Screen {n}",
     select: "Select screen",
     listView: "List",
     gridView: "Thumbnails",
@@ -252,6 +257,12 @@ export const en = {
     endTime: "End time",
     duration: "Duration",
     creative: "Creative",
+    /* The slot editor's own strings. It used to borrow library.empty ("No
+       creatives match this filter") and library.use ("Use this creative") —
+       the first named a filter the editor does not have, and the second read as
+       a button rather than the "pick one" placeholder of a <select>. */
+    chooseCreative: "Choose a creative",
+    noCreativesYet: "Add a creative from the Content tab first.",
     empty: "Nothing scheduled yet. Add a time slot to get started.",
     gap: "Nothing scheduled",
     outsideHoursBadge: "Outside active hours",

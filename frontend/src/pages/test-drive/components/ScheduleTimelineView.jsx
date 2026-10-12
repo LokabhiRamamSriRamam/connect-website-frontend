@@ -154,14 +154,16 @@ export default function ScheduleTimelineView({ screenId }) {
 
         {/* Hour labels, outside the rail so they never overlap a block. Two sets,
             swapped by breakpoint: 9 labels collide below sm at 360px. */}
-        <div className="relative mt-1 h-3.5" aria-hidden="true">
+        <div className="td-hours relative mt-1 h-3.5" aria-hidden="true">
           {LABEL_HOURS_SM.map((hour) => (
             <span
               key={hour}
-              /* sm:block, not sm:inline — an absolutely positioned element is
-                 block-level, and `inline` would undo the positioning. */
+              /* td-hour-3 is hidden by a CONTAINER query in td.css: the deciding
+                 width is this rail's, not the viewport's — on desktop the panel
+                 is a ~290px column, so a `sm:` viewport breakpoint drew all nine
+                 labels into a narrow rail and the ends overlapped. */
               className={`absolute top-0 text-[9px] font-bold tabular-nums text-sb-muted ${
-                LABEL_HOURS_XS.includes(hour) ? "" : "hidden sm:block"
+                LABEL_HOURS_XS.includes(hour) ? "" : "td-hour-3"
               }`}
               /* The first and last labels are pulled inside the rail's ends so
                  they do not hang off the panel; the rest are centred on the mark. */

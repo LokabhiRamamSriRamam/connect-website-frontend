@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { screenLabel } from "../i18n/index.js";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
 import { clearMirror, setMirror } from "../state/actions.js";
 import { allFollowersOf, mirrorCandidates } from "../domain/mirroring.js";
@@ -38,7 +39,7 @@ export default function MirrorEditor({ screenId }) {
   const candidates = mirrorCandidates(screens, screenId);
   const followers = allFollowersOf(screens, screenId);
 
-  const labelFor = (id) => screens.find((s) => s.id === id)?.label ?? "";
+  const labelFor = (id) => screenLabel(t, screens.find((s) => s.id === id));
 
   /**
    * Fresh slot ids for the schedule a promoted screen inherits. Generated here,
@@ -90,7 +91,7 @@ export default function MirrorEditor({ screenId }) {
               <option value="">{t("screens.select")}</option>
               {candidates.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.label}
+                  {screenLabel(t, s)}
                 </option>
               ))}
             </select>
@@ -123,7 +124,7 @@ export default function MirrorEditor({ screenId }) {
                 <option value="">{t("screens.select")}</option>
                 {candidates.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.label}
+                    {screenLabel(t, s)}
                   </option>
                 ))}
               </select>

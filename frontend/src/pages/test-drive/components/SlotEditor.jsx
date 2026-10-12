@@ -55,7 +55,7 @@ export default function SlotEditor({ screenId, slotId, onClose }) {
   /** A slot's creative, named by its own headline — what the visitor typed. */
   const labelFor = (slot) => {
     const inst = creativeInstances[slot?.instanceId];
-    if (!inst) return t("library.empty");
+    if (!inst) return t("schedule.chooseCreative");
     const tpl = getTemplate(inst.templateId);
     return inst.fields.headline || (tpl ? t(tpl.nameKey) : "");
   };
@@ -160,14 +160,16 @@ export default function SlotEditor({ screenId, slotId, onClose }) {
       <label className="mt-2 block">
         <span className="text-[11px] font-extrabold">{t("schedule.creative")}</span>
         {instances.length === 0 ? (
-          <p className="mt-1 text-[11px] font-bold text-sb-muted">{t("library.empty")}</p>
+          <p className="mt-1 text-[11px] font-bold text-sb-muted">
+            {t("schedule.noCreativesYet")}
+          </p>
         ) : (
           <select
             value={form.instanceId ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, instanceId: e.target.value || null }))}
             className="td-tap mt-1 w-full rounded-xl border-2 border-sb-ink bg-white px-2.5 py-1.5 text-[13px] font-bold"
           >
-            <option value="">{t("library.use")}</option>
+            <option value="">{t("schedule.chooseCreative")}</option>
             {instances.map((inst) => (
               <option key={inst.id} value={inst.id}>
                 {labelFor(inst)}

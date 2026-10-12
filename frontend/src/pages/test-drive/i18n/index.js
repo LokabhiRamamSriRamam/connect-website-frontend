@@ -48,6 +48,23 @@ export function createT(lang) {
   };
 }
 
+/**
+ * A screen's display name, derived from its id ("s3" -> "Screen 3" / "स्क्रीन 3").
+ *
+ * Derived at render rather than stored, per plan §2: a label written into reducer
+ * state is frozen in whichever language created it, and it is persisted, so a
+ * language switch left "Screen 1" in English on an otherwise Hindi console. The id
+ * is the stable identity; the name is presentation.
+ *
+ * Falls back to the stored `label` for a screen whose id is not the generated
+ * `s<n>` form, which is what a future rename feature would produce.
+ */
+export function screenLabel(t, screen) {
+  if (!screen) return "";
+  const m = /^s(\d+)$/.exec(screen.id ?? "");
+  return m ? t("screens.label", { n: m[1] }) : screen.label ?? "";
+}
+
 /** Every dotted leaf path in a dictionary — used by the parity check. */
 export function flattenKeys(obj, prefix = "") {
   const out = [];

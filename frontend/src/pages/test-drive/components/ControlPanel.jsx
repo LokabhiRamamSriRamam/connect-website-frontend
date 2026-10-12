@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { screenLabel } from "../i18n/index.js";
 import { useTd } from "../state/TestDriveContext.jsx";
 import CreativePicker from "./CreativePicker.jsx";
 import CreativeEditor from "./CreativeEditor.jsx";
@@ -44,7 +45,7 @@ export function SecondaryNotice({ screen }) {
       className="rounded-xl border-2 border-sb-taupe bg-white px-3 py-2 text-[12px] font-bold leading-relaxed text-sb-muted"
     >
       {primary
-        ? t("screens.secondaryNotice", { screen: primary.label })
+        ? t("screens.secondaryNotice", { screen: screenLabel(t, primary) })
         : t("play.reason.unknownScreen")}
     </p>
   );
@@ -80,7 +81,7 @@ export default function ControlPanel() {
         {/* Which screen this panel is acting on. Without it, a panel beside five
             screens is ambiguous — and every edit below is scoped to this one. */}
         <span className="text-[11px] font-bold text-sb-iris">
-          {t("panel.forScreen", { screen: screen?.label ?? "" })}
+          {t("panel.forScreen", { screen: screenLabel(t, screen) })}
         </span>
       </header>
 
@@ -100,7 +101,10 @@ export default function ControlPanel() {
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
-            className={`td-tap flex-none whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold transition-colors ${
+            /* scroll-mx gives a tab a little clearance from the rounded ends when
+               the browser scrolls it into view on focus, so the selected tab is
+               never flush against the clipped edge. */
+            className={`td-tap flex-none scroll-mx-3 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold transition-colors ${
               tab === id
                 ? "bg-sb-gradient text-white shadow-[2px_2px_0_#191919]"
                 : "text-sb-ink hover:bg-sb-lilac"

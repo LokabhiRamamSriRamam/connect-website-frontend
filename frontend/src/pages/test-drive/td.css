@@ -56,6 +56,27 @@
   overflow: hidden;
 }
 
+/* Hour labels thin out by the width of the RAIL, not of the viewport.
+   A `sm:` breakpoint asks the wrong question here: the timeline lives in the
+   control panel, which is a ~290px column on a 1280px desktop, so the viewport
+   was wide while the rail was narrow and all nine 3-hourly labels were drawn
+   into it — "00:00" ran into "03:00" and "21:00" into "24:00" at both ends,
+   where the first and last are pulled inward. Below 360px of rail only the
+   6-hourly set is shown. */
+.td-hours {
+  container-type: inline-size;
+}
+@container (max-width: 359px) {
+  .td-hour-3 {
+    display: none;
+  }
+}
+@container (min-width: 360px) {
+  .td-hour-3 {
+    display: block;
+  }
+}
+
 .td-gridline {
   position: absolute;
   top: 0;

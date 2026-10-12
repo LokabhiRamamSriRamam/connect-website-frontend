@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { screenLabel } from "../i18n/index.js";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
 import { selectScreen, uiSetWallView } from "../state/actions.js";
 import { resolveAllScreens } from "../domain/playback.js";
@@ -45,9 +46,9 @@ export default function ScreenWall() {
   const selected = saved.screens.find((s) => s.id === selectedScreenId) ?? saved.screens[0];
   const selectedResolution = resolutions[selected?.id];
 
-  /** Screen labels are generated, so resolve a mirror target to its real label. */
+  /** Screen names are derived from the id at render, so they follow the language. */
   const labelFor = (screenId) =>
-    saved.screens.find((s) => s.id === screenId)?.label ?? "";
+    screenLabel(t, saved.screens.find((s) => s.id === screenId));
 
   const grid = ui.wallView === "grid";
 
@@ -89,11 +90,17 @@ export default function ScreenWall() {
       </header>
 
       {/* The selected screen, large. Placed above the wall on mobile so that
-          tapping a tile shows its effect without scrolling. */}
+          tapping a tile shows its effect without scrolling.
+
+          Width-capped on the CARD rather than on the preview inside it. Uncapped,
+          aspect-video made this a ~450px-tall hero on a wide column that read as
+          "one big screen" and pushed the five tiles out of view; capping only the
+          preview instead left empty white gutters either side of it, which reads
+          as a rendering fault rather than a deliberate size. */}
       {selected && (
-        <div className="mt-3 rounded-2xl border-2 border-sb-ink bg-white p-3 shadow-[4px_4px_0_#191919]">
+        <div className="mt-3 w-full max-w-[520px] rounded-2xl border-2 border-sb-ink bg-white p-3 shadow-[4px_4px_0_#191919]">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-extrabold">{selected.label}</h3>
+            <h3 className="text-sm font-extrabold">{screenLabel(t, selected)}</h3>
             <span className="rounded-full border-2 border-sb-ink bg-sb-lilac px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide">
               {t("sim.virtualScreen")}
             </span>

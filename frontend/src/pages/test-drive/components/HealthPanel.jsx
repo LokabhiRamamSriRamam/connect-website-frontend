@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { RefreshCw } from "lucide-react";
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { screenLabel } from "../i18n/index.js";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
 import { healthTick, toggleScreenOnline } from "../state/actions.js";
 import { allScreenHealth, healthSummary } from "../domain/health.js";
@@ -126,7 +127,9 @@ export default function HealthPanel({ screenId }) {
                   online ? "bg-sb-green" : "bg-sb-muted"
                 }`}
               />
-              <span className="min-w-0 flex-1 truncate text-[11px] font-bold">{s.label}</span>
+              <span className="min-w-0 flex-1 truncate text-[11px] font-bold">
+                {screenLabel(t, s)}
+              </span>
               <span className="shrink-0 text-[10px] font-bold tabular-nums text-sb-muted">
                 {entry ? `${entry.uptimePct.toFixed(1)}%` : ""}
               </span>

@@ -83,6 +83,7 @@ export const hi = {
 
   screens: {
     title: "आपकी स्क्रीन",
+    label: "स्क्रीन {n}",
     select: "स्क्रीन चुनें",
     listView: "लिस्ट",
     gridView: "थंबनेल",
@@ -253,6 +254,8 @@ export const hi = {
     endTime: "खत्म होने का समय",
     duration: "अवधि",
     creative: "क्रिएटिव",
+    chooseCreative: "एक क्रिएटिव चुनें",
+    noCreativesYet: "पहले कंटेंट टैब से एक क्रिएटिव जोड़ें।",
     empty: "अभी कुछ शेड्यूल नहीं है। शुरू करने के लिए एक टाइम स्लॉट जोड़ें।",
     gap: "कुछ शेड्यूल नहीं है",
     outsideHoursBadge: "एक्टिव घंटों के बाहर",

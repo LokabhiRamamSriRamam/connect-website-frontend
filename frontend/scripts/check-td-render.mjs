@@ -383,11 +383,15 @@ check("23 gridlines, and hour labels at both densities", () => {
   for (const label of ["00:00", "06:00", "12:00", "18:00", "24:00"]) {
     assert.ok(html.includes(`>${label}<`), `${label} is always shown`);
   }
-  // The 3-hourly ones exist but are hidden below sm, where 9 labels collide.
+  // The 3-hourly ones exist but are suppressed on a narrow RAIL, where 9 labels
+  // collide. The deciding width is the rail's own, not the viewport's: the panel
+  // is a ~290px column even on a wide desktop, so this is a container query in
+  // td.css (.td-hour-3) rather than a `sm:` viewport breakpoint.
   for (const label of ["03:00", "09:00", "15:00", "21:00"]) {
     assert.ok(html.includes(`>${label}<`), `${label} is rendered`);
   }
-  assert.ok(html.includes("hidden sm:block"), "and suppressed at phone width");
+  assert.ok(html.includes("td-hours"), "the label row is a query container");
+  assert.ok(html.includes("td-hour-3"), "and the 3-hourly labels are the ones it drops");
 });
 
 // The single-source-of-truth claim, from the other side.

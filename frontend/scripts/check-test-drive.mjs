@@ -491,6 +491,30 @@ check("td.css keeps the 44px minimum tap target", () => {
   assert.equal(/min-width/.test(slotRule[1]), false, ".td-slot must not pad its own width");
 });
 
+check("the timeline's hour labels thin out by rail width, not viewport", () => {
+  /**
+   * The panel is a ~290px column even on a 1280px desktop, so a `sm:` viewport
+   * breakpoint drew all nine 3-hourly labels into a narrow rail and the ends
+   * overlapped ("00:0003:00"). The container query is what makes the decision
+   * track the rail, and it only works if BOTH halves are present: the container
+   * declaration here and the .td-hour-3 class on the labels in the view.
+   */
+  assert.match(TD_CSS, /\.td-hours\s*\{[^}]*container-type:\s*inline-size/, "a query container");
+  assert.match(TD_CSS, /@container[^{]*\{\s*\.td-hour-3\s*\{[^}]*display:\s*none/, "that hides the 3-hourly labels when narrow");
+
+  const view = readFileSync(
+    join(here, "..", "src", "pages", "test-drive", "components", "ScheduleTimelineView.jsx"),
+    "utf8"
+  );
+  assert.match(view, /td-hours/, "the label row opens the container");
+  assert.match(view, /td-hour-3/, "and the 3-hourly labels carry the class");
+  assert.equal(
+    /hidden sm:block/.test(view),
+    false,
+    "the viewport breakpoint it replaced must not come back"
+  );
+});
+
 check("td.css respects safe areas on a full-bleed surface", () => {
   assert.match(TD_CSS, /env\(safe-area-inset-left\)/);
   assert.match(TD_CSS, /env\(safe-area-inset-bottom\)/, "sticky bars clear the home indicator");

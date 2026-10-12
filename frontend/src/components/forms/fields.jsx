@@ -52,9 +52,13 @@ export function Field({ id, label, optional, error, shakeKey, children }) {
         {optional && <span className="text-[10px] font-bold normal-case tracking-normal text-sb-muted">{typeof optional === "string" ? optional : "optional"}</span>}
       </label>
       {children}
+      {/* items-start, not items-center: a message that wraps to two lines would
+          otherwise centre the icon against the whole block instead of against the
+          first line. shrink-0 stops the flex row squashing the icon to an ellipse
+          when the text is long. Both show up on the narrow phone/email columns. */}
       {error && (
-        <p key={shakeKey} id={`${id}-err`} className="sb-shake mt-1.5 flex items-center gap-1.5 font-manrope text-sm font-bold text-red-600">
-          <AlertCircle size={14} /> {error}
+        <p key={shakeKey} id={`${id}-err`} className="sb-shake mt-1.5 flex items-start gap-1.5 font-manrope text-sm font-bold text-red-600">
+          <AlertCircle size={14} className="mt-[3px] shrink-0" aria-hidden="true" /> {error}
         </p>
       )}
     </div>
