@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { I18nProvider } from "./i18n/I18nContext.jsx";
 import { AudioProvider } from "./audio/AudioContext.jsx";
@@ -72,6 +72,23 @@ function TestDriveStages() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [started, step]);
+
+  /**
+   * RESTART returns the reducer to initialState, including step: "intake" — but
+   * `started` is local to this component and survives it, which would drop the
+   * visitor on the empty intake form instead of the welcome they expect.
+   *
+   * The signal is the step going BACKWARDS, from console to intake. Nothing else
+   * does that: intake moves forward via ENTER_CONSOLE and never returns, so a
+   * console-to-intake transition is a restart by definition. Watching the
+   * business name go blank instead would have misfired on anyone who cleared the
+   * field while filling the form in.
+   */
+  const prevStep = useRef(step);
+  useEffect(() => {
+    if (prevStep.current === "console" && step === "intake") setStarted(false);
+    prevStep.current = step;
+  }, [step]);
 
   if (step === "console") return <Console />;
 

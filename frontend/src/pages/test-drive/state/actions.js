@@ -228,6 +228,20 @@ export const tutSetMode = (mode) => ({ type: A.TUT_SET_MODE, mode });
 /** Open contextual help for a mission, or null to close it. */
 export const tutOpenHelp = (missionId) => ({ type: A.TUT_OPEN_HELP, missionId });
 
+// ---- creators: session (phase 11) ----
+
+/**
+ * Restore a previous visit. `patch` is whatever persistence.load() returned —
+ * the reducer hands it straight to the validating merge rather than trusting it.
+ */
+export const hydrateState = (patch) => ({ type: A.HYDRATE, patch });
+
+/**
+ * Start over. The reducer returns initialState; clearing the two storage keys
+ * and stopping the narration are side effects and stay with the caller.
+ */
+export const restart = () => ({ type: A.RESTART });
+
 // ---- creators: ui (phase 4) ----
 
 export const uiSetScheduleView = (view) => ({ type: A.UI_SET_SCHEDULE_VIEW, view });

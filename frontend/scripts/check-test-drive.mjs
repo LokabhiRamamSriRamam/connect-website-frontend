@@ -381,6 +381,152 @@ check("each library offers more than one kind of layout", () => {
   }
 });
 
+// ------------------------------------------------------------------- css ----
+
+const TD_CSS_RAW = readFileSync(
+  join(here, "..", "src", "pages", "test-drive", "td.css"),
+  "utf8"
+);
+
+/**
+ * The stylesheet with comments stripped.
+ *
+ * The checks below parse selectors with regexes, and prose inside a CSS comment
+ * contains commas, braces and em dashes that read as CSS to a regex. Stripping
+ * first is cheaper and more honest than making every pattern comment-aware.
+ */
+const TD_CSS = TD_CSS_RAW.replace(/\/\*[\s\S]*?\*\//g, "");
+
+/**
+ * Split a stylesheet into { selector, declarations } pairs.
+ *
+ * By splitting on `}` rather than matching rules with a regex: an anchored
+ * pattern like /(?:^|\})\s*([^{}]+)\{([^}]*)\}/ consumes the closing brace it
+ * anchored on, so with non-overlapping matches every SECOND rule is skipped —
+ * which is how `.td-playhead, .td-spotlight { transition: none }` read as
+ * unguarded while sitting plainly inside the guard block.
+ */
+function rules(css) {
+  const out = [];
+  for (const chunk of css.split("}")) {
+    const i = chunk.indexOf("{");
+    if (i === -1) continue;
+    const selector = chunk.slice(0, i).trim();
+    if (!selector) continue;
+    out.push({ selector, declarations: chunk.slice(i + 1) });
+  }
+  return out;
+}
+
+check("every animation in td.css has a reduced-motion guard", () => {
+  /**
+   * The plan's §14.6 discipline, asserted rather than eyeballed. A new animation
+   * added without a guard is invisible in review and only shows up as motion
+   * sickness for someone who asked the OS not to animate things.
+   *
+   * The guard block is matched first, then every `animation:` and `transition:`
+   * rule outside it must name a class the block disables.
+   */
+  const guardMatch = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/.exec(
+    TD_CSS
+  );
+  assert.ok(guardMatch, "td.css has a prefers-reduced-motion block");
+  const guard = guardMatch[1];
+  const body = TD_CSS.slice(0, guardMatch.index);
+
+  // Classes the guard switches off, read from its selectors for the same reason.
+  const guarded = new Set();
+  for (const { selector } of rules(guard)) {
+    for (const cls of selector.matchAll(/\.([a-z0-9-]+)/g)) guarded.add(cls[1]);
+  }
+  assert.ok(guarded.size > 0, "the guard block disables something");
+
+  /**
+   * Every rule outside the guard that animates or transitions.
+   *
+   * The selector is taken from the start of a rule — after a `}` or the top of
+   * the file — rather than by searching for a dot anywhere. Matching `\.[a-z0-9-]+`
+   * loosely picks up the `35` in `opacity: 0.35`, which then reads as an
+   * unguarded class named "35".
+   */
+  const animating = [];
+  for (const { selector, declarations } of rules(body)) {
+    if (!/(^|[\s;])(animation|transition):/.test(declarations)) continue;
+    for (const cls of selector.matchAll(/\.([a-z0-9-]+)/g)) animating.push(cls[1]);
+  }
+  assert.ok(animating.length > 0, "there are animations to guard");
+
+  const unguarded = [...new Set(animating)].filter((cls) => !guarded.has(cls));
+  assert.deepEqual(unguarded, [], "animated classes with no reduced-motion guard");
+});
+
+check("td.css does not reach outside the test drive", () => {
+  /**
+   * sb.css is shared by 9 industry pages and 6 blogs, so test-drive CSS lives
+   * here instead — but only if it stays scoped. A bare element or a generic
+   * class here would leak onto every page that imports this file.
+   */
+  const selectors = [];
+  for (const { selector } of rules(TD_CSS)) {
+    for (const sel of selector.split(",")) {
+      const trimmed = sel.trim();
+      // Skip keyframe steps (0%, from, 50%), at-rules and empty matches.
+      if (!trimmed || /^(from|to|[\d.]+%)$/.test(trimmed) || trimmed.startsWith("@")) continue;
+      selectors.push(trimmed);
+    }
+  }
+  assert.ok(selectors.length > 0, "selectors were found");
+  const unscoped = selectors.filter((sel) => !/(^|\s|\()\.td-/.test(sel));
+  assert.deepEqual(unscoped, [], "selectors not scoped to a .td- class");
+});
+
+check("td.css keeps the 44px minimum tap target", () => {
+  // The mobile requirement, and easy to lose to a well-meaning tidy-up.
+  assert.match(TD_CSS, /\.td-tap::after[\s\S]*?min-width:\s*44px/, "the .td-tap target");
+  assert.match(TD_CSS, /\.td-slot::before[\s\S]*?width:\s*44px/, "and the timeline slot's");
+  // The slot block must NOT get a minimum width of its own: that would make the
+  // rail lie about a short slot's duration.
+  const slotRule = /\.td-slot\s*\{([^}]*)\}/.exec(TD_CSS);
+  assert.ok(slotRule, ".td-slot exists");
+  assert.equal(/min-width/.test(slotRule[1]), false, ".td-slot must not pad its own width");
+});
+
+check("td.css respects safe areas on a full-bleed surface", () => {
+  assert.match(TD_CSS, /env\(safe-area-inset-left\)/);
+  assert.match(TD_CSS, /env\(safe-area-inset-bottom\)/, "sticky bars clear the home indicator");
+});
+
+// -------------------------------------------------------------- storage ----
+
+check("the persisted projections carry no contact details", () => {
+  /**
+   * The PII split is the plan's §11 privacy decision, and it is one grep away
+   * from being undone by someone adding a field to selectProgress. Asserted on
+   * the source rather than on a value, so it catches the key being added before
+   * anyone populates it.
+   */
+  const src = readFileSync(
+    join(here, "..", "src", "pages", "test-drive", "state", "persistence.js"),
+    "utf8"
+  );
+  const progress = /export function selectProgress\(state\) \{([\s\S]*?)\n\}/.exec(src);
+  assert.ok(progress, "selectProgress is there to check");
+  for (const field of ["phone", "email"]) {
+    assert.equal(
+      new RegExp(`state\\.business\\.${field}`).test(progress[1]),
+      false,
+      `selectProgress reads business.${field} — that belongs in sessionStorage`
+    );
+  }
+  // `ui` is never persisted, and `sim.playing` never restored.
+  assert.equal(/state\.ui/.test(progress[1]), false, "ui must not be persisted");
+  assert.equal(
+    /playing/.test(progress[1]),
+    false,
+    "sim.playing must not be persisted — a clock running on load reads as a bug"
+  );
+});
+
 // ---------------------------------------------------------------- report ----
 
 for (const { name, err } of failures) {

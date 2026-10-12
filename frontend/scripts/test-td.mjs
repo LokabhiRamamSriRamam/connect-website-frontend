@@ -110,7 +110,15 @@ import {
   tutSetMode,
   tutSkipAll,
   tutSkipIntro,
+  hydrateState,
+  restart,
 } from "../src/pages/test-drive/state/actions.js";
+
+import {
+  hydrate,
+  selectProgress,
+  selectSession,
+} from "../src/pages/test-drive/state/persistence.js";
 
 import * as engine from "../src/pages/test-drive/audio/engine.js";
 import { CUES, CUE_IDS, cuePath } from "../src/pages/test-drive/audio/manifest.js";
@@ -2816,6 +2824,315 @@ register("the tutorial cases never mutate frozen state", () => {
   assert.deepEqual(frozen.tutorial.completed, []);
   assert.equal(frozen.tutorial.missionIndex, 0);
   assert.equal(frozen.tutorial.mode, "guided");
+});
+
+// --------------------------------------------- persistence (phase 11) ----
+
+/** A state worth persisting: mid-edit, part-saved, part-way through the tutorial. */
+function midSession() {
+  let s = reducer(initialState, businessField("businessName", "Ganga Dhaba"));
+  s = reducer(s, businessField("industry", "cafe"));
+  s = reducer(s, businessField("phone", "+91 98765 43210"));
+  s = reducer(s, businessField("email", "owner@ganga.example"));
+  s = reducer(s, businessField("name", "Asha"));
+  s = reducer(s, businessSubmitOk("lead_42"));
+  s = reducer(s, enterConsole());
+  s = reducer(s, selectScreen("s3"));
+  s = reducer(s, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
+  s = reducer(s, slotAdd("s3", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = reducer(s, saveSuccess(1700000000000));
+  s = reducer(s, saveAppliedSettle());
+  // Unsaved work on top, so draft and saved genuinely differ.
+  s = reducer(s, slotAdd("s3", { id: "sl_2", startMin: 720, endMin: 900, instanceId: "ci_a" }));
+  s = reducer(s, setMirror("s4", "s3"));
+  s = reducer(s, tutComplete("m1"));
+  s = reducer(s, tutAdvance(6));
+  s = reducer(s, healthTick());
+  s = reducer(s, uiSetScheduleView("timeline"));
+  s = reducer(s, uiEditSlot("sl_2"));
+  return s;
+}
+
+/** Round-trip a state the way the browser would: select, serialise, merge back. */
+function roundTrip(state) {
+  const patch = {
+    progress: JSON.parse(JSON.stringify(selectProgress(state))),
+    contact: JSON.parse(JSON.stringify(selectSession(state))),
+  };
+  return hydrate(initialState, patch);
+}
+
+register("persistence: the PII split keeps contact details out of localStorage", () => {
+  const s = midSession();
+  const progress = JSON.stringify(selectProgress(s));
+
+  // Phone, email and the contact name must not appear in the localStorage blob
+  // at all — that is the entire reason for the two-store split.
+  for (const secret of ["+91 98765 43210", "owner@ganga.example", "Asha"]) {
+    assert.equal(progress.includes(secret), false, `${secret} leaked into td.progress`);
+  }
+  // The trading name DOES belong there: it is printed on every creative, and
+  // losing it would leave the previews saying someone else's name.
+  assert.ok(progress.includes("Ganga Dhaba"), "the trading name is kept");
+
+  // And the session store holds exactly the PII and the lead id.
+  const session = selectSession(s);
+  assert.deepEqual(Object.keys(session).sort(), [
+    "email",
+    "leadId",
+    "leadStatus",
+    "name",
+    "phone",
+  ]);
+  assert.equal(session.phone, "+91 98765 43210");
+  assert.equal(session.leadId, "lead_42");
+});
+
+register("persistence: a refresh mid-flow restores the work", () => {
+  const before = midSession();
+  const after = roundTrip(before);
+
+  assert.equal(after.step, "console", "straight back into the console");
+  assert.equal(after.business.businessName, "Ganga Dhaba");
+  assert.equal(after.business.industry, "cafe");
+  assert.equal(after.business.phone, "+91 98765 43210", "from sessionStorage");
+  assert.equal(after.lead.id, "lead_42");
+  assert.equal(after.selectedScreenId, "s3", "selection survives");
+  assert.deepEqual(
+    after.draft.byScreen.s3.slots.map((x) => x.id),
+    ["sl_1", "sl_2"],
+    "draft edits survive"
+  );
+  assert.equal(after.saved.byScreen.s3.slots.length, 1, "and saved is still its own thing");
+  assert.equal(after.savedAt, 1700000000000);
+  assert.equal(after.screens.find((x) => x.id === "s4").mirrors, "s3", "role edits survive");
+  assert.deepEqual(after.tutorial.completed, ["m1"], "tutorial progress survives");
+  assert.equal(after.tutorial.missionIndex, 1);
+  assert.equal(after.creativeInstances.ci_a.fields.headline, "Lunch");
+  assert.equal(after.health.tick, 1, "so the health figures do not reshuffle");
+});
+
+register("persistence: tutorial progress survives a refresh", () => {
+  /**
+   * Predicates over events is what makes this work — but with one wrinkle this
+   * test exists to pin down.
+   *
+   * `ui` is deliberately not persisted (plan §11), and m1 asks for a wall-view
+   * switch, which lives in ui.wallView. So after a refresh m1's PREDICATE is
+   * false again even though the visitor plainly did it. The durable record is
+   * `completed`, which TUT_COMPLETE appends to and which IS persisted — and
+   * TutorialContext reads both, so Continue does not re-lock on a mission
+   * already finished.
+   */
+  let s = reducer(initialState, selectScreen("s2"));
+  s = reducer(s, uiSetWallView("list"));
+  s = reducer(s, healthTick());
+  s = reducer(s, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = reducer(s, setMirror("s2", "s1"));
+  s = reducer(s, toggleScreenOnline("s3"));
+  s = reducer(s, saveSuccess(1));
+  // As TutorialProvider's effect would, once each predicate turned true.
+  for (const m of MISSIONS) {
+    assert.equal(m.isComplete(s), true, `${m.id} should be satisfied`);
+    s = reducer(s, tutComplete(m.id));
+  }
+
+  const restored = roundTrip(s);
+  assert.deepEqual(
+    restored.tutorial.completed,
+    MISSIONS.map((m) => m.id),
+    "every mission is still recorded as done"
+  );
+
+  // Five of the six re-evaluate true off persisted state alone. m1 is the
+  // exception, and the reason the `completed` record is load-bearing.
+  for (const m of MISSIONS) {
+    const live = m.isComplete(restored);
+    if (m.id === "m1") {
+      assert.equal(live, false, "m1's predicate reads ui, which is not persisted");
+    } else {
+      assert.equal(live, true, `${m.id} re-evaluates true from persisted state`);
+    }
+    assert.ok(
+      live || restored.tutorial.completed.includes(m.id),
+      `${m.id} is done by neither route`
+    );
+  }
+});
+
+register("persistence: ui and sim.playing are NEVER restored", () => {
+  let s = midSession();
+  s = reducer(s, simPlay());
+  assert.equal(s.sim.playing, true);
+  assert.equal(s.ui.editingSlotId, "sl_2");
+  assert.equal(s.ui.scheduleView, "timeline");
+
+  const after = roundTrip(s);
+  // A clock running on page load, before the visitor has touched anything,
+  // reads as a bug rather than as a restored session.
+  assert.equal(after.sim.playing, false, "the clock does not restart itself");
+  assert.equal(after.sim.nowMin, s.sim.nowMin, "but the time it was at is kept");
+  // ui is absent from selectProgress entirely, so there is nothing to ignore.
+  assert.equal(after.ui.editingSlotId, null, "no sheet reopens");
+  assert.equal(after.ui.scheduleView, initialState.ui.scheduleView);
+  assert.equal(after.ui.toast, null);
+  assert.equal("ui" in selectProgress(s), false, "ui is not even selected");
+});
+
+register("persistence: an in-flight save settles to an honest resting state", () => {
+  // "saving" and "applied" are owned by a timer that did not survive the
+  // refresh. Restoring either leaves the chip spinning forever or claiming an
+  // apply that is not happening.
+  for (const status of ["saving", "applied"]) {
+    const s = { ...midSession(), save: { status, error: null, dirtyScreens: ["s3"] } };
+    const after = roundTrip(s);
+    assert.equal(after.save.status, "dirty", `${status} must not be restored as-is`);
+    assert.deepEqual(after.save.dirtyScreens, ["s3"], "and the work is still unsaved");
+  }
+  // A settled status comes back unchanged.
+  for (const status of ["clean", "dirty", "saved", "error"]) {
+    const s = { ...midSession(), save: { status, error: "boom", dirtyScreens: [] } };
+    const after = roundTrip(s);
+    assert.equal(after.save.status, status);
+    assert.equal(after.save.error, null, "but a previous visit's error is not this visit's");
+  }
+});
+
+register("persistence: a lead left 'sending' comes back idle", () => {
+  const s = { ...midSession(), lead: { status: "sending", id: null, error: "x" } };
+  const after = roundTrip(s);
+  assert.equal(after.lead.status, "idle", "nothing is in flight any more");
+  assert.equal(after.lead.error, null);
+});
+
+register("persistence: HYDRATE merges key by key, never a top-level spread", () => {
+  /**
+   * The plan calls this out and it is the right call. A spread would accept any
+   * garbage the stored shape happened to contain, and would silently keep a key
+   * a later version removed.
+   */
+  const hostile = {
+    progress: {
+      step: "nonsense",
+      savedAt: "not a number",
+      business: { businessName: 42, industry: null, phone: "LEAKED", email: "LEAKED" },
+      screens: [{ id: "oops" }],
+      selectedScreenId: "s99",
+      sim: { nowMin: "noon", speed: null, playing: true },
+      health: { tick: "lots" },
+      tutorial: { missionIndex: "two", completed: "m1", mode: "wizard", helpOpenFor: "m3" },
+      save: { status: 7, dirtyScreens: "s1" },
+      // A key from an imaginary future shape.
+      somethingNew: { nested: true },
+    },
+    contact: null,
+  };
+  const after = hydrate(initialState, hostile);
+
+  assert.equal(after.step, "intake", "an unknown step is refused");
+  assert.equal(after.savedAt, null, "as is a non-numeric timestamp");
+  assert.equal(after.business.businessName, "42", "coerced, not trusted");
+  assert.equal(after.business.industry, "");
+  // phone and email are NOT in the progress projection, so a hand-edited
+  // localStorage cannot inject them.
+  assert.equal(after.business.phone, "", "progress cannot carry PII back in");
+  assert.equal(after.business.email, "");
+  assert.deepEqual(after.screens, initialState.screens, "a wrong-shaped fleet is refused");
+  assert.equal(after.selectedScreenId, "s1", "an unknown screen id is refused");
+  assert.equal(after.sim.nowMin, initialState.sim.nowMin);
+  assert.equal(after.sim.playing, false);
+  assert.equal(after.health.tick, 0);
+  assert.equal(after.tutorial.missionIndex, 0);
+  assert.deepEqual(after.tutorial.completed, []);
+  assert.equal(after.tutorial.mode, "guided");
+  assert.equal(after.tutorial.helpOpenFor, null);
+  assert.deepEqual(after.save.dirtyScreens, []);
+  assert.equal("somethingNew" in after, false, "an unknown key cannot sneak in");
+  // And the shape is still exactly the shape.
+  assert.deepEqual(Object.keys(after).sort(), Object.keys(initialState).sort());
+});
+
+register("persistence: a four-screen fleet from an older build is refused", () => {
+  // Accepting it would break every screens.find() in the feature.
+  const patch = {
+    progress: { ...selectProgress(midSession()), screens: [{ id: "s1" }, { id: "s2" }] },
+    contact: null,
+  };
+  const after = hydrate(initialState, patch);
+  assert.equal(after.screens.length, 5);
+  assert.deepEqual(after.screens, initialState.screens);
+});
+
+register("persistence: hydrate merges onto the CURRENT state, not initialState", () => {
+  // It is dispatched from an effect, so one frame renders first. Anything typed
+  // into that frame must survive.
+  const typed = reducer(initialState, businessField("businessName", "Typed First"));
+  const patch = { progress: null, contact: { phone: "+91 11111 11111" } };
+  const after = hydrate(typed, patch);
+  assert.equal(after.business.businessName, "Typed First", "the live value is kept");
+  assert.equal(after.business.phone, "+91 11111 11111", "and the stored one lands");
+});
+
+register("persistence: HYDRATE with no patch is a no-op", () => {
+  assert.equal(reducer(initialState, hydrateState(null)), initialState);
+  assert.equal(hydrate(initialState, null), initialState);
+  assert.equal(hydrate(initialState, { progress: null, contact: null }), initialState);
+});
+
+register("persistence: nothing in the persisted shape is unserialisable", () => {
+  // Storage is JSON. A Date, a Map or a function anywhere in the projection
+  // would survive selectProgress and vanish on the way back.
+  const s = midSession();
+  const progress = selectProgress(s);
+  assert.deepEqual(JSON.parse(JSON.stringify(progress)), progress);
+  const session = selectSession(s);
+  assert.deepEqual(JSON.parse(JSON.stringify(session)), session);
+});
+
+register("persistence: selectProgress does not alias the state it reads", () => {
+  // It is serialised asynchronously, after a debounce. If it aliased live
+  // arrays, an edit landing inside that window would be written as though it
+  // had already happened — and on a failed write, half-written.
+  const s = midSession();
+  const progress = selectProgress(s);
+  const json = JSON.stringify(progress);
+  // A later edit must not change what was selected.
+  reducer(s, slotRemove("s3", "sl_1"));
+  assert.equal(JSON.stringify(selectProgress(s)), json, "the source state is untouched");
+});
+
+register("RESTART returns a pristine state and keeps nothing", () => {
+  const s = midSession();
+  const after = reducer(s, restart());
+
+  assert.equal(after.step, "intake");
+  assert.equal(after.business.businessName, "");
+  assert.equal(after.business.phone, "", "the PII is gone from memory too");
+  assert.equal(after.business.email, "");
+  assert.equal(after.lead.id, null);
+  assert.deepEqual(after.draft.byScreen.s3.slots, []);
+  assert.deepEqual(after.saved.byScreen.s3.slots, []);
+  assert.deepEqual(after.creativeInstances, {});
+  assert.deepEqual(after.tutorial.completed, []);
+  assert.equal(after.tutorial.missionIndex, 0);
+  assert.equal(after.savedAt, null);
+  assert.equal(after.screens.find((x) => x.id === "s4").mirrors, null);
+  assert.equal(after.health.tick, 0);
+  // Deep-equal to a pristine state, with nothing left behind anywhere.
+  assert.deepEqual(after, initialState);
+  assert.equal(JSON.stringify(after).includes("Ganga"), false, "no trace of the session");
+});
+
+register("persistence: the session and progress cases never mutate frozen state", () => {
+  const frozen = deepFreeze(JSON.parse(JSON.stringify(midSession())));
+  // selectProgress / selectSession read, and hydrate merges — none may write.
+  selectProgress(frozen);
+  selectSession(frozen);
+  hydrate(frozen, { progress: selectProgress(frozen), contact: selectSession(frozen) });
+  reducer(frozen, restart());
+  reducer(frozen, hydrateState({ progress: null, contact: { phone: "x" } }));
+  assert.equal(frozen.business.businessName, "Ganga Dhaba", "untouched");
 });
 
 // ------------------------------------------------------------------ report ----

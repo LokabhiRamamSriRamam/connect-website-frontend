@@ -58,6 +58,8 @@ import CompletionCard from "../src/pages/test-drive/tutorial/CompletionCard.jsx"
 import Spotlight from "../src/pages/test-drive/tutorial/Spotlight.jsx";
 import { MISSIONS, helpCueFor } from "../src/pages/test-drive/tutorial/missions.js";
 import CreativePicker from "../src/pages/test-drive/components/CreativePicker.jsx";
+import RestartDialog from "../src/pages/test-drive/components/RestartDialog.jsx";
+import { selectProgress } from "../src/pages/test-drive/state/persistence.js";
 import CreativeFrame from "../src/pages/test-drive/creatives/CreativeFrame.jsx";
 import {
   allCreatives,
@@ -734,20 +736,22 @@ check("the field editor has a label for every field all 16 declare", () => {
  * the card is a presentation component over them, which is what makes it
  * checkable at all without a browser.
  */
-function renderCard(state, tutorialValue, audioValue = {}) {
-  const audio = {
-    status: "idle",
-    cueId: null,
-    muted: false,
-    unavailable: false,
-    resumable: false,
-    play: () => {},
-    replay: () => {},
-    pause: () => {},
-    stop: () => {},
-    toggleMute: () => {},
-    ...audioValue,
-  };
+/** The default audio context value: nothing playing, nothing broken. */
+const idleAudio = () => ({
+  status: "idle",
+  cueId: null,
+  muted: false,
+  unavailable: false,
+  resumable: false,
+  play: () => {},
+  replay: () => {},
+  pause: () => {},
+  stop: () => {},
+  toggleMute: () => {},
+});
+
+/** Mount a node that needs the simulator AND the audio context. */
+function renderWithAudio(node, state, audioValue = {}) {
   return renderToStaticMarkup(
     h(
       I18nProvider,
@@ -758,14 +762,18 @@ function renderCard(state, tutorialValue, audioValue = {}) {
         h(
           DispatchCtx.Provider,
           { value: () => {} },
-          h(
-            AudioCtx.Provider,
-            { value: audio },
-            h(TutorialCtx.Provider, { value: tutorialValue }, h(MissionCard))
-          )
+          h(AudioCtx.Provider, { value: { ...idleAudio(), ...audioValue } }, node)
         )
       )
     )
+  );
+}
+
+function renderCard(state, tutorialValue, audioValue = {}) {
+  return renderWithAudio(
+    h(TutorialCtx.Provider, { value: tutorialValue }, h(MissionCard)),
+    state,
+    audioValue
   );
 }
 
@@ -976,6 +984,65 @@ check("the spotlight renders nothing on the server", () => {
   // ring at 0,0 is what keeps it from flashing in the corner on first paint.
   const html = renderToStaticMarkup(h(Spotlight, { target: "screen-wall" }));
   assert.equal(html, "");
+});
+
+// ---- restart and persistence (phase 11) ----
+
+check("the restart button is offered but the dialog is shut", () => {
+  // RestartDialog stops the narration as well as clearing storage, so it needs
+  // the audio context — hence renderWithAudio rather than the bare harness.
+  const html = renderWithAudio(h(RestartDialog, null), populated());
+  assert.ok(html.includes('data-td-target="restart"'), "the control is there");
+  assert.ok(html.includes(tEsc("tutorial.restart")));
+  /**
+   * The confirm is a portal and closed by default, so none of its copy should be
+   * in the markup yet. Asserted on the BODY and the title, not on
+   * restart.confirm — that one is "Restart", which is a substring of the
+   * button's own "Restart test drive" and would fail for the wrong reason.
+   */
+  assert.ok(!html.includes(tEsc("restart.body")), "the dialog is not open");
+  assert.ok(!html.includes(tEsc("restart.title")));
+  assert.ok(!html.includes('role="dialog"'));
+});
+
+check("the restart confirm names what is lost", () => {
+  // "Are you sure?" is not good enough for ten minutes of someone's work.
+  const body = t("restart.body");
+  for (const thing of ["business details", "schedules", "tutorial progress"]) {
+    assert.ok(body.includes(thing), `the copy should mention ${thing}`);
+  }
+  // And the Hindi says something, rather than falling back.
+  assert.notEqual(createT("hi")("restart.body"), "restart.body");
+});
+
+check("a mission already done stays unlocked after a refresh", () => {
+  /**
+   * m1 asks for a wall-view switch, which lives in ui.wallView — and `ui` is
+   * deliberately never persisted. So its predicate reads false after a refresh.
+   * The card must still show it as done, off the persisted `completed` record,
+   * or Continue re-locks and the visitor is asked to do it twice.
+   */
+  const restored = { ...populated(), tutorial: { ...populated().tutorial, completed: ["m1"] } };
+  assert.equal(MISSIONS[0].isComplete(restored), false, "the live predicate is false");
+
+  const value = { ...tutorialOn(0), completed: ["m1"], currentComplete: true };
+  const html = renderCard(restored, value);
+  assert.ok(html.includes(tEsc("tutorial.done")), "it still reads as done");
+  assert.ok(
+    !/<button[^>]*data-td-target="mission-next"[^>]*\sdisabled(\s|=|>)/.test(html),
+    "and Continue is not re-locked"
+  );
+});
+
+check("the persisted projection excludes ui and sim.playing", () => {
+  // Asserted here as well as in check:td, because this is the one that would
+  // notice a component reaching into persistence and widening the projection.
+  const progress = selectProgress(populated());
+  assert.equal("ui" in progress, false);
+  assert.equal("playing" in progress.sim, false);
+  assert.equal("phone" in progress.business, false, "no PII in localStorage");
+  assert.equal("email" in progress.business, false);
+  assert.ok("businessName" in progress.business, "but the trading name is kept");
 });
 
 // ---- Hindi ----

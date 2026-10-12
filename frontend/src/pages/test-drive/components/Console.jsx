@@ -5,6 +5,7 @@ import ScreenWall from "./ScreenWall.jsx";
 import SimClock from "./SimClock.jsx";
 import ControlPanel from "./ControlPanel.jsx";
 import SaveBar from "./SaveBar.jsx";
+import RestartDialog from "./RestartDialog.jsx";
 import MissionCard from "../tutorial/MissionCard.jsx";
 import CompletionCard from "../tutorial/CompletionCard.jsx";
 import { useTutorial } from "../tutorial/TutorialContext.jsx";
@@ -37,9 +38,16 @@ export default function Console() {
             ? t("intro.arrival", { business: business.businessName })
             : t("intro.arrivalGeneric")}
         </h1>
-        <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-sb-slate">
-          {t("intro.control")}
-        </p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-3">
+          <p className="text-[14px] font-semibold leading-relaxed text-sb-slate">
+            {t("intro.control")}
+          </p>
+          {/* Destructive, and behind a confirm that names what is lost. Up here
+              rather than in the save bar, so it is nowhere near Save. */}
+          <span className="ml-auto">
+            <RestartDialog />
+          </span>
+        </div>
 
         {lead.status === "error" && (
           <p

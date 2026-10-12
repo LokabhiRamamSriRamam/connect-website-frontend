@@ -20,6 +20,7 @@ import { advanceClock } from "../domain/health.js";
 import { getTemplate } from "../creatives/registry.js";
 import { validateActiveHours, validateSlot } from "../domain/schedule.js";
 import { canMirror } from "../domain/mirroring.js";
+import { hydrate } from "./persistence.js";
 
 export { initialState };
 
@@ -703,6 +704,32 @@ export function reducer(state, action) {
       if (state.ui.scheduleView === action.view) return state;
       return { ...state, ui: { ...state.ui, scheduleView: action.view } };
     }
+
+    // ---- session (phase 11) ----
+
+    case A.HYDRATE:
+      /**
+       * Restore a previous visit. The merge itself lives in persistence.js,
+       * which validates every branch against the shape it expects, because the
+       * input is JSON out of browser storage and can be anything.
+       *
+       * Merged onto the CURRENT state rather than onto initialState, so a
+       * hydrate that arrives after the first render (it is dispatched from an
+       * effect) cannot throw away whatever the visitor has already typed.
+       */
+      return hydrate(state, action.patch);
+
+    case A.RESTART:
+      /**
+       * Back to the beginning, keeping nothing.
+       *
+       * initialState is returned by identity rather than reconstructed, which is
+       * safe because no case mutates it — a property the frozen-state tests
+       * check on every case. Clearing the two storage keys and stopping the
+       * narration are the caller's job: both are side effects and neither
+       * belongs in a reducer.
+       */
+      return initialState;
 
     default:
       if (import.meta.env?.DEV) {

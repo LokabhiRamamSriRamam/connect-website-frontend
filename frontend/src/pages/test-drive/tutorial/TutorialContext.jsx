@@ -74,7 +74,20 @@ export function TutorialProvider({ children }) {
     if (!audio.muted) audio.play(mission.cueId);
   }, [guided, mission?.cueId, audio]);
 
-  const currentComplete = mission ? Boolean(completionMap[mission.id]) : false;
+  /**
+   * Done means done — either the predicate says so NOW, or it said so earlier
+   * and `completed` recorded it.
+   *
+   * The second half matters because `ui` is deliberately not persisted (plan
+   * §11). m1 asks for a wall-view switch, which lives in ui.wallView, so after
+   * a refresh its predicate is false again even though the visitor plainly did
+   * it. Reading only the live predicate would re-lock Continue on a mission
+   * already finished and ask them to do it twice. `completed` is append-only and
+   * persisted, which is exactly the durable record this needs.
+   */
+  const currentComplete = mission
+    ? Boolean(completionMap[mission.id]) || completed.includes(mission.id)
+    : false;
   const isLast = missionIndex >= MISSION_COUNT - 1;
 
   /**
