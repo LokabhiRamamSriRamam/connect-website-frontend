@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { ArrowRight, Loader2, AlertCircle, RotateCcw } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, MonitorPlay, RotateCcw } from "lucide-react";
 import TopNav from "../components/TopNav";
 import SBFooter from "../components/screenbazaar/SBFooter";
 import { Squiggle, Sparkle, Blob, Burst } from "../components/screenbazaar/Decor";
@@ -601,6 +601,26 @@ export default function GetInTouch() {
                     </motion.li>
                   ))}
                 </ol>
+              </div>
+
+              {/* Below the form on purpose: for someone who scrolled past without
+                  sending, this is a second chance, not a competing CTA. */}
+              <div className="mt-12 border-t-2 border-dashed border-sb-line pt-10 text-center">
+                <p className="font-manrope text-lg font-extrabold text-sb-ink">
+                  Not ready to talk yet?
+                </p>
+                <p className="mx-auto mt-2 max-w-md font-manrope text-base font-semibold text-sb-slate">
+                  Take a test drive instead — schedule content across five screens yourself and see
+                  how it works. No signup, about two minutes.
+                </p>
+                <a
+                  href="/test-drive"
+                  className="group mt-6 inline-flex items-center gap-2.5 rounded-full border-2 border-sb-ink bg-white px-7 py-3.5 font-manrope text-base font-extrabold text-sb-ink shadow-[4px_4px_0_#191919] transition-transform hover:-translate-y-0.5"
+                >
+                  <MonitorPlay size={18} className="text-sb-violet" />
+                  Take a test drive
+                  <ArrowRight className="transition-transform group-hover:translate-x-1" size={18} />
+                </a>
               </div>
             </div>
           </section>

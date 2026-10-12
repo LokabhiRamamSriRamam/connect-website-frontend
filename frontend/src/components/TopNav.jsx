@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, Menu, MonitorPlay, X } from "lucide-react";
 import { ScreenBazaarMark } from "./screenbazaar/ScreenBazaarLogo";
 import { INDUSTRIES, industryPath } from "./screenbazaar/content";
 
@@ -126,6 +126,9 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
             <a href="/blogs" className="block rounded-xl px-3 py-3 font-bold hover:bg-sb-lavender">
               Blogs
             </a>
+            <a href="/test-drive" className="flex items-center gap-2 rounded-xl px-3 py-3 font-bold text-sb-violet hover:bg-sb-lavender">
+              <MonitorPlay size={17} /> Test Drive
+            </a>
           </div>
         )}
       </div>
@@ -160,6 +163,10 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
 
           <a href="/blogs" className="hover:opacity-80">
             Blogs
+          </a>
+
+          <a href="/test-drive" className="flex items-center gap-1.5 text-sb-violet hover:opacity-80">
+            <MonitorPlay size={16} /> Test Drive
           </a>
 
           <div className="relative" {...hoverProps("Others")}>

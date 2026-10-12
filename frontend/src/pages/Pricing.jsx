@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, LayoutGrid, MapPin, Minus, Monitor, Plus } from "lucide-react";
+import { ArrowRight, Check, LayoutGrid, MapPin, Minus, Monitor, MonitorPlay, Plus } from "lucide-react";
 import SignageChrome from "./signage/SignageChrome";
 import { Blob, Sparkle, Squiggle, StickerBadge, Ticker } from "../components/screenbazaar/Decor";
 import { IconCarefree, IconOneTime, IconTransparent, IconWarranty, QuotePreview } from "../components/pricing/art";
@@ -229,6 +229,16 @@ function Hero() {
               What changes the price?
             </a>
           </div>
+
+          {/* Someone weighing cost wants to know what they are buying. */}
+          <a
+            href="/test-drive"
+            className="group mt-5 inline-flex items-center gap-2 font-extrabold text-sb-ink underline decoration-sb-violet decoration-2 underline-offset-4 transition-colors hover:text-sb-violet"
+          >
+            <MonitorPlay size={18} className="text-sb-violet" />
+            See what you get — try five screens free
+            <ArrowRight className="transition-transform group-hover:translate-x-1" size={16} />
+          </a>
 
           <ul className="mt-8 flex flex-wrap justify-center gap-2 text-xs font-extrabold text-sb-slate lg:justify-start">
             {["One-time pricing", "Display screen included", "12-month warranty"].map((t) => (

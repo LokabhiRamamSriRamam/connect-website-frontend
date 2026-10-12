@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MonitorPlay } from "lucide-react";
 import { Burst, Sparkle, ScreenSticker } from "./Decor";
 
 export default function FinalCTA() {
@@ -27,15 +27,29 @@ export default function FinalCTA() {
         <p className="relative mx-auto mt-5 max-w-xl font-manrope text-lg font-semibold text-white/85">
           Your business needs a screen. Get one. Connect it. Put it to work.
         </p>
-        <motion.a
-          href="/get-in-touch"
-          whileHover={{ scale: 1.05, rotate: 1 }}
-          whileTap={{ scale: 0.97 }}
-          className="group relative mt-10 inline-flex items-center gap-3 rounded-full border-2 border-sb-ink bg-sb-gold px-9 py-4 font-manrope text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
-        >
-          Get Started
-          <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
-        </motion.a>
+        <div className="relative mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <motion.a
+            href="/get-in-touch"
+            whileHover={{ scale: 1.05, rotate: 1 }}
+            whileTap={{ scale: 0.97 }}
+            className="group inline-flex items-center gap-3 rounded-full border-2 border-sb-ink bg-sb-gold px-9 py-4 font-manrope text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
+          >
+            Get Started
+            <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+          </motion.a>
+          <motion.a
+            href="/test-drive"
+            whileHover={{ scale: 1.05, rotate: -1 }}
+            whileTap={{ scale: 0.97 }}
+            className="group inline-flex items-center gap-3 rounded-full border-2 border-sb-ink bg-white/10 px-9 py-4 font-manrope text-lg font-extrabold text-white backdrop-blur transition-colors hover:bg-white hover:text-sb-ink"
+          >
+            <MonitorPlay size={20} />
+            Take a test drive
+          </motion.a>
+        </div>
+        <p className="relative mt-4 font-manrope text-sm font-semibold text-white/70">
+          Try five screens yourself — no signup, takes two minutes.
+        </p>
       </motion.div>
     </section>
   );

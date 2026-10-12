@@ -38,6 +38,7 @@ export default function SBFooter() {
           <ul className="mt-4 space-y-2 text-sm text-white/75">
             <li><a href="/pricing" className="hover:text-white">Pricing</a></li>
             <li><a href="/blogs" className="hover:text-white">Blogs</a></li>
+            <li><a href="/test-drive" className="hover:text-white">Test Drive</a></li>
             <li><a href="/get-in-touch" className="hover:text-white">Contact us</a></li>
             {OTHER_PRODUCTS.map((p) => (
               <li key={p.name}>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, Clock3, Wifi } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock3, MonitorPlay, Wifi } from "lucide-react";
 import { Squiggle, Sparkle, StickerBadge, DoodleArrow, ScreenSticker, Blob } from "./Decor";
 
 const CHIPS = [
@@ -81,6 +81,17 @@ export default function Hero() {
               <DoodleArrow className="h-14 w-20" flip />
               <span className="mt-8 -rotate-6 font-manrope text-sm font-extrabold text-sb-violet">psst… it&apos;s that easy</span>
             </div>
+
+            {/* Deliberately a text link, not a second button: the paid CTA above
+                should stay the only thing competing for the eye. */}
+            <a
+              href="/test-drive"
+              className="group mt-5 inline-flex items-center gap-2 font-manrope text-base font-extrabold text-sb-ink underline decoration-sb-violet decoration-2 underline-offset-4 transition-colors hover:text-sb-violet"
+            >
+              <MonitorPlay size={18} className="text-sb-violet" />
+              Or try it yourself — no signup
+              <ArrowRight className="transition-transform group-hover:translate-x-1" size={16} />
+            </a>
           </div>
         </div>
 
