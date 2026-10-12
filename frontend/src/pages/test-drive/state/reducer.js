@@ -19,6 +19,7 @@ import { clampMinute } from "../domain/time.js";
 import { advanceClock } from "../domain/health.js";
 import { getTemplate } from "../creatives/registry.js";
 import { validateActiveHours, validateSlot } from "../domain/schedule.js";
+import { canMirror } from "../domain/mirroring.js";
 
 export { initialState };
 
@@ -158,6 +159,133 @@ export function reducer(state, action) {
         screens: flip(state.screens),
         saved: { ...state.saved, screens: flip(state.saved.screens) },
       };
+    }
+
+    // ---- role and mirroring (phase 8) ----
+
+    case A.SET_SCREEN_ROLE: {
+      const screen = state.screens.find((s) => s.id === action.screenId);
+      if (!screen) return state;
+      const role = action.role === "secondary" ? "secondary" : "primary";
+      if (screen.role === role && (role === "primary" ? !screen.mirrors : true)) {
+        return state;
+      }
+
+      if (role === "primary") {
+        /**
+         * PROMOTING a secondary.
+         *
+         * It starts with a COPY of the primary's schedule rather than its own
+         * stored one. A secondary's own activeHours and slots are unreachable
+         * while it mirrors — resolveScreen deliberately ignores them — so after
+         * a long mirroring session they are stale defaults the visitor has never
+         * seen. Handing them back would make promotion look like it wiped the
+         * schedule. Copying what was actually on the glass makes promotion
+         * continuous: the screen keeps showing what it was showing, and is now
+         * editable.
+         *
+         * The copy is deep, or the two screens would share a slots array and
+         * editing the new primary would silently edit the old one.
+         */
+        const sourceId = screen.mirrors;
+        const sourceCfg = sourceId ? state.draft.byScreen[sourceId] : null;
+        const screens = state.screens.map((s) =>
+          s.id === action.screenId ? { ...s, role: "primary", mirrors: null } : s
+        );
+
+        let next = { ...state, screens };
+        if (sourceCfg) {
+          next = {
+            ...next,
+            draft: {
+              ...next.draft,
+              byScreen: {
+                ...next.draft.byScreen,
+                [action.screenId]: {
+                  activeHours: { ...sourceCfg.activeHours },
+                  // Slot ids must be regenerated, so the caller passes them in —
+                  // two screens sharing a slot id would make SLOT_UPDATE on one
+                  // ambiguous. A reducer cannot mint them and stay pure.
+                  slots: sourceCfg.slots.map((slot, i) => ({
+                    ...slot,
+                    id: action.slotIds?.[i] ?? `${slot.id}_${action.screenId}`,
+                  })),
+                },
+              },
+            },
+          };
+        }
+        return markDirty(next, action.screenId);
+      }
+
+      /**
+       * DEMOTING a primary to secondary without naming a target.
+       *
+       * Left as mirrors: null, which resolveChain reports as a broken link rather
+       * than silently falling back to its own schedule — "secondary pointing
+       * nowhere" is a real state the UI must show, not paper over. The MirrorEditor
+       * dispatches SET_MIRROR straight after, so the broken state is momentary in
+       * practice; it is representable because hydrated data could be in it.
+       *
+       * The screen's own slots are left in the draft untouched. They are
+       * unreachable while it mirrors, and keeping them costs nothing — whereas
+       * clearing them would throw away work if the visitor demotes by accident.
+       */
+      return markDirty(
+        {
+          ...state,
+          screens: state.screens.map((s) =>
+            s.id === action.screenId
+              ? { ...s, role: "secondary", mirrors: action.mirrors ?? null }
+              : s
+          ),
+        },
+        action.screenId
+      );
+    }
+
+    case A.SET_MIRROR: {
+      // canMirror rejects a self-mirror and anything that would close a loop,
+      // which is what keeps resolveChain's own cycle detection from ever firing
+      // on data this reducer produced.
+      const check = canMirror(state.screens, action.screenId, action.targetId);
+      if (!check.ok) {
+        return {
+          ...state,
+          ui: { ...state.ui, toast: { key: check.reason, vars: null, tone: "warn" } },
+        };
+      }
+      const screen = state.screens.find((s) => s.id === action.screenId);
+      if (screen.role === "secondary" && screen.mirrors === action.targetId) return state;
+
+      return markDirty(
+        {
+          ...state,
+          screens: state.screens.map((s) =>
+            s.id === action.screenId
+              ? { ...s, role: "secondary", mirrors: action.targetId }
+              : s
+          ),
+          ui: { ...state.ui, toast: null },
+        },
+        action.screenId
+      );
+    }
+
+    case A.CLEAR_MIRROR: {
+      const screen = state.screens.find((s) => s.id === action.screenId);
+      if (!screen || screen.role !== "secondary") return state;
+      /**
+       * Unlinking is promotion by another name, so it routes through the same
+       * case rather than duplicating the schedule-copy logic — one path means the
+       * schedule can only be inherited one way.
+       */
+      return reducer(state, {
+        type: A.SET_SCREEN_ROLE,
+        screenId: action.screenId,
+        role: "primary",
+        slotIds: action.slotIds,
+      });
     }
 
     case A.SIM_SET_TIME: {

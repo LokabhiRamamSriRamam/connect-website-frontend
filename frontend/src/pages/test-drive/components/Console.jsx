@@ -1,6 +1,5 @@
 import { useI18n } from "../i18n/I18nContext.jsx";
-import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
-import { toggleScreenOnline } from "../state/actions.js";
+import { useTd } from "../state/TestDriveContext.jsx";
 import TdShell from "./TdShell.jsx";
 import ScreenWall from "./ScreenWall.jsx";
 import SimClock from "./SimClock.jsx";
@@ -20,8 +19,7 @@ import SaveBar from "./SaveBar.jsx";
  */
 export default function Console() {
   const { t } = useI18n();
-  const { business, lead, saved } = useTd();
-  const dispatch = useTdDispatch();
+  const { business, lead } = useTd();
 
   return (
     <TdShell showBadge>
@@ -50,52 +48,12 @@ export default function Console() {
           <aside className="flex flex-col gap-4">
             <SimClock />
 
-            {/* Content, schedule and active hours. Role and health join it as
-                further tabs in phase 8. */}
+            {/* Content, schedule, active hours, role and health. The
+                connectivity toggles that used to sit here are now the fleet list
+                inside the panel's health tab, which is where someone looking for
+                a dropped screen would go. */}
             <ControlPanel />
 
-            {/*
-              Simulated connectivity.
-              Without a way to take a display dark, the offline and primaryOffline
-              playback states cannot be reached from the UI at all, which would
-              make two of the five renderings unverifiable in a browser. It also
-              sets up the health mission in phase 8, which asks the visitor to
-              notice a screen that has dropped.
-            */}
-            <section
-              data-td-target="connectivity"
-              aria-label={t("health.connectivity")}
-              className="rounded-2xl border-2 border-sb-ink bg-white p-3 shadow-[3px_3px_0_#191919]"
-            >
-              <h2 className="text-[11px] font-extrabold uppercase tracking-wider text-sb-muted">
-                {t("health.connectivity")}
-              </h2>
-              <ul className="mt-2 flex flex-col gap-1.5">
-                {saved.screens.map((screen) => {
-                  const online = screen.online !== false;
-                  return (
-                    <li key={screen.id} className="flex items-center gap-2">
-                      <span className="flex-1 truncate text-[12px] font-bold">
-                        {screen.label}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => dispatch(toggleScreenOnline(screen.id))}
-                        aria-pressed={online}
-                        className={`td-tap rounded-full border-2 border-sb-ink px-2.5 py-0.5 text-[10px] font-extrabold ${
-                          online ? "bg-sb-green/20 text-sb-ink" : "bg-sb-sand text-sb-muted"
-                        }`}
-                      >
-                        {online ? t("screens.online") : t("screens.offline")}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              <p className="mt-2 text-[10px] font-bold text-sb-muted">
-                {t("health.disclaimer")}
-              </p>
-            </section>
           </aside>
         </div>
 

@@ -261,6 +261,7 @@ export const en = {
     uptime: "Uptime",
     currentContent: "Current content",
     none: "None",
+    refresh: "Re-check",
   },
 
   save: {

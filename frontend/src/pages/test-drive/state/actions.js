@@ -135,6 +135,39 @@ export const toggleScreenOnline = (screenId) => ({
   screenId,
 });
 
+// ---- creators: role and mirroring (phase 8) ----
+
+/**
+ * Promote to primary or demote to secondary.
+ *
+ * `slotIds` is a list of fresh slot ids, generated at the call site, used when
+ * promoting: the new primary inherits a COPY of what it was mirroring, and two
+ * screens must not share a slot id or SLOT_UPDATE on one would be ambiguous. The
+ * reducer cannot mint them and stay pure, so the caller supplies as many as the
+ * source has slots.
+ */
+export const setScreenRole = (screenId, role, options = {}) => ({
+  type: A.SET_SCREEN_ROLE,
+  screenId,
+  role,
+  mirrors: options.mirrors ?? null,
+  slotIds: options.slotIds ?? null,
+});
+
+/** Point a screen at a primary. Rejected, with a toast, if it would make a loop. */
+export const setMirror = (screenId, targetId) => ({
+  type: A.SET_MIRROR,
+  screenId,
+  targetId,
+});
+
+/** Unlink a secondary — promotion by another name, and the same code path. */
+export const clearMirror = (screenId, slotIds = null) => ({
+  type: A.CLEAR_MIRROR,
+  screenId,
+  slotIds,
+});
+
 // ---- creators: creatives (phase 5) ----
 
 /**

@@ -264,6 +264,7 @@ export const hi = {
     uptime: "अपटाइम",
     currentContent: "मौजूदा कंटेंट",
     none: "कुछ नहीं",
+    refresh: "दोबारा जाँचें",
   },
 
   save: {

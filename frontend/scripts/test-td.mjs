@@ -97,6 +97,9 @@ import {
   slotsClear,
   uiEditSlot,
   uiToast,
+  clearMirror,
+  setMirror,
+  setScreenRole,
 } from "../src/pages/test-drive/state/actions.js";
 
 import { en } from "../src/pages/test-drive/i18n/en.js";
@@ -1896,6 +1899,356 @@ test("findGaps describes exactly what the rail hatches", () => {
     findGaps([{ id: "c", startMin: 540, endMin: 1260, instanceId: "ci", enabled: true }], hours),
     []
   );
+});
+
+// ------------------------- reducer: role and mirroring (phase 8) ----
+
+/** Link b -> a, so b mirrors a. */
+function mirror(state, b, a) {
+  return reducer(state, setMirror(b, a));
+}
+
+test("SET_MIRROR links a secondary and marks only that screen dirty", () => {
+  const next = mirror(initialState, "s2", "s1");
+  const s2 = next.screens.find((s) => s.id === "s2");
+  assert.equal(s2.role, "secondary");
+  assert.equal(s2.mirrors, "s1");
+  assert.deepEqual(next.save.dirtyScreens, ["s2"], "the follower changed, not the primary");
+  assert.equal(
+    next.screens.find((s) => s.id === "s1").role,
+    "primary",
+    "the primary is untouched"
+  );
+  assert.equal(mirror(next, "s2", "s1"), next, "re-linking the same pair is a no-op");
+});
+
+// The two blocked shapes from the plan's acceptance line.
+test("a screen cannot mirror ITSELF", () => {
+  const next = mirror(initialState, "s2", "s2");
+  assert.equal(next.screens.find((s) => s.id === "s2").role, "primary", "nothing changed");
+  assert.equal(next.save.status, "clean", "and it is not an edit");
+  assert.equal(next.ui.toast.key, "screens.cannotMirrorSelf", "it says why");
+  assertKey(next.ui.toast.key);
+});
+
+test("A -> B -> A is blocked", () => {
+  const linked = mirror(initialState, "s2", "s1"); // s2 mirrors s1
+  const cycle = mirror(linked, "s1", "s2"); // s1 would mirror s2
+  assert.equal(
+    cycle.screens.find((s) => s.id === "s1").role,
+    "primary",
+    "the loop is refused"
+  );
+  assert.equal(cycle.ui.toast.key, "screens.cannotMirrorCycle");
+  assertKey(cycle.ui.toast.key);
+  // And so is the longer way round: s3 -> s2 -> s1, then s1 -> s3.
+  let chain = mirror(initialState, "s2", "s1");
+  chain = mirror(chain, "s3", "s2");
+  const long = mirror(chain, "s1", "s3");
+  assert.equal(long.screens.find((s) => s.id === "s1").role, "primary", "3-hop loop refused");
+  assert.equal(long.ui.toast.key, "screens.cannotMirrorCycle");
+});
+
+test("a legal chain of mirrors still resolves to the one primary", () => {
+  // s3 -> s2 -> s1 is not a cycle, and every screen in it shows s1's content.
+  let s = mirror(initialState, "s2", "s1");
+  s = mirror(s, "s3", "s2");
+  const chain = resolveChain(s.screens, "s3");
+  assert.equal(chain.status, "ok");
+  assert.equal(chain.sourceId, "s1", "two hops up to the primary");
+  assert.equal(chain.mirrored, true);
+  assert.deepEqual(chain.path, ["s3", "s2", "s1"]);
+});
+
+test("a mirror shows the primary's content, INCLUDING its idle state", () => {
+  // The plan's phase 8 acceptance line, and the one semantic judgement call in
+  // playback.js: a secondary honours its PRIMARY's hours, not its own.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  // s1 closes at 18:00; s2 would be open until 21:00 on its own stored hours.
+  s = reducer(s, activeHoursSet("s1", { start: 540, end: 1080 }));
+  s = mirror(s, "s2", "s1");
+  s = reducer(s, saveSuccess(1));
+
+  const at = (screenId, nowMin) =>
+    resolveScreen(s.saved.byScreen, s.saved.screens, s.creativeInstances, screenId, nowMin);
+
+  // Inside s1's hours and inside the slot: both show the creative.
+  assert.equal(at("s1", 600).kind, "creative");
+  assert.equal(at("s2", 600).kind, "creative", "the mirror plays it too");
+  assert.equal(at("s2", 600).sourceScreenId, "s1");
+  assert.equal(at("s2", 600).mirrored, true);
+
+  // After s1 closes, the mirror goes idle WITH it — not on its own 21:00.
+  assert.equal(at("s1", 1140).kind, "idle", "19:00 is past s1's closing");
+  assert.equal(at("s2", 1140).kind, "idle", "and the mirror is idle too");
+  assert.equal(at("s2", 1140).reason, "play.reason.outsideHours");
+});
+
+test("a mirror ignores its OWN slots — they are unreachable, not a fallback", () => {
+  // The trap: a secondary with a stored schedule must show its primary's state,
+  // including the primary's emptiness, rather than quietly playing its own.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s2", { id: "sl_own", startMin: 540, endMin: 900, instanceId: "ci_a" }));
+  s = mirror(s, "s2", "s1"); // s1 has no slots at all
+  s = reducer(s, saveSuccess(1));
+
+  const r = resolveScreen(s.saved.byScreen, s.saved.screens, s.creativeInstances, "s2", 780);
+  assert.equal(r.kind, "no-content", "it reports the primary's gap");
+  assert.equal(r.reason, "play.reason.gap");
+  assert.equal(r.sourceScreenId, "s1", "resolved through the primary");
+  assert.notEqual(r.kind, "creative", "and never plays its own hidden slot");
+
+  // But the slot is KEPT, so promotion is not destructive and neither is an
+  // accidental demote followed by an undo.
+  assert.equal(s.draft.byScreen.s2.slots.length, 1, "the stored slot survives");
+});
+
+test("a mirror of an OFFLINE primary is dark, and says whose fault it is", () => {
+  let s = mirror(initialState, "s2", "s1");
+  s = reducer(s, saveSuccess(1));
+  s = reducer(s, toggleScreenOnline("s1"));
+
+  const r = resolveScreen(s.saved.byScreen, s.saved.screens, s.creativeInstances, "s2", 780);
+  assert.equal(r.kind, "offline");
+  assert.equal(
+    r.reason,
+    "play.reason.primaryOffline",
+    "it blames the primary, not this screen"
+  );
+  assertKey(r.reason);
+  // Its own offline state is a different message.
+  const own = resolveScreen(s.saved.byScreen, s.saved.screens, s.creativeInstances, "s1", 780);
+  assert.equal(own.reason, "play.reason.offline");
+});
+
+test("a secondary pointing nowhere is a broken link, not a silent primary", () => {
+  // Demoting without naming a target is representable, and must not fall back to
+  // the screen's own (unreachable) schedule.
+  const s = reducer(initialState, setScreenRole("s2", "secondary"));
+  const screen = s.screens.find((x) => x.id === "s2");
+  assert.equal(screen.role, "secondary");
+  assert.equal(screen.mirrors, null);
+
+  const saved = reducer(s, saveSuccess(1));
+  const r = resolveScreen(
+    saved.saved.byScreen,
+    saved.saved.screens,
+    saved.creativeInstances,
+    "s2",
+    780
+  );
+  assert.equal(r.kind, "broken-link");
+  assert.equal(r.reason, "play.reason.unknownScreen");
+});
+
+test("promoting a secondary inherits a COPY of what it was showing", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = reducer(s, activeHoursSet("s1", { start: 600, end: 1200 }));
+  s = mirror(s, "s2", "s1");
+
+  const promoted = reducer(s, setScreenRole("s2", "primary", { slotIds: ["sl_new"] }));
+  const screen = promoted.screens.find((x) => x.id === "s2");
+  assert.equal(screen.role, "primary");
+  assert.equal(screen.mirrors, null, "the link is gone");
+
+  const cfg = promoted.draft.byScreen.s2;
+  assert.deepEqual(cfg.activeHours, { start: 600, end: 1200 }, "it kept the hours it had");
+  assert.equal(cfg.slots.length, 1, "and the slot that was playing");
+  assert.equal(cfg.slots[0].instanceId, "ci_a");
+  assert.equal(cfg.slots[0].startMin, 540);
+
+  // A COPY. Fresh slot ids, and no shared arrays or objects with the source.
+  assert.equal(cfg.slots[0].id, "sl_new", "the caller's fresh id, not the source's");
+  assert.notEqual(cfg.slots[0].id, "sl_1", "two screens must not share a slot id");
+  assert.notEqual(cfg.slots, promoted.draft.byScreen.s1.slots);
+  assert.notEqual(cfg.slots[0], promoted.draft.byScreen.s1.slots[0]);
+  assert.notEqual(cfg.activeHours, promoted.draft.byScreen.s1.activeHours);
+
+  // Editing the promoted screen must not reach back into its old primary.
+  const edited = reducer(promoted, slotUpdate("s2", "sl_new", { endMin: 660 }));
+  assert.equal(edited.draft.byScreen.s2.slots[0].endMin, 660);
+  assert.equal(
+    edited.draft.byScreen.s1.slots[0].endMin,
+    720,
+    "the former primary is untouched"
+  );
+});
+
+test("promotion falls back to a derived slot id when the caller forgets", () => {
+  // Not a licence to forget — but a duplicate id across two screens is worse than
+  // an ugly one, so the fallback is deterministic rather than absent.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = mirror(s, "s2", "s1");
+  const promoted = reducer(s, setScreenRole("s2", "primary"));
+  const id = promoted.draft.byScreen.s2.slots[0].id;
+  assert.notEqual(id, "sl_1", "still not a shared id");
+  assert.equal(id, "sl_1_s2");
+});
+
+test("CLEAR_MIRROR is promotion, through the same path", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = mirror(s, "s2", "s1");
+
+  const cleared = reducer(s, clearMirror("s2", ["sl_c"]));
+  const screen = cleared.screens.find((x) => x.id === "s2");
+  assert.equal(screen.role, "primary");
+  assert.equal(screen.mirrors, null);
+  assert.equal(cleared.draft.byScreen.s2.slots[0].id, "sl_c", "and it inherits, as promotion does");
+  // Only meaningful on a secondary.
+  assert.equal(reducer(cleared, clearMirror("s2")), cleared, "already primary");
+  assert.equal(reducer(cleared, clearMirror("s99")), cleared, "unknown screen");
+});
+
+test("demoting a screen that has followers leaves them following it", () => {
+  // s3 mirrors s2; then s2 is pointed at s1. s3 now follows s2 -> s1, which is a
+  // legal two-hop chain, so the dialog warns rather than the reducer refusing.
+  let s = mirror(initialState, "s3", "s2");
+  s = mirror(s, "s2", "s1");
+
+  assert.deepEqual(
+    followersOf(s.screens, "s2").map((x) => x.id),
+    ["s3"],
+    "s3 still points at s2"
+  );
+  assert.deepEqual(
+    allFollowersOf(s.screens, "s1").map((x) => x.id).sort(),
+    ["s2", "s3"],
+    "and both are downstream of s1 — what the dialog counts"
+  );
+  // Every one of them resolves to s1's config.
+  for (const id of ["s2", "s3"]) {
+    assert.equal(resolveChain(s.screens, id).sourceId, "s1");
+  }
+});
+
+test("role and mirror edits are DRAFT-only — previews wait for the save", () => {
+  // The subtle invariant: saved.screens, not screens. Getting this wrong leaks a
+  // mirror link into the wall before the visitor saves.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 900, instanceId: "ci_a" }));
+  s = reducer(s, saveSuccess(1));
+  s = reducer(s, saveAppliedSettle());
+
+  const linked = mirror(s, "s2", "s1");
+  assert.equal(linked.save.status, "dirty", "it is an edit");
+  assert.equal(
+    linked.saved.screens.find((x) => x.id === "s2").role,
+    "primary",
+    "the saved snapshot still says primary"
+  );
+
+  // So the preview does NOT yet show s1's content on s2.
+  const before = resolveScreen(
+    linked.saved.byScreen,
+    linked.saved.screens,
+    linked.creativeInstances,
+    "s2",
+    780
+  );
+  assert.equal(before.kind, "no-content", "s2 is still showing its own empty schedule");
+  assert.equal(before.mirrored, false);
+
+  const after = reducer(linked, saveSuccess(2));
+  const r = resolveScreen(
+    after.saved.byScreen,
+    after.saved.screens,
+    after.creativeInstances,
+    "s2",
+    780
+  );
+  assert.equal(r.kind, "creative", "and only now does the mirror light up");
+  assert.equal(r.mirrored, true);
+  assert.equal(r.sourceScreenId, "s1");
+});
+
+test("mirrorCandidates offers only links that would be legal", () => {
+  let s = mirror(initialState, "s2", "s1");
+  s = mirror(s, "s3", "s2");
+
+  // s1 may not point at s2 or s3 — both would close a loop through s1.
+  const forS1 = mirrorCandidates(s.screens, "s1").map((x) => x.id);
+  assert.deepEqual(forS1.sort(), ["s4", "s5"], "only the unrelated screens");
+  assert.equal(forS1.includes("s1"), false, "never itself");
+
+  // Every offered link must actually be accepted by the reducer.
+  for (const target of forS1) {
+    const next = reducer(s, setMirror("s1", target));
+    assert.equal(next.ui.toast, null, `${target} was offered and refused`);
+    assert.equal(next.screens.find((x) => x.id === "s1").mirrors, target);
+  }
+});
+
+test("HEALTH_TICK figures are reproducible and never claim perfection", () => {
+  const s = reducer(initialState, healthTick());
+  const h = allScreenHealth(s.screens, s.sim.nowMin, s.health.tick);
+  for (const [id, entry] of Object.entries(h)) {
+    assert.ok(entry.uptimePct < 100, `${id} must not claim 100% uptime`);
+    assert.ok(entry.uptimePct >= 97, `${id} is online, so it should read healthy`);
+    assert.equal(entry.online, true);
+  }
+  // Same tick, same numbers — which is why the reducer stores a counter.
+  assert.deepEqual(allScreenHealth(s.screens, s.sim.nowMin, s.health.tick), h);
+  // A different tick genuinely re-rolls.
+  const next = reducer(s, healthTick());
+  assert.notDeepEqual(allScreenHealth(next.screens, next.sim.nowMin, next.health.tick), h);
+});
+
+test("an offline screen reads as stale, not as 'last seen now'", () => {
+  const s = reducer(initialState, toggleScreenOnline("s2"));
+  const h = screenHealth(
+    s.screens.find((x) => x.id === "s2"),
+    780,
+    0
+  );
+  assert.equal(h.online, false);
+  assert.ok(h.staleMinutes >= 2, "a dark screen was last seen a while ago");
+  assert.notEqual(h.lastSeenMin, 780, "not the current minute");
+  assert.ok(h.uptimePct < 95, "and its uptime reflects the outage");
+});
+
+test("playback is a separate axis from connectivity", () => {
+  // An online screen outside its hours is healthy AND not playing. Both rows.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = reducer(s, saveSuccess(1));
+
+  const resolutions = resolveAllScreens(
+    s.saved.byScreen,
+    s.saved.screens,
+    s.creativeInstances,
+    120 // 02:00 — outside the default window
+  );
+  const h = allScreenHealth(s.saved.screens, 120, s.health.tick, resolutions);
+  assert.equal(h.s1.online, true, "connectivity is fine");
+  assert.equal(h.s1.playing, false, "but nothing is playing");
+  assert.equal(h.s1.playbackReason, "play.reason.outsideHours", "and it says which");
+  assertKey(h.s1.playbackReason);
+});
+
+test("the role and mirror cases never mutate frozen state", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = mirror(s, "s2", "s1");
+  const frozen = deepFreeze(s);
+
+  for (const action of [
+    setMirror("s3", "s1"),
+    setMirror("s3", "s3"),
+    setMirror("s1", "s2"),
+    setScreenRole("s2", "primary", { slotIds: ["sl_x"] }),
+    setScreenRole("s4", "secondary", { mirrors: "s1" }),
+    clearMirror("s2", ["sl_y"]),
+  ]) {
+    reducer(frozen, action); // throws if any case writes in place
+  }
+
+  assert.equal(frozen.screens.find((x) => x.id === "s2").mirrors, "s1", "untouched");
+  assert.equal(frozen.screens.find((x) => x.id === "s3").role, "primary");
+  assert.equal(frozen.draft.byScreen.s1.slots.length, 1);
 });
 
 // ------------------------------------------------------------------ report ----

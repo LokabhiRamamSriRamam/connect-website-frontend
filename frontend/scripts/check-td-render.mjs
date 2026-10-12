@@ -31,6 +31,8 @@ import {
   saveStart,
   saveSuccess,
   slotAdd,
+  setMirror,
+  toggleScreenOnline,
 } from "../src/pages/test-drive/state/actions.js";
 import { createT } from "../src/pages/test-drive/i18n/index.js";
 import { en, hi } from "../src/pages/test-drive/i18n/index.js";
@@ -39,11 +41,16 @@ import ScheduleListView from "../src/pages/test-drive/components/ScheduleListVie
 import ActiveHoursEditor from "../src/pages/test-drive/components/ActiveHoursEditor.jsx";
 import SlotEditor from "../src/pages/test-drive/components/SlotEditor.jsx";
 import SaveBar from "../src/pages/test-drive/components/SaveBar.jsx";
-import ControlPanel from "../src/pages/test-drive/components/ControlPanel.jsx";
+import ControlPanel, {
+  SecondaryNotice,
+} from "../src/pages/test-drive/components/ControlPanel.jsx";
 import ScreenTile from "../src/pages/test-drive/components/ScreenTile.jsx";
 import ScheduleTimelineView from "../src/pages/test-drive/components/ScheduleTimelineView.jsx";
 import ScheduleSection from "../src/pages/test-drive/components/ScheduleSection.jsx";
 import SimClock from "../src/pages/test-drive/components/SimClock.jsx";
+import MirrorEditor from "../src/pages/test-drive/components/MirrorEditor.jsx";
+import HealthPanel from "../src/pages/test-drive/components/HealthPanel.jsx";
+import ScreenWall from "../src/pages/test-drive/components/ScreenWall.jsx";
 
 const { createElement: h } = React;
 
@@ -472,6 +479,175 @@ check("ControlPanel names the screen it is acting on", () => {
   assert.ok(html.includes('role="tablist"'));
 });
 
+// ---- mirroring and health (phase 8) ----
+
+/** populated(), plus s2 mirroring s1 in the DRAFT only. */
+function mirrored() {
+  return reducer(populated(), setMirror("s2", "s1"));
+}
+
+check("MirrorEditor states what the screen is before offering to change it", () => {
+  const primary = render(h(MirrorEditor, { screenId: "s1" }), populated()).html;
+  assert.ok(primary.includes(t("screens.primary")), "a primary says so");
+  assert.ok(primary.includes(t("screens.demoteConfirm")), "and is offered the demote");
+  assert.ok(!primary.includes(t("screens.promoteConfirm")), "not the promote");
+
+  const secondary = render(h(MirrorEditor, { screenId: "s2" }), mirrored()).html;
+  assert.ok(
+    secondary.includes(t("screens.mirroring", { screen: "Screen 1" })),
+    "a secondary names its primary"
+  );
+  assert.ok(secondary.includes(t("screens.promoteConfirm")), "and is offered the promote");
+  assert.ok(
+    secondary.includes(t("screens.secondaryNotice", { screen: "Screen 1" })),
+    "and is told where its content lives"
+  );
+});
+
+check("the primary dropdown offers only links that would be legal", () => {
+  let s = reducer(populated(), setMirror("s2", "s1"));
+  s = reducer(s, setMirror("s3", "s2"));
+  const { html } = render(h(MirrorEditor, { screenId: "s1" }), s);
+
+  // s1 may not point at s2 or s3 — both close a loop back through s1 — nor itself.
+  const options = [...html.matchAll(/<option value="(s\d)">/g)].map((m) => m[1]);
+  assert.deepEqual(options.sort(), ["s4", "s5"], "only the unrelated screens");
+  assert.equal(options.includes("s1"), false, "never itself");
+});
+
+check("demoting a followed screen warns, with a count", () => {
+  let s = reducer(populated(), setMirror("s3", "s2"));
+  s = reducer(s, setMirror("s4", "s3"));
+  // s2 is followed by s3 and, through it, s4.
+  const { html } = render(h(MirrorEditor, { screenId: "s2" }), s);
+  assert.ok(
+    html.includes(t("screens.followersWarning", { count: 2 })),
+    "both followers are counted, two hops deep"
+  );
+});
+
+check("a last primary cannot be demoted into nothing", () => {
+  // Every other screen mirrors s1, so there is no legal target left.
+  let s = populated();
+  for (const id of ["s2", "s3", "s4", "s5"]) s = reducer(s, setMirror(id, "s1"));
+  const { html } = render(h(MirrorEditor, { screenId: "s1" }), s);
+  assert.ok(html.includes(t("screens.noPrimaries")), "it says why, rather than offering nothing");
+  assert.ok(!html.includes("<option"), "and presents no dropdown at all");
+});
+
+/**
+ * The panel's open tab is local state, so SSR always renders the first one and a
+ * check cannot click to the others. These two assert the gating from either side:
+ * the branch itself, and that the panel does branch on the draft's role.
+ */
+check("a secondary gets the notice where a primary gets the editor", () => {
+  const s = { ...mirrored(), selectedScreenId: "s2" };
+  const notice = render(h(SecondaryNotice, { screen: s.screens[1] }), s).html;
+  assert.ok(notice.includes('data-td-target="secondary-notice"'));
+  assert.ok(notice.includes(t("screens.secondaryNotice", { screen: "Screen 1" })), "names it");
+
+  // A "secondary" pointing nowhere is a broken link, not a primary's name.
+  const orphan = { ...s.screens[1], role: "secondary", mirrors: null };
+  const broken = render(h(SecondaryNotice, { screen: orphan }), s).html;
+  assert.ok(broken.includes(t("play.reason.unknownScreen")), "reported, not papered over");
+
+  // And a primary's schedule tab is the real editor.
+  const real = render(h(ScheduleSection, { screenId: "s1" }), s).html;
+  assert.ok(real.includes('data-td-target="schedule-list"'));
+});
+
+check("the panel branches on the DRAFT's role, not the saved one", () => {
+  // Demoting must close the content tabs immediately, even though the wall keeps
+  // the old arrangement until Save — the panel edits the draft, so it describes
+  // the draft.
+  const s = mirrored();
+  assert.equal(s.screens.find((x) => x.id === "s2").role, "secondary", "draft says secondary");
+  assert.equal(
+    s.saved.screens.find((x) => x.id === "s2").role,
+    "primary",
+    "saved still says primary"
+  );
+  // The panel's own default tab is "creative", which both roles share, so what
+  // this proves is that the role it would branch on comes from `screens`.
+  const html = render(h(ControlPanel, null), { ...s, selectedScreenId: "s2" }).html;
+  assert.ok(html.includes(t("panel.forScreen", { screen: "Screen 2" })), "scoped to s2");
+  assert.ok(html.includes(t("panel.mirror")), "and the role tab is reachable");
+});
+
+check("the Control Panel offers all five tabs, in a row that can scroll", () => {
+  const { html } = render(h(ControlPanel, null), populated());
+  for (const key of ["panel.creative", "panel.schedule", "panel.hours", "panel.mirror", "panel.health"]) {
+    assert.ok(html.includes(t(key)), `${key} is a tab`);
+  }
+  // Five tabs do not fit across 360px, and Hindi runs longer.
+  assert.ok(html.includes("overflow-x-auto"), "the row scrolls rather than crushing them");
+  assert.ok(html.includes("whitespace-nowrap"), "and no label wraps mid-word");
+});
+
+check("HealthPanel shows connectivity and playback as separate axes", () => {
+  // 02:00: every screen is online AND showing nothing, which is two facts.
+  const s = { ...populated(), sim: { nowMin: 120, playing: false, speed: 60 } };
+  const { html } = render(h(HealthPanel, { screenId: "s1" }), s);
+  assert.ok(html.includes(t("health.connectivity")), "connectivity row");
+  assert.ok(html.includes(t("health.playback")), "playback row");
+  assert.ok(html.includes(t("screens.online")), "online");
+  assert.ok(html.includes(t("screens.playbackInactive")), "and not playing — both true at once");
+  assert.ok(html.includes(t("health.uptime")) && html.includes(t("health.lastSeen")));
+});
+
+check("health figures are labelled simulated and never claim 100%", () => {
+  const { html } = render(h(HealthPanel, { screenId: "s1" }), populated());
+  assert.ok(html.includes(t("health.disclaimer")), "said plainly, not implied");
+  const pcts = [...html.matchAll(/(\d{2}\.\d)%/g)].map((m) => Number(m[1]));
+  assert.ok(pcts.length > 0, "uptime figures are shown");
+  for (const p of pcts) {
+    assert.ok(p < 100, `${p}% claims too much for a simulation`);
+    // ASCII decimal point, like every other number in the feature.
+    assert.match(String(p), /^\d+\.\d$/);
+  }
+});
+
+check("an offline screen reads as offline, with a stale last-seen", () => {
+  const s = reducer(populated(), toggleScreenOnline("s1"));
+  const { html } = render(h(HealthPanel, { screenId: "s1" }), s);
+  assert.ok(html.includes(t("screens.offline")), "it says offline");
+  // Online screens read "Now"; an offline one must show a clock time instead.
+  assert.ok(!/>Now</.test(html), "not 'last seen now' on a screen that is dark");
+  assert.match(html, /\d{2}:\d{2}/, "a real elapsed time");
+});
+
+check("the fleet list carries the connectivity toggles", () => {
+  const { html } = render(h(HealthPanel, { screenId: "s1" }), populated());
+  for (let i = 1; i <= 5; i += 1) {
+    assert.ok(html.includes(`Screen ${i}`), `Screen ${i} is listed`);
+  }
+  // Without a way to take a display dark, the offline and primaryOffline playback
+  // states are unreachable from the UI entirely.
+  assert.equal([...html.matchAll(/aria-pressed="true"/g)].length, 5, "five online toggles");
+  assert.ok(html.includes(t("health.refresh")), "and a deterministic re-roll");
+});
+
+// The phase 8 acceptance line, from the UI's side.
+check("a mirror link does not reach the wall before the save", () => {
+  const linked = mirrored();
+  const before = render(h(ScreenWall, null), linked).html;
+  // ScreenTile badges from saved.screens, so s2 is still a primary on the wall.
+  assert.equal(
+    [...before.matchAll(new RegExp(t("screens.secondary"), "g"))].length,
+    0,
+    "no secondary badge yet"
+  );
+  assert.ok(!before.includes(t("screens.mirroring", { screen: "Screen 1" })));
+
+  const saved = reducer(linked, saveSuccess(1));
+  const after = render(h(ScreenWall, null), saved).html;
+  assert.ok(after.includes(t("screens.secondary")), "and now the badge is there");
+  assert.ok(
+    after.includes(t("screens.mirroring", { screen: "Screen 1" })),
+    "naming the screen it follows"
+  );
+});
+
 // ---- Hindi ----
 
 /**
@@ -534,6 +710,38 @@ check("every key this phase renders exists in Hindi, and is not English", () => 
     "panel.schedule",
     "panel.hours",
     "panel.forScreen",
+    "panel.mirror",
+    "panel.health",
+    "screens.role",
+    "screens.primary",
+    "screens.secondary",
+    "screens.mirroring",
+    "screens.changePrimary",
+    "screens.secondaryNotice",
+    "screens.promoteTitle",
+    "screens.promoteBody",
+    "screens.promoteConfirm",
+    "screens.demoteTitle",
+    "screens.demoteBody",
+    "screens.demoteConfirm",
+    "screens.followersWarning",
+    "screens.cannotMirrorSelf",
+    "screens.cannotMirrorCycle",
+    "screens.noPrimaries",
+    "screens.online",
+    "screens.offline",
+    "screens.playbackActive",
+    "screens.playbackInactive",
+    "health.title",
+    "health.disclaimer",
+    "health.connectivity",
+    "health.playback",
+    "health.lastSeen",
+    "health.uptime",
+    "health.currentContent",
+    "health.refresh",
+    "play.reason.primaryOffline",
+    "play.reason.unknownScreen",
   ];
   const tHi = createT("hi");
   for (const key of keys) {
