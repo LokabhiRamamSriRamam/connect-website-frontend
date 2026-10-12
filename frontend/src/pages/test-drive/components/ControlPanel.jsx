@@ -3,7 +3,7 @@ import { useI18n } from "../i18n/I18nContext.jsx";
 import { useTd } from "../state/TestDriveContext.jsx";
 import CreativePicker from "./CreativePicker.jsx";
 import CreativeEditor from "./CreativeEditor.jsx";
-import ScheduleListView from "./ScheduleListView.jsx";
+import ScheduleSection from "./ScheduleSection.jsx";
 import ActiveHoursEditor from "./ActiveHoursEditor.jsx";
 
 /**
@@ -87,9 +87,9 @@ export default function ControlPanel() {
           ))}
 
         {/* Both schedule sections read and write draft.byScreen[selected] through
-            the reducer, so switching tabs or screens never carries a stale copy
-            of a schedule with it — there is no copy to carry. */}
-        {tab === "schedule" && <ScheduleListView screenId={screen.id} />}
+            the reducer, so switching tabs, views or screens never carries a stale
+            copy of a schedule with it — there is no copy to carry. */}
+        {tab === "schedule" && <ScheduleSection screenId={screen.id} />}
         {tab === "hours" && <ActiveHoursEditor screenId={screen.id} />}
       </div>
     </section>

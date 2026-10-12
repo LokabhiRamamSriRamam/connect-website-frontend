@@ -41,6 +41,9 @@ import SlotEditor from "../src/pages/test-drive/components/SlotEditor.jsx";
 import SaveBar from "../src/pages/test-drive/components/SaveBar.jsx";
 import ControlPanel from "../src/pages/test-drive/components/ControlPanel.jsx";
 import ScreenTile from "../src/pages/test-drive/components/ScreenTile.jsx";
+import ScheduleTimelineView from "../src/pages/test-drive/components/ScheduleTimelineView.jsx";
+import ScheduleSection from "../src/pages/test-drive/components/ScheduleSection.jsx";
+import SimClock from "../src/pages/test-drive/components/SimClock.jsx";
 
 const { createElement: h } = React;
 
@@ -275,6 +278,163 @@ check("Save is disabled when there is nothing to save, enabled when there is", (
   assert.ok(!clean.html.includes(t("save.discard")), "clean has nothing to discard");
 });
 
+// ---- the proportional timeline (phase 7) ----
+
+/** The style attribute of the rail block for one slot id. */
+function slotStyle(html, slotId) {
+  const m = new RegExp(`<button[^>]*data-td-slot="${slotId}"[^>]*>`).exec(html);
+  assert.ok(m, `no rail block rendered for ${slotId}`);
+  const style = /style="([^"]*)"/.exec(m[0]);
+  assert.ok(style, `${slotId} has no style attribute`);
+  return style[1];
+}
+
+// THE phase 7 acceptance check (plan §12 row 7, §13): measured, not eyeballed.
+check("a 09:00-12:00 slot is exactly 12.5% wide at 37.5% left", () => {
+  const s = populated(); // sl_1 is 540-720
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), s);
+  const style = slotStyle(html, "sl_1");
+  assert.match(style, /left:\s*37\.5%/, "3/8 of the day in");
+  assert.match(style, /width:\s*12\.5%/, "exactly 3/24 of the rail");
+});
+
+check("the rail does not lie about a 15-minute slot", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Quick" }, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_q", startMin: 600, endMin: 615, instanceId: "ci_a" }));
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), s);
+  const style = slotStyle(html, "sl_q");
+
+  // 15/1440 = 1.0416…%. The block keeps its true width — the 44px tap target is
+  // .td-slot::before in td.css, NOT a minimum width here, which would misreport
+  // the duration. Widening the block is the one thing this view must never do.
+  assert.match(style, /width:\s*1\.0416/, "its true proportional width, not a padded one");
+  assert.ok(!/min-width/.test(style), "no minimum width on the block itself");
+  assert.ok(html.includes("td-slot"), "it carries the class that provides the 44px target");
+});
+
+check("the playhead sits at the clock's position", () => {
+  const s = { ...populated(), sim: { nowMin: 720, playing: false, speed: 60 } };
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), s);
+  const m = /<span class="td-playhead" style="left:\s*([^"%]*)%/.exec(html);
+  assert.ok(m, "the playhead is drawn");
+  assert.equal(Number(m[1]), 50, "12:00 is halfway across the day");
+});
+
+check("active hours are drawn as the lit window", () => {
+  const s = populated(); // 09:00-21:00
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), s);
+  const m = /class="td-rail-lit" style="left:\s*([\d.]+)%;\s*width:\s*([\d.]+)%/.exec(html);
+  assert.ok(m, "the lit window is drawn");
+  assert.equal(Number(m[1]), 37.5, "opens at 09:00");
+  assert.equal(Number(m[2]), 50, "and runs for 12 of the 24 hours");
+  assert.ok(html.includes("td-rail-dim"), "against a dimmed remainder");
+});
+
+check("the rail hatches what is scheduled nowhere, inside the hours", () => {
+  const s = populated(); // 09:00-12:00 inside 09:00-21:00 leaves 12:00-21:00 open
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), s);
+  const gaps = [
+    ...html.matchAll(/class="td-rail-gap td-hatch" style="left:\s*([\d.]+)%;\s*width:\s*([\d.]+)%/g),
+  ];
+  assert.equal(gaps.length, 1, "one uncovered stretch");
+  assert.equal(Number(gaps[0][1]), 50, "from 12:00");
+  assert.equal(Number(gaps[0][2]), 37.5, "to 21:00 — nine hours of the day");
+});
+
+check("23 gridlines, and hour labels at both densities", () => {
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), populated());
+  // 25 hour positions, less 0% and 100% which are the rail's own borders.
+  assert.equal([...html.matchAll(/class="td-gridline"/g)].length, 23);
+  for (const label of ["00:00", "06:00", "12:00", "18:00", "24:00"]) {
+    assert.ok(html.includes(`>${label}<`), `${label} is always shown`);
+  }
+  // The 3-hourly ones exist but are hidden below sm, where 9 labels collide.
+  for (const label of ["03:00", "09:00", "15:00", "21:00"]) {
+    assert.ok(html.includes(`>${label}<`), `${label} is rendered`);
+  }
+  assert.ok(html.includes("hidden sm:block"), "and suppressed at phone width");
+});
+
+// The single-source-of-truth claim, from the other side.
+check("both views render the SAME slots from the same draft", () => {
+  const s = populated();
+  const list = render(h(ScheduleListView, { screenId: "s1" }), s).html;
+  const rail = render(h(ScheduleTimelineView, { screenId: "s1" }), s).html;
+  for (const time of ["09:00", "12:00", "01:00", "04:00"]) {
+    assert.ok(list.includes(time), `the list shows ${time}`);
+    assert.ok(rail.includes(time), `and so does the rail`);
+  }
+  // An edit through the shared dispatch shows up in both, with no sync step.
+  const edited = reducer(s, { type: "SLOT_UPDATE", screenId: "s1", slotId: "sl_1", patch: { endMin: 660 } });
+  const list2 = render(h(ScheduleListView, { screenId: "s1" }), edited).html;
+  const rail2 = render(h(ScheduleTimelineView, { screenId: "s1" }), edited).html;
+  assert.ok(list2.includes("11:00") && rail2.includes("11:00"), "both moved");
+  assert.match(slotStyle(rail2, "sl_1"), /width:\s*8\.3333/, "and the rail re-measured it");
+});
+
+check("the outside-hours slot is distinguishable on the rail", () => {
+  const { html } = render(h(ScheduleTimelineView, { screenId: "s1" }), populated());
+  // sl_2 is 01:00-04:00, outside 09:00-21:00. sb-blush is the only warning fill.
+  const m = new RegExp(`<button[^>]*data-td-slot="sl_2"[^>]*>`).exec(html);
+  assert.ok(m[0].includes("bg-sb-blush"), "flagged, not hidden");
+  const ok = new RegExp(`<button[^>]*data-td-slot="sl_1"[^>]*>`).exec(html);
+  assert.ok(ok[0].includes("bg-sb-gradient"), "and a playable slot is not");
+  // Screen readers get it as words, not colour.
+  assert.ok(html.includes(t("schedule.outsideHoursBadge")));
+});
+
+// ---- the view toggle ----
+
+check("the view toggle reflects ui.scheduleView and offers the other", () => {
+  const s = populated();
+  const list = render(h(ScheduleSection, { screenId: "s1" }), s).html;
+  assert.ok(list.includes('data-td-target="schedule-list"'), "list by default");
+  assert.ok(!list.includes('data-td-target="schedule-timeline"'), "one view at a time");
+
+  const timeline = render(h(ScheduleSection, { screenId: "s1" }), {
+    ...s,
+    ui: { ...s.ui, scheduleView: "timeline" },
+  }).html;
+  assert.ok(timeline.includes('data-td-target="schedule-timeline"'), "timeline when asked");
+  assert.ok(!timeline.includes('data-td-target="schedule-list"'));
+  assert.ok(timeline.includes(t("schedule.listView")), "and the way back is offered");
+});
+
+// ---- the sim clock ----
+
+check("the sim clock shows the time and marks the chosen speed", () => {
+  const s = { ...populated(), sim: { nowMin: 780, playing: false, speed: 60 } };
+  const { html } = render(h(SimClock, null), s);
+  assert.ok(html.includes("13:00"), "780 reads as 13:00");
+  assert.ok(html.includes(t("sim.play")), "paused offers Play");
+  assert.ok(html.includes(t("sim.speedHour", { n: 1 })), "60 min/sec reads as 1 hr/sec");
+  assert.ok(html.includes(t("sim.speedMin", { n: 1 })), "and 1 is offered as real time");
+  // The chosen speed is the pressed one.
+  assert.match(html, /aria-pressed="true"[^>]*>1 hr\/sec/);
+
+  const playing = render(h(SimClock, null), {
+    ...s,
+    sim: { ...s.sim, playing: true },
+  }).html;
+  assert.ok(playing.includes(t("sim.pause")), "playing offers Pause");
+});
+
+check("the clock's time never carries a locale numeral", () => {
+  // The whole reason time is an integer: Hindi numerals must not reach the UI's
+  // clock values, where they would also break the native time input.
+  for (const nowMin of [0, 545, 780, 1439]) {
+    const { html } = render(h(SimClock, null), {
+      ...populated(),
+      sim: { nowMin, playing: false, speed: 60 },
+    });
+    const times = [...html.matchAll(/\d{2}:\d{2}/g)].map((x) => x[0]);
+    assert.ok(times.length > 0, `a clock value is shown at ${nowMin}`);
+    for (const time of times) {
+      assert.match(time, /^[0-9]{2}:[0-9]{2}$/, `ASCII digits only, got ${time}`);
+    }
+  }
+});
+
 // ---- the per-screen unsaved dots ----
 
 check("the edited screen carries an unsaved dot, and the others do not", () => {
@@ -341,6 +501,17 @@ check("every key this phase renders exists in Hindi, and is not English", () => 
     "schedule.err.minFive",
     "schedule.err.pickCreative",
     "schedule.warn.outsideHours",
+    "schedule.listView",
+    "schedule.timelineView",
+    "schedule.hours24",
+    "schedule.gap",
+    "sim.time",
+    "sim.play",
+    "sim.pause",
+    "sim.now",
+    "sim.speed",
+    "sim.speedMin",
+    "sim.speedHour",
     "hours.title",
     "hours.description",
     "hours.start",

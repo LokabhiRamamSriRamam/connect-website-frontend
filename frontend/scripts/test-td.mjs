@@ -1725,26 +1725,46 @@ test("DISCARD_DRAFT makes draft deep-equal saved again", () => {
 });
 
 test("`saved` is a deep CLONE — later draft edits cannot reach it", () => {
-  let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
-  s = reducer(s, saveSuccess(1));
+  /**
+   * This test mutates by hand, so the mutation must happen on a state that shares
+   * nothing with `initialState`. The reducer spreads, so state.screens IS
+   * initialState.screens until a case replaces it — writing through that poisons
+   * every later test in this file with an offline screen, which is exactly what
+   * it did while being written.
+   */
+  const real = reducer(addSlot(withCreative(), "s1", "sl_1", 540, 720), saveSuccess(1));
 
-  // Not the same objects at any level.
-  assert.notEqual(s.saved.byScreen, s.draft.byScreen);
-  assert.notEqual(s.saved.byScreen.s1, s.draft.byScreen.s1);
-  assert.notEqual(s.saved.byScreen.s1.slots, s.draft.byScreen.s1.slots);
-  assert.notEqual(s.saved.byScreen.s1.slots[0], s.draft.byScreen.s1.slots[0]);
-  assert.notEqual(s.saved.byScreen.s1.activeHours, s.draft.byScreen.s1.activeHours);
-  assert.notEqual(s.saved.screens, s.screens);
-  assert.notEqual(s.saved.screens[0], s.screens[0]);
-  assert.deepEqual(s.saved.byScreen.s1.slots, s.draft.byScreen.s1.slots, "equal, not shared");
+  // Not the same objects at any level. Asserted on the REAL reducer output, so
+  // these are meaningful and not an artefact of copying.
+  assert.notEqual(real.saved.byScreen, real.draft.byScreen);
+  assert.notEqual(real.saved.byScreen.s1, real.draft.byScreen.s1);
+  assert.notEqual(real.saved.byScreen.s1.slots, real.draft.byScreen.s1.slots);
+  assert.notEqual(real.saved.byScreen.s1.slots[0], real.draft.byScreen.s1.slots[0]);
+  assert.notEqual(real.saved.byScreen.s1.activeHours, real.draft.byScreen.s1.activeHours);
+  assert.notEqual(real.saved.screens, real.screens);
+  assert.notEqual(real.saved.screens[0], real.screens[0]);
+  assert.deepEqual(
+    real.saved.byScreen.s1.slots,
+    real.draft.byScreen.s1.slots,
+    "equal, not shared"
+  );
 
-  // Mutate the draft by hand, as nothing in the app does but a future case might.
+  /**
+   * Now the hand-mutation, on a detached copy. The identity assertions above
+   * already proved saved and draft are distinct objects; what remains to show is
+   * that writing through one does not surface in the other, and that has to be
+   * done somewhere that cannot reach initialState's own screens array.
+   */
+  const s = JSON.parse(JSON.stringify(real));
   s.draft.byScreen.s1.slots[0].endMin = 1;
   s.draft.byScreen.s1.slots.push({ id: "sl_x" });
   s.screens[0].online = false;
   assert.equal(s.saved.byScreen.s1.slots[0].endMin, 720, "saved is unaffected");
   assert.equal(s.saved.byScreen.s1.slots.length, 1);
   assert.equal(s.saved.screens[0].online, true);
+
+  // And the shared fixture is still intact for every test after this one.
+  assert.equal(initialState.screens[0].online, true, "initialState was not poisoned");
 });
 
 test("UI_EDIT_SLOT and UI_TOAST carry keys, not sentences", () => {
@@ -1788,6 +1808,94 @@ test("the schedule and save cases never mutate frozen state", () => {
 
   assert.equal(frozen.draft.byScreen.s1.slots.length, 2, "untouched");
   assert.equal(frozen.save.status, "dirty");
+});
+
+// ------------------------------ reducer: timeline and clock (phase 7) ----
+
+test("the schedule view is reducer state, so both views share one switch", () => {
+  // Not local state: the tutorial asserts on it, and the choice must survive
+  // moving between screens and tabs.
+  const timeline = reducer(initialState, uiSetScheduleView("timeline"));
+  assert.equal(timeline.ui.scheduleView, "timeline");
+  assert.equal(reducer(timeline, uiSetScheduleView("timeline")), timeline, "idempotent");
+  assert.equal(reducer(timeline, uiSetScheduleView("list")).ui.scheduleView, "list");
+
+  // Switching view is not an edit, so it must not dirty anything — otherwise
+  // merely looking at the rail would light the save chip.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, saveSuccess(1));
+  s = reducer(s, saveAppliedSettle());
+  const looked = reducer(s, uiSetScheduleView("timeline"));
+  assert.equal(looked.save.status, "saved", "looking at the other view is not an edit");
+  assert.deepEqual(looked.save.dirtyScreens, []);
+  assert.equal(looked.draft, s.draft, "and the draft is the same object");
+});
+
+test("SIM_SET_SPEED takes the three paces the clock offers", () => {
+  for (const speed of [1, 60, 180]) {
+    assert.equal(reducer(initialState, simSetSpeed(speed)).sim.speed, speed);
+  }
+  // A speed change must not move the clock or start it.
+  const fast = reducer(initialState, simSetSpeed(180));
+  assert.equal(fast.sim.nowMin, initialState.sim.nowMin);
+  assert.equal(fast.sim.playing, false);
+});
+
+test("the clock crosses a slot boundary exactly once", () => {
+  // The half-open rule, through the clock rather than through overlaps(): at
+  // 12:00 the 09:00-12:00 slot has stopped and nothing else has started.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  // 10:00-12:00, so both boundaries fall INSIDE the default 09:00-21:00 window
+  // and the answer isolates the slot rather than the active hours.
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 600, endMin: 720, instanceId: "ci_a" }));
+  s = reducer(s, saveSuccess(1));
+
+  const at = (nowMin) =>
+    resolveScreen(s.saved.byScreen, s.saved.screens, s.creativeInstances, "s1", nowMin);
+
+  assert.equal(at(599).kind, "no-content", "the minute before it starts");
+  assert.equal(at(599).reason, "play.reason.gap", "and it says why");
+  assert.equal(at(600).kind, "creative", "the first minute is inside");
+  assert.equal(at(719).kind, "creative", "the last minute is inside");
+  assert.equal(at(720).kind, "no-content", "and the end boundary is not");
+  // Outside active hours it is idle, which is a different state from a gap.
+  assert.equal(at(480).kind, "idle", "08:00 is before opening");
+});
+
+test("SIM_TICK walks the day at each speed without drifting off the rail", () => {
+  for (const speed of [1, 60, 180]) {
+    let s = { ...initialState, sim: { nowMin: 0, playing: true, speed } };
+    // A full day's worth of ticks must land back where it started, which is what
+    // makes the playhead's position a pure function of nowMin.
+    for (let i = 0; i < 1440 / speed; i += 1) s = reducer(s, simTick());
+    assert.equal(s.sim.nowMin, 0, `speed ${speed} wraps cleanly`);
+    assert.ok(s.sim.nowMin >= 0 && s.sim.nowMin < 1440, "and stays on the rail");
+  }
+});
+
+test("findGaps describes exactly what the rail hatches", () => {
+  // The rail draws these, so the geometry it hands them must be in range and
+  // ordered — a gap outside active hours would be drawn over the dimmed ground.
+  const hours = { start: 540, end: 1260 };
+  const slots = [
+    { id: "a", startMin: 540, endMin: 720, instanceId: "ci", enabled: true },
+    { id: "b", startMin: 900, endMin: 1080, instanceId: "ci", enabled: true },
+  ];
+  const gaps = findGaps(slots, hours);
+  assert.deepEqual(gaps, [
+    { startMin: 720, endMin: 900 },
+    { startMin: 1080, endMin: 1260 },
+  ]);
+  for (const gap of gaps) {
+    assert.ok(gap.startMin >= hours.start && gap.endMin <= hours.end, "inside the hours");
+    const g = slotGeometry(gap);
+    assert.ok(parseFloat(g.width) > 0, "and has a drawable width");
+  }
+  // A fully covered window leaves nothing to hatch.
+  assert.deepEqual(
+    findGaps([{ id: "c", startMin: 540, endMin: 1260, instanceId: "ci", enabled: true }], hours),
+    []
+  );
 });
 
 // ------------------------------------------------------------------ report ----

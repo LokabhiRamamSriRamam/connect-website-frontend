@@ -67,6 +67,12 @@ export const en = {
     play: "Play",
     pause: "Pause",
     now: "Now",
+    speed: "Speed",
+    // "1 minute per second", "1 hour per second" — the unit is what needs words;
+    // the multiplier itself is a numeral and stays ASCII, like every other time
+    // value in the feature.
+    speedMin: "{n} min/sec",
+    speedHour: "{n} hr/sec",
     note: "These are five virtual screens for your test drive, not connected hardware.",
   },
 

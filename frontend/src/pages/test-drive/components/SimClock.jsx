@@ -1,8 +1,27 @@
 import { useEffect } from "react";
+import { Pause, Play } from "lucide-react";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
-import { simPause, simPlay, simSetTime, simTick } from "../state/actions.js";
+import { simPause, simPlay, simSetSpeed, simSetTime, simTick } from "../state/actions.js";
 import { MINUTES_PER_DAY, hhmmToMinutes, minutesToInputValue } from "../domain/time.js";
+
+/**
+ * Playback speeds, in simulated minutes per real second.
+ *
+ * 1 is real time, which is useless for a demo (nothing visibly changes) but is
+ * the anchor that makes the others legible. 60 crosses a 3-hour slot in three
+ * seconds, which is the pace the schedule was designed to be watched at. 180
+ * covers the whole day in eight seconds, for finding the one hour that looks
+ * wrong.
+ */
+const SPEEDS = [1, 60, 180];
+
+/** Label a speed by its unit rather than a bare multiplier. */
+function speedLabel(t, speed) {
+  return speed % 60 === 0
+    ? t("sim.speedHour", { n: speed / 60 })
+    : t("sim.speedMin", { n: speed });
+}
 
 /**
  * The preview clock: scrub or play time to watch the five screens change.
@@ -51,9 +70,16 @@ export default function SimClock() {
 
         <button
           type="button"
+          data-td-target="sim-play"
           onClick={() => dispatch(sim.playing ? simPause() : simPlay())}
-          className="td-tap ml-auto rounded-full border-2 border-sb-ink bg-sb-gradient px-3 py-1 text-[11px] font-extrabold text-white shadow-[2px_2px_0_#191919]"
+          aria-pressed={sim.playing}
+          className="td-tap ml-auto inline-flex items-center gap-1.5 rounded-full border-2 border-sb-ink bg-sb-gradient px-3 py-1 text-[11px] font-extrabold text-white shadow-[2px_2px_0_#191919]"
         >
+          {sim.playing ? (
+            <Pause size={12} aria-hidden="true" />
+          ) : (
+            <Play size={12} aria-hidden="true" />
+          )}
           {sim.playing ? t("sim.pause") : t("sim.play")}
         </button>
 
@@ -93,6 +119,33 @@ export default function SimClock() {
         <span>00:00</span>
         <span className="hidden sm:inline">12:00</span>
         <span>24:00</span>
+      </div>
+
+      {/* How fast time runs when playing. Buttons rather than a second slider:
+          three named paces are easier to choose between than a continuous value
+          whose units are not obvious, and it keeps one slider on the panel. */}
+      <div
+        role="group"
+        aria-label={t("sim.speed")}
+        data-td-target="sim-speed"
+        className="mt-2 flex flex-wrap items-center gap-1.5"
+      >
+        <span className="text-[10px] font-extrabold uppercase tracking-wider text-sb-muted">
+          {t("sim.speed")}
+        </span>
+        {SPEEDS.map((speed) => (
+          <button
+            key={speed}
+            type="button"
+            onClick={() => dispatch(simSetSpeed(speed))}
+            aria-pressed={sim.speed === speed}
+            className={`td-tap rounded-full border-2 border-sb-ink px-2 py-0.5 text-[10px] font-extrabold tabular-nums ${
+              sim.speed === speed ? "bg-sb-gradient text-white" : "bg-white text-sb-ink"
+            }`}
+          >
+            {speedLabel(t, speed)}
+          </button>
+        ))}
       </div>
     </section>
   );

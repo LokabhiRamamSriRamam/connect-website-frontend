@@ -84,6 +84,40 @@
   min-width: 100%;
 }
 
+/* Active hours read as the lit part of the day. The rail's own background is the
+   dimmed remainder, so "outside active hours" is something you can see rather
+   than a rule you are told — a slot sitting on the grey is self-explanatory. */
+.td-rail-dim {
+  background: #e9e8f6; /* sb-mist */
+}
+.td-rail-lit {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+/* An uncovered stretch inside active hours: hatched, so it is distinguishable
+   from both a slot and the dimmed outside-hours ground without relying on hue.
+   The hatch is split from the positioning so the legend swatch can wear the
+   pattern without also being absolutely positioned. */
+.td-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(25, 25, 25, 0.07) 0,
+    rgba(25, 25, 25, 0.07) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+}
+.td-rail-gap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
 .td-playhead {
   position: absolute;
   top: 0;
