@@ -202,6 +202,32 @@ export const creativeDuplicate = (id, newId, createdAt) => ({
 /** Delete an instance. The reducer also prunes slots referencing it. */
 export const creativeRemove = (id) => ({ type: A.CREATIVE_REMOVE, id });
 
+// ---- creators: tutorial (phase 10) ----
+
+/**
+ * Mark a mission complete. Dispatched by TutorialProvider when the mission's
+ * own predicate turns true — never by a component asserting it did the thing,
+ * so "complete" always means the state says so.
+ */
+export const tutComplete = (missionId) => ({ type: A.TUT_COMPLETE, missionId });
+
+/** Move to the next mission. `total` caps it at the last one. */
+export const tutAdvance = (total) => ({ type: A.TUT_ADVANCE, total });
+
+/** Leave the guided tutorial for free exploration. Always offered. */
+export const tutSkipAll = () => ({ type: A.TUT_SKIP_ALL });
+
+/** Dismiss the intro reveal. */
+export const tutSkipIntro = () => ({ type: A.TUT_SKIP_INTRO });
+
+/** Start the tutorial again from mission one, keeping what was done. */
+export const tutReplay = () => ({ type: A.TUT_REPLAY });
+
+export const tutSetMode = (mode) => ({ type: A.TUT_SET_MODE, mode });
+
+/** Open contextual help for a mission, or null to close it. */
+export const tutOpenHelp = (missionId) => ({ type: A.TUT_OPEN_HELP, missionId });
+
 // ---- creators: ui (phase 4) ----
 
 export const uiSetScheduleView = (view) => ({ type: A.UI_SET_SCHEDULE_VIEW, view });

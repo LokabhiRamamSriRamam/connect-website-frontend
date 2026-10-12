@@ -103,7 +103,18 @@ import {
   businessField,
   businessSubmitOk,
   enterConsole,
+  tutAdvance,
+  tutComplete,
+  tutOpenHelp,
+  tutReplay,
+  tutSetMode,
+  tutSkipAll,
+  tutSkipIntro,
 } from "../src/pages/test-drive/state/actions.js";
+
+import * as engine from "../src/pages/test-drive/audio/engine.js";
+import { CUES, CUE_IDS, cuePath } from "../src/pages/test-drive/audio/manifest.js";
+import { MISSIONS } from "../src/pages/test-drive/tutorial/missions.js";
 
 import { en } from "../src/pages/test-drive/i18n/en.js";
 import { hi } from "../src/pages/test-drive/i18n/hi.js";
@@ -112,13 +123,45 @@ import { flattenKeys } from "../src/pages/test-drive/i18n/index.js";
 let passed = 0;
 const failures = [];
 
-function test(name, fn) {
+/**
+ * Run one test. Awaits the body, so an async test (the audio engine's, which
+ * drive promise-returning play()) is actually waited for rather than counted as
+ * passing the moment it returns a pending promise.
+ */
+const pending = [];
+
+async function test(name, fn) {
   try {
-    fn();
+    await fn();
     passed += 1;
   } catch (err) {
     failures.push({ name, err });
   }
+}
+
+/**
+ * Tests are declared top to bottom and most are synchronous, but the audio
+ * engine's drive a promise-returning play(). Registering every call here and
+ * awaiting the lot before the report is what keeps an async failure from being
+ * reported after the process has already printed its total.
+ */
+function register(name, fn) {
+  pending.push(test(name, fn));
+}
+
+/**
+ * Register a test that must not run concurrently with its neighbours.
+ *
+ * The audio engine is a module SINGLETON — one element, one status, one failure
+ * set — so two of its tests running interleaved fight over the same state and
+ * fail in ways that have nothing to do with the code. (They did exactly that
+ * when first written: a stop() from one test cleared another's cue mid-assert.)
+ * These are chained one after the next instead.
+ */
+let serial = Promise.resolve();
+function registerSerial(name, fn) {
+  serial = serial.then(() => test(name, fn));
+  pending.push(serial);
 }
 
 /** Assert an i18n key actually exists in BOTH dictionaries. */
@@ -144,7 +187,7 @@ function deepFreeze(value) {
 
 // ---------------------------------------------------------------- time.js ----
 
-test("minute validity and clamping", () => {
+register("minute validity and clamping", () => {
   assert.equal(isValidMinute(0), true);
   assert.equal(isValidMinute(1440), true);
   assert.equal(isValidMinute(1441), false);
@@ -157,7 +200,7 @@ test("minute validity and clamping", () => {
   assert.equal(clampMinute(NaN), 0);
 });
 
-test("wrapMinute folds past midnight, 1440 -> 0", () => {
+register("wrapMinute folds past midnight, 1440 -> 0", () => {
   assert.equal(wrapMinute(0), 0);
   assert.equal(wrapMinute(1440), 0);
   assert.equal(wrapMinute(1500), 60);
@@ -165,7 +208,7 @@ test("wrapMinute folds past midnight, 1440 -> 0", () => {
   assert.equal(wrapMinute(-1440), 0);
 });
 
-test("HH:MM round-trips, including the 0 and 1440 edges", () => {
+register("HH:MM round-trips, including the 0 and 1440 edges", () => {
   assert.equal(hhmmToMinutes("00:00"), 0);
   assert.equal(minutesToHHMM(0), "00:00");
   assert.equal(hhmmToMinutes("24:00"), 1440);
@@ -182,33 +225,33 @@ test("HH:MM round-trips, including the 0 and 1440 edges", () => {
   }
 });
 
-test("HH:MM rejects junk rather than coercing it to midnight", () => {
+register("HH:MM rejects junk rather than coercing it to midnight", () => {
   for (const bad of ["", "abc", "9", "09:60", "25:00", "09:5", null, undefined, 540, "09:00:00"]) {
     assert.equal(hhmmToMinutes(bad), null, `should reject ${JSON.stringify(bad)}`);
   }
 });
 
-test("minutesToInputValue folds 24:00 to a value an input accepts", () => {
+register("minutesToInputValue folds 24:00 to a value an input accepts", () => {
   assert.equal(minutesToInputValue(1440), "23:59");
   assert.equal(minutesToInputValue(540), "09:00");
   assert.equal(minutesToInputValue(0), "00:00");
 });
 
-test("durationMinutes never goes negative", () => {
+register("durationMinutes never goes negative", () => {
   assert.equal(durationMinutes(540, 720), 180);
   assert.equal(durationMinutes(720, 540), 0);
   assert.equal(durationMinutes(0, 1440), 1440);
 });
 
 // THE case for this phase: half-open intervals.
-test("overlap: 09:00-12:00 and 12:00-15:00 are adjacent, NOT overlapping", () => {
+register("overlap: 09:00-12:00 and 12:00-15:00 are adjacent, NOT overlapping", () => {
   const a = { startMin: 540, endMin: 720 };
   const b = { startMin: 720, endMin: 900 };
   assert.equal(overlaps(a, b), false);
   assert.equal(overlaps(b, a), false, "and symmetrically");
 });
 
-test("overlap: a 1-minute intersection DOES clash", () => {
+register("overlap: a 1-minute intersection DOES clash", () => {
   const a = { startMin: 540, endMin: 720 };
   assert.equal(overlaps(a, { startMin: 719, endMin: 900 }), true, "clips the end by 1");
   assert.equal(overlaps(a, { startMin: 300, endMin: 541 }), true, "clips the start by 1");
@@ -217,7 +260,7 @@ test("overlap: a 1-minute intersection DOES clash", () => {
   assert.equal(overlaps(a, a), true, "identical");
 });
 
-test("overlap: zero-length and degenerate inputs", () => {
+register("overlap: zero-length and degenerate inputs", () => {
   // A zero-length interval strictly inside another DOES satisfy the half-open
   // formula (540 < 600 && 600 < 720). That is the plan's formula unchanged, and
   // it is harmless: a zero-length slot is rejected earlier by isPlayableSlot and
@@ -230,7 +273,7 @@ test("overlap: zero-length and degenerate inputs", () => {
   assert.equal(overlaps({ startMin: 0, endMin: 10 }, null), false);
 });
 
-test("withinActiveHours: normal window, half-open", () => {
+register("withinActiveHours: normal window, half-open", () => {
   const h = { start: 540, end: 1260 }; // 09:00-21:00
   assert.equal(withinActiveHours(540, h), true, "inclusive at open");
   assert.equal(withinActiveHours(780, h), true);
@@ -240,7 +283,7 @@ test("withinActiveHours: normal window, half-open", () => {
   assert.equal(withinActiveHours(0, h), false);
 });
 
-test("withinActiveHours: wrapping window 22:00-02:00", () => {
+register("withinActiveHours: wrapping window 22:00-02:00", () => {
   const h = { start: 1320, end: 120 };
   assert.equal(withinActiveHours(1410, h), true, "23:30 is inside");
   assert.equal(withinActiveHours(60, h), true, "01:00 is inside");
@@ -251,13 +294,13 @@ test("withinActiveHours: wrapping window 22:00-02:00", () => {
   assert.equal(withinActiveHours(720, h), false, "midday is outside");
 });
 
-test("withinActiveHours: start === end is closed, not 24h", () => {
+register("withinActiveHours: start === end is closed, not 24h", () => {
   assert.equal(withinActiveHours(600, { start: 540, end: 540 }), false);
   assert.equal(withinActiveHours(600, null), false);
   assert.equal(withinActiveHours(600, { start: 0, end: 1440 }), true, "00:00-24:00 is always on");
 });
 
-test("pct and slotGeometry: exact arithmetic", () => {
+register("pct and slotGeometry: exact arithmetic", () => {
   assert.equal(pct(0), 0);
   assert.equal(pct(1440), 100);
   assert.equal(pct(720), 50);
@@ -288,7 +331,7 @@ const slot = (id, startMin, endMin, instanceId = "ci_a", enabled = true) => ({
   enabled,
 });
 
-test("isPlayableSlot rejects disabled and malformed slots", () => {
+register("isPlayableSlot rejects disabled and malformed slots", () => {
   assert.equal(isPlayableSlot(slot("s", 540, 720)), true);
   assert.equal(isPlayableSlot(slot("s", 540, 720, "ci_a", false)), false);
   assert.equal(isPlayableSlot(slot("s", 720, 540)), false);
@@ -296,7 +339,7 @@ test("isPlayableSlot rejects disabled and malformed slots", () => {
   assert.equal(isPlayableSlot(null), false);
 });
 
-test("normalizeSlots sorts, decorates and does not mutate its input", () => {
+register("normalizeSlots sorts, decorates and does not mutate its input", () => {
   const input = deepFreeze([slot("b", 720, 900), slot("a", 540, 720)]);
   const out = normalizeSlots(input, { activeHours: HOURS, creativeInstances: CI });
   assert.deepEqual(
@@ -312,7 +355,7 @@ test("normalizeSlots sorts, decorates and does not mutate its input", () => {
   assert.notEqual(out[0], input[1], "returns copies");
 });
 
-test("normalizeSlots flags outside-hours, partial and missing creatives", () => {
+register("normalizeSlots flags outside-hours, partial and missing creatives", () => {
   const out = normalizeSlots(
     [
       slot("night", 60, 180), // 01:00-03:00, wholly outside 09:00-21:00
@@ -329,13 +372,13 @@ test("normalizeSlots flags outside-hours, partial and missing creatives", () => 
   assert.equal(byId.ghost.missingCreative, true);
 });
 
-test("normalizeSlots reports pre-existing overlaps in hydrated data", () => {
+register("normalizeSlots reports pre-existing overlaps in hydrated data", () => {
   const out = normalizeSlots([slot("a", 540, 720), slot("b", 700, 800)], {});
   assert.deepEqual(out.find((s) => s.id === "a").conflictsWith, ["b"]);
   assert.deepEqual(out.find((s) => s.id === "b").conflictsWith, ["a"]);
 });
 
-test("intersectsActiveHours handles an overnight window", () => {
+register("intersectsActiveHours handles an overnight window", () => {
   const overnight = { start: 1320, end: 120 }; // 22:00-02:00
   assert.deepEqual(intersectsActiveHours(slot("a", 1380, 1440), overnight), {
     any: true,
@@ -349,7 +392,7 @@ test("intersectsActiveHours handles an overnight window", () => {
   assert.equal(intersectsActiveHours(slot("c", 1200, 1380), overnight).whole, false);
 });
 
-test("slotAt is half-open at both ends", () => {
+register("slotAt is half-open at both ends", () => {
   const slots = [slot("am", 540, 720), slot("pm", 720, 900)];
   assert.equal(slotAt(slots, 540).id, "am");
   assert.equal(slotAt(slots, 719).id, "am");
@@ -362,14 +405,14 @@ test("slotAt is half-open at both ends", () => {
   assert.equal(slotAt([slot("off", 540, 720, "ci_a", false)], 600), null, "disabled never plays");
 });
 
-test("scheduledMinutes sums only playable slots", () => {
+register("scheduledMinutes sums only playable slots", () => {
   assert.equal(
     scheduledMinutes([slot("a", 540, 720), slot("b", 720, 780, "ci_a", false)]),
     180
   );
 });
 
-test("findGaps walks the active window", () => {
+register("findGaps walks the active window", () => {
   assert.deepEqual(findGaps([slot("a", 600, 720)], HOURS), [
     { startMin: 540, endMin: 600 },
     { startMin: 720, endMin: 1260 },
@@ -379,7 +422,7 @@ test("findGaps walks the active window", () => {
   assert.equal(findGaps([slot("a", 1380, 1440)], { start: 1320, end: 120 }).length, 2);
 });
 
-test("validateSlot: a clean slot passes", () => {
+register("validateSlot: a clean slot passes", () => {
   const r = validateSlot(slot("new", 540, 720), {
     slots: [],
     activeHours: HOURS,
@@ -390,7 +433,7 @@ test("validateSlot: a clean slot passes", () => {
   assert.deepEqual(r.warnings, []);
 });
 
-test("validateSlot: end must be after start, with a 5-minute minimum", () => {
+register("validateSlot: end must be after start, with a 5-minute minimum", () => {
   const bad = validateSlot({ id: "x", startMin: 720, endMin: 540, instanceId: "ci_a" }, {
     creativeInstances: CI,
   });
@@ -412,7 +455,7 @@ test("validateSlot: end must be after start, with a 5-minute minimum", () => {
   assert.equal(exactly5.ok, true, "5 minutes exactly is allowed");
 });
 
-test("validateSlot rejects a zero-length slot before overlap matters", () => {
+register("validateSlot rejects a zero-length slot before overlap matters", () => {
   const r = validateSlot({ id: "z", startMin: 600, endMin: 600, instanceId: "ci_a" }, {
     slots: [slot("lunch", 540, 720, "ci_a")],
     activeHours: HOURS,
@@ -426,7 +469,7 @@ test("validateSlot rejects a zero-length slot before overlap matters", () => {
   );
 });
 
-test("validateSlot: a creative is required and must exist", () => {
+register("validateSlot: a creative is required and must exist", () => {
   const none = validateSlot({ id: "x", startMin: 540, endMin: 720 }, { creativeInstances: CI });
   assert.equal(none.ok, false);
   assert.ok(none.errors.some((e) => e.key === "schedule.err.pickCreative"));
@@ -437,7 +480,7 @@ test("validateSlot: a creative is required and must exist", () => {
   assert.ok(gone.errors.some((e) => e.key === "schedule.err.pickCreative"));
 });
 
-test("validateSlot: overlap is BLOCKING and names the clashing slot", () => {
+register("validateSlot: overlap is BLOCKING and names the clashing slot", () => {
   const existing = [slot("lunch", 540, 720, "ci_a")];
   const r = validateSlot(slot("new", 700, 800, "ci_b"), {
     slots: existing,
@@ -454,7 +497,7 @@ test("validateSlot: overlap is BLOCKING and names the clashing slot", () => {
   assertKey("schedule.err.overlap");
 });
 
-test("validateSlot: an adjacent slot is NOT an overlap", () => {
+register("validateSlot: an adjacent slot is NOT an overlap", () => {
   const r = validateSlot(slot("new", 720, 900, "ci_b"), {
     slots: [slot("lunch", 540, 720, "ci_a")],
     activeHours: HOURS,
@@ -463,7 +506,7 @@ test("validateSlot: an adjacent slot is NOT an overlap", () => {
   assert.equal(r.ok, true, "12:00 start against a 12:00 end must be accepted");
 });
 
-test("validateSlot: editing a slot does not clash with itself", () => {
+register("validateSlot: editing a slot does not clash with itself", () => {
   const existing = [slot("lunch", 540, 720, "ci_a")];
   const r = validateSlot(slot("lunch", 560, 740, "ci_a"), {
     slots: existing,
@@ -473,7 +516,7 @@ test("validateSlot: editing a slot does not clash with itself", () => {
   assert.equal(r.ok, true);
 });
 
-test("validateSlot: outside active hours is a WARNING, not an error", () => {
+register("validateSlot: outside active hours is a WARNING, not an error", () => {
   const r = validateSlot(slot("night", 60, 180, "ci_a"), {
     slots: [],
     activeHours: HOURS,
@@ -485,7 +528,7 @@ test("validateSlot: outside active hours is a WARNING, not an error", () => {
   assertKey("schedule.warn.outsideHours");
 });
 
-test("validateSlot: the 8-slot cap applies to adds, not edits", () => {
+register("validateSlot: the 8-slot cap applies to adds, not edits", () => {
   const eight = Array.from({ length: 8 }, (_, i) =>
     slot(`s${i}`, 540 + i * 10, 545 + i * 10, "ci_a")
   );
@@ -508,7 +551,7 @@ test("validateSlot: the 8-slot cap applies to adds, not edits", () => {
   assert.equal(edited.ok, true, "editing an existing slot at the cap is fine");
 });
 
-test("validateActiveHours", () => {
+register("validateActiveHours", () => {
   assert.equal(validateActiveHours({ start: 540, end: 1260 }).ok, true);
   const rev = validateActiveHours({ start: 1260, end: 540 });
   assert.equal(rev.ok, false);
@@ -521,7 +564,7 @@ test("validateActiveHours", () => {
   assert.equal(validateActiveHours(null).ok, false);
 });
 
-test("slotsOutsideHours names what a narrower window would silence", () => {
+register("slotsOutsideHours names what a narrower window would silence", () => {
   const slots = [slot("a", 540, 720), slot("b", 1300, 1380)];
   const out = slotsOutsideHours(slots, HOURS);
   assert.deepEqual(out.map((s) => s.id), ["b"]);
@@ -535,7 +578,7 @@ const primaries = () => [
   { id: "s3", label: "Screen 3", role: "primary", mirrors: null, online: true },
 ];
 
-test("resolveChain: a primary resolves to itself, unmirrored", () => {
+register("resolveChain: a primary resolves to itself, unmirrored", () => {
   const r = resolveChain(primaries(), "s1");
   assert.equal(r.status, "ok");
   assert.equal(r.sourceId, "s1");
@@ -543,7 +586,7 @@ test("resolveChain: a primary resolves to itself, unmirrored", () => {
   assert.deepEqual(r.path, ["s1"]);
 });
 
-test("resolveChain: one hop", () => {
+register("resolveChain: one hop", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s1" };
   const r = resolveChain(screens, "s2");
@@ -553,7 +596,7 @@ test("resolveChain: one hop", () => {
   assert.deepEqual(r.path, ["s2", "s1"]);
 });
 
-test("resolveChain: a long chain resolves to the one primary", () => {
+register("resolveChain: a long chain resolves to the one primary", () => {
   const screens = Array.from({ length: 6 }, (_, i) => ({
     id: `s${i + 1}`,
     label: `Screen ${i + 1}`,
@@ -568,7 +611,7 @@ test("resolveChain: a long chain resolves to the one primary", () => {
   assert.deepEqual(r.path, ["s6", "s5", "s4", "s3", "s2", "s1"]);
 });
 
-test("resolveChain: self-mirror is detected, not looped on", () => {
+register("resolveChain: self-mirror is detected, not looped on", () => {
   const screens = primaries();
   screens[0] = { ...screens[0], role: "secondary", mirrors: "s1" };
   const r = resolveChain(screens, "s1");
@@ -576,7 +619,7 @@ test("resolveChain: self-mirror is detected, not looped on", () => {
   assert.equal(r.sourceId, null);
 });
 
-test("resolveChain: A->B->A is detected", () => {
+register("resolveChain: A->B->A is detected", () => {
   const screens = [
     { id: "s1", role: "secondary", mirrors: "s2", online: true },
     { id: "s2", role: "secondary", mirrors: "s1", online: true },
@@ -585,7 +628,7 @@ test("resolveChain: A->B->A is detected", () => {
   assert.equal(resolveChain(screens, "s2").status, "cycle");
 });
 
-test("resolveChain: a three-screen ring is detected", () => {
+register("resolveChain: a three-screen ring is detected", () => {
   const screens = [
     { id: "s1", role: "secondary", mirrors: "s2", online: true },
     { id: "s2", role: "secondary", mirrors: "s3", online: true },
@@ -594,7 +637,7 @@ test("resolveChain: a three-screen ring is detected", () => {
   assert.equal(resolveChain(screens, "s1").status, "cycle");
 });
 
-test("resolveChain: a chain longer than the depth cap terminates", () => {
+register("resolveChain: a chain longer than the depth cap terminates", () => {
   const n = MAX_MIRROR_DEPTH + 4;
   const screens = Array.from({ length: n }, (_, i) => ({
     id: `s${i + 1}`,
@@ -607,20 +650,20 @@ test("resolveChain: a chain longer than the depth cap terminates", () => {
   assert.equal(r.sourceId, null);
 });
 
-test("resolveChain: a secondary pointing nowhere is a broken link", () => {
+register("resolveChain: a secondary pointing nowhere is a broken link", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: null };
   assert.equal(resolveChain(screens, "s2").status, "broken-link");
 });
 
-test("resolveChain: a link to a screen that is gone", () => {
+register("resolveChain: a link to a screen that is gone", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s99" };
   assert.equal(resolveChain(screens, "s2").status, "unknown-screen");
   assert.equal(resolveChain(screens, "nope").status, "unknown-screen");
 });
 
-test("canMirror blocks self and cycles, with i18n keys", () => {
+register("canMirror blocks self and cycles, with i18n keys", () => {
   const screens = primaries();
   const self = canMirror(screens, "s1", "s1");
   assert.equal(self.ok, false);
@@ -642,7 +685,7 @@ test("canMirror blocks self and cycles, with i18n keys", () => {
   assertKey("play.reason.unknownScreen");
 });
 
-test("followersOf and allFollowersOf", () => {
+register("followersOf and allFollowersOf", () => {
   const screens = [
     { id: "s1", role: "primary", mirrors: null, online: true },
     { id: "s2", role: "secondary", mirrors: "s1", online: true },
@@ -654,7 +697,7 @@ test("followersOf and allFollowersOf", () => {
   assert.deepEqual(allFollowersOf(screens, "s4"), []);
 });
 
-test("mirrorCandidates excludes self and anything that would loop", () => {
+register("mirrorCandidates excludes self and anything that would loop", () => {
   const screens = [
     { id: "s1", role: "primary", mirrors: null, online: true },
     { id: "s2", role: "secondary", mirrors: "s1", online: true },
@@ -668,7 +711,7 @@ test("mirrorCandidates excludes self and anything that would loop", () => {
 
 const cfg = (slots, activeHours = HOURS) => ({ activeHours: { ...activeHours }, slots });
 
-test("resolveScreen kind=creative — requires a real slot AND a real instance", () => {
+register("resolveScreen kind=creative — requires a real slot AND a real instance", () => {
   const screens = primaries();
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_a")]) };
   const r = resolveScreen(source, screens, CI, "s1", 780);
@@ -681,7 +724,7 @@ test("resolveScreen kind=creative — requires a real slot AND a real instance",
   assert.equal(r.mirrored, false);
 });
 
-test("resolveScreen kind=offline — wins over an otherwise playing schedule", () => {
+register("resolveScreen kind=offline — wins over an otherwise playing schedule", () => {
   const screens = primaries();
   screens[0] = { ...screens[0], online: false };
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_a")]) };
@@ -692,7 +735,7 @@ test("resolveScreen kind=offline — wins over an otherwise playing schedule", (
   assertKey("play.reason.offline");
 });
 
-test("resolveScreen kind=idle — outside active hours", () => {
+register("resolveScreen kind=idle — outside active hours", () => {
   const screens = primaries();
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_a")]) };
   const r = resolveScreen(source, screens, CI, "s1", 60); // 01:00
@@ -701,7 +744,7 @@ test("resolveScreen kind=idle — outside active hours", () => {
   assertKey("play.reason.outsideHours");
 });
 
-test("resolveScreen kind=no-content, reason=gap — open, but nothing scheduled", () => {
+register("resolveScreen kind=no-content, reason=gap — open, but nothing scheduled", () => {
   const screens = primaries();
   const source = { s1: cfg([slot("morning", 540, 600, "ci_a")]) };
   const r = resolveScreen(source, screens, CI, "s1", 780);
@@ -710,7 +753,7 @@ test("resolveScreen kind=no-content, reason=gap — open, but nothing scheduled"
   assertKey("play.reason.gap");
 });
 
-test("resolveScreen reason=creativeMissing — never substitutes another creative", () => {
+register("resolveScreen reason=creativeMissing — never substitutes another creative", () => {
   const screens = primaries();
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_gone")]) };
   const r = resolveScreen(source, screens, CI, "s1", 780);
@@ -721,14 +764,14 @@ test("resolveScreen reason=creativeMissing — never substitutes another creativ
   assertKey("play.reason.creativeMissing");
 });
 
-test("resolveScreen reason=notConfigured — no config for the source screen", () => {
+register("resolveScreen reason=notConfigured — no config for the source screen", () => {
   const r = resolveScreen({}, primaries(), CI, "s1", 780);
   assert.equal(r.kind, "no-content");
   assert.equal(r.reason, "play.reason.notConfigured");
   assertKey("play.reason.notConfigured");
 });
 
-test("resolveScreen kind=broken-link, reason=unknownScreen", () => {
+register("resolveScreen kind=broken-link, reason=unknownScreen", () => {
   const r = resolveScreen({}, primaries(), CI, "s99", 780);
   assert.equal(r.kind, "broken-link");
   assert.equal(r.reason, "play.reason.unknownScreen");
@@ -741,7 +784,7 @@ test("resolveScreen kind=broken-link, reason=unknownScreen", () => {
   assert.equal(d.mirrored, true);
 });
 
-test("resolveScreen kind=broken-link, reason=cycle", () => {
+register("resolveScreen kind=broken-link, reason=cycle", () => {
   const screens = [
     { id: "s1", role: "secondary", mirrors: "s2", online: true },
     { id: "s2", role: "secondary", mirrors: "s1", online: true },
@@ -752,7 +795,7 @@ test("resolveScreen kind=broken-link, reason=cycle", () => {
   assertKey("play.reason.cycle");
 });
 
-test("resolveScreen reason=primaryOffline — a mirror of a dark primary", () => {
+register("resolveScreen reason=primaryOffline — a mirror of a dark primary", () => {
   const screens = primaries();
   screens[0] = { ...screens[0], online: false };
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s1" };
@@ -765,7 +808,7 @@ test("resolveScreen reason=primaryOffline — a mirror of a dark primary", () =>
   assertKey("play.reason.primaryOffline");
 });
 
-test("a mirror shows its primary's content", () => {
+register("a mirror shows its primary's content", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s1" };
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_a")]), s2: cfg([]) };
@@ -777,7 +820,7 @@ test("a mirror shows its primary's content", () => {
 });
 
 // The one semantic judgement call, asserted so a later "tidy" cannot reverse it.
-test("a mirror shows its primary's IDLE state, ignoring its own active hours", () => {
+register("a mirror shows its primary's IDLE state, ignoring its own active hours", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s1" };
   const source = {
@@ -790,7 +833,7 @@ test("a mirror shows its primary's IDLE state, ignoring its own active hours", (
   assert.equal(r.sourceScreenId, "s1");
 });
 
-test("a mirror that is itself offline reports its OWN offline state", () => {
+register("a mirror that is itself offline reports its OWN offline state", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s1", online: false };
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_a")]) };
@@ -799,7 +842,7 @@ test("a mirror that is itself offline reports its OWN offline state", () => {
   assert.equal(r.reason, "play.reason.offline", "offline is checked before the chain");
 });
 
-test("every resolveScreen result has the full shape", () => {
+register("every resolveScreen result has the full shape", () => {
   const screens = primaries();
   screens[1] = { ...screens[1], role: "secondary", mirrors: "s1" };
   const source = { s1: cfg([slot("lunch", 540, 900, "ci_a")]) };
@@ -827,7 +870,7 @@ test("every resolveScreen result has the full shape", () => {
   }
 });
 
-test("resolveAllScreens keys every screen", () => {
+register("resolveAllScreens keys every screen", () => {
   const screens = primaries();
   const all = resolveAllScreens({ s1: cfg([slot("a", 540, 900, "ci_a")]) }, screens, CI, 780);
   assert.deepEqual(Object.keys(all).sort(), ["s1", "s2", "s3"]);
@@ -837,7 +880,7 @@ test("resolveAllScreens keys every screen", () => {
 
 // -------------------------------------------------------------- health.js ----
 
-test("seededUnit is deterministic and in range", () => {
+register("seededUnit is deterministic and in range", () => {
   assert.equal(seededUnit("s1", 0), seededUnit("s1", 0));
   assert.notEqual(seededUnit("s1", 0), seededUnit("s1", 1));
   assert.notEqual(seededUnit("s1", 0), seededUnit("s2", 0));
@@ -849,7 +892,7 @@ test("seededUnit is deterministic and in range", () => {
   }
 });
 
-test("screenHealth: online screen, plausible and repeatable figures", () => {
+register("screenHealth: online screen, plausible and repeatable figures", () => {
   const s = { id: "s1", role: "primary", mirrors: null, online: true };
   const h = screenHealth(s, 780, 3);
   assert.equal(h.status, "online");
@@ -859,7 +902,7 @@ test("screenHealth: online screen, plausible and repeatable figures", () => {
   assert.deepEqual(h, screenHealth(s, 780, 3), "same tick, same figures");
 });
 
-test("screenHealth: offline screen was last seen in the past", () => {
+register("screenHealth: offline screen was last seen in the past", () => {
   const s = { id: "s4", role: "primary", mirrors: null, online: false };
   const h = screenHealth(s, 780, 1);
   assert.equal(h.status, "offline");
@@ -868,13 +911,13 @@ test("screenHealth: offline screen was last seen in the past", () => {
   assert.ok(h.uptimePct >= 80 && h.uptimePct < 95, `uptime ${h.uptimePct}`);
 });
 
-test("screenHealth: lastSeenMin wraps rather than going negative", () => {
+register("screenHealth: lastSeenMin wraps rather than going negative", () => {
   const s = { id: "s4", role: "primary", mirrors: null, online: false };
   const h = screenHealth(s, 1, 1);
   assert.ok(h.lastSeenMin >= 0 && h.lastSeenMin < 1440, `got ${h.lastSeenMin}`);
 });
 
-test("screenHealth: playback is a separate axis from connectivity", () => {
+register("screenHealth: playback is a separate axis from connectivity", () => {
   const s = { id: "s1", role: "primary", mirrors: null, online: true };
   const playing = screenHealth(s, 780, 0, { kind: "creative", reason: null });
   assert.equal(playing.playing, true);
@@ -884,13 +927,13 @@ test("screenHealth: playback is a separate axis from connectivity", () => {
   assert.equal(idle.playbackReason, "play.reason.outsideHours");
 });
 
-test("allScreenHealth keys every screen", () => {
+register("allScreenHealth keys every screen", () => {
   const screens = primaries();
   const h = allScreenHealth(screens, 780, 0);
   assert.deepEqual(Object.keys(h).sort(), ["s1", "s2", "s3"]);
 });
 
-test("healthSummary returns keys and counts, not sentences", () => {
+register("healthSummary returns keys and counts, not sentences", () => {
   const all = healthSummary(primaries());
   assert.equal(all.allOnline, true);
   assert.equal(all.key, "screens.summaryAll");
@@ -905,14 +948,14 @@ test("healthSummary returns keys and counts, not sentences", () => {
   assertKey("screens.summarySome");
 });
 
-test("advanceClock wraps at midnight", () => {
+register("advanceClock wraps at midnight", () => {
   assert.equal(advanceClock(780, 60), 840);
   assert.equal(advanceClock(1400, 60), 20);
   assert.equal(advanceClock(0, -1), 1439);
   assert.equal(advanceClock(1439, 1), 0);
 });
 
-test("minutesUntilOpen", () => {
+register("minutesUntilOpen", () => {
   assert.equal(minutesUntilOpen(480, HOURS), 60, "an hour before opening");
   assert.equal(minutesUntilOpen(540, HOURS), 0, "at opening");
   // 21:40 -> next 09:00 is 2h20m to midnight plus 9h.
@@ -922,7 +965,7 @@ test("minutesUntilOpen", () => {
 
 // ---------------------------------------------------------------- purity ----
 
-test("purity: no domain function mutates a deep-frozen argument", () => {
+register("purity: no domain function mutates a deep-frozen argument", () => {
   const screens = deepFreeze(
     primaries().map((s, i) => (i === 1 ? { ...s, role: "secondary", mirrors: "s1" } : s))
   );
@@ -965,14 +1008,14 @@ test("purity: no domain function mutates a deep-frozen argument", () => {
   assert.equal(screens[1].mirrors, "s1");
 });
 
-test("purity: returned slots are copies, so a view cannot write through them", () => {
+register("purity: returned slots are copies, so a view cannot write through them", () => {
   const input = [slot("a", 540, 720, "ci_a")];
   const out = normalizeSlots(input, {});
   out[0].startMin = 999;
   assert.equal(input[0].startMin, 540, "the source slot is unaffected");
 });
 
-test("i18n: every play.reason.* key the domain can return exists in en and hi", () => {
+register("i18n: every play.reason.* key the domain can return exists in en and hi", () => {
   for (const reason of [
     "offline",
     "primaryOffline",
@@ -987,7 +1030,7 @@ test("i18n: every play.reason.* key the domain can return exists in en and hi", 
   }
 });
 
-test("i18n: en and hi key trees are still identical", () => {
+register("i18n: en and hi key trees are still identical", () => {
   const a = flattenKeys(en);
   const b = flattenKeys(hi);
   const onlyEn = a.filter((k) => !b.includes(k));
@@ -999,7 +1042,7 @@ test("i18n: en and hi key trees are still identical", () => {
 
 // ------------------------------------------------- reducer (phase 4 cases) ----
 
-test("SELECT_SCREEN changes selection and ignores unknown ids", () => {
+register("SELECT_SCREEN changes selection and ignores unknown ids", () => {
   const next = reducer(initialState, selectScreen("s3"));
   assert.equal(next.selectedScreenId, "s3");
   assert.equal(
@@ -1010,7 +1053,7 @@ test("SELECT_SCREEN changes selection and ignores unknown ids", () => {
   assert.equal(reducer(next, selectScreen("s3")), next, "re-selecting is a no-op");
 });
 
-test("SELECT_SCREEN never marks anything dirty", () => {
+register("SELECT_SCREEN never marks anything dirty", () => {
   const next = reducer(initialState, selectScreen("s4"));
   assert.equal(next.save.status, "clean", "looking around is not an edit");
   assert.deepEqual(next.save.dirtyScreens, []);
@@ -1018,7 +1061,7 @@ test("SELECT_SCREEN never marks anything dirty", () => {
   assert.equal(next.saved, initialState.saved, "saved untouched");
 });
 
-test("SIM_SET_TIME clamps, and scrubbing by hand pauses the clock", () => {
+register("SIM_SET_TIME clamps, and scrubbing by hand pauses the clock", () => {
   const playing = reducer(initialState, simPlay());
   assert.equal(playing.sim.playing, true);
   const scrubbed = reducer(playing, simSetTime(615));
@@ -1028,12 +1071,12 @@ test("SIM_SET_TIME clamps, and scrubbing by hand pauses the clock", () => {
   assert.equal(reducer(initialState, simSetTime(99999)).sim.nowMin, 1440);
 });
 
-test("SIM_TICK advances by speed and wraps at midnight", () => {
+register("SIM_TICK advances by speed and wraps at midnight", () => {
   const s = { ...initialState, sim: { nowMin: 1400, playing: true, speed: 60 } };
   assert.equal(reducer(s, simTick()).sim.nowMin, 20, "1400 + 60 wraps to 00:20");
 });
 
-test("SIM_PLAY / SIM_PAUSE are idempotent", () => {
+register("SIM_PLAY / SIM_PAUSE are idempotent", () => {
   const playing = reducer(initialState, simPlay());
   assert.equal(reducer(playing, simPlay()), playing);
   const paused = reducer(playing, simPause());
@@ -1041,14 +1084,14 @@ test("SIM_PLAY / SIM_PAUSE are idempotent", () => {
   assert.equal(reducer(paused, simPause()), paused);
 });
 
-test("SIM_SET_SPEED rejects zero and nonsense", () => {
+register("SIM_SET_SPEED rejects zero and nonsense", () => {
   assert.equal(reducer(initialState, simSetSpeed(30)).sim.speed, 30);
   assert.equal(reducer(initialState, simSetSpeed(0)), initialState);
   assert.equal(reducer(initialState, simSetSpeed(-5)), initialState);
   assert.equal(reducer(initialState, simSetSpeed("fast")), initialState);
 });
 
-test("HEALTH_TICK only bumps a counter, so figures are reproducible", () => {
+register("HEALTH_TICK only bumps a counter, so figures are reproducible", () => {
   const once = reducer(initialState, healthTick());
   assert.equal(once.health.tick, 1);
   assert.equal(reducer(once, healthTick()).health.tick, 2);
@@ -1059,7 +1102,7 @@ test("HEALTH_TICK only bumps a counter, so figures are reproducible", () => {
   assert.deepEqual(a, b);
 });
 
-test("TOGGLE_SCREEN_ONLINE writes both screens and saved.screens", () => {
+register("TOGGLE_SCREEN_ONLINE writes both screens and saved.screens", () => {
   const next = reducer(initialState, toggleScreenOnline("s2"));
   assert.equal(next.screens.find((s) => s.id === "s2").online, false);
   assert.equal(
@@ -1073,7 +1116,7 @@ test("TOGGLE_SCREEN_ONLINE writes both screens and saved.screens", () => {
   assert.equal(reducer(initialState, toggleScreenOnline("s99")), initialState);
 });
 
-test("taking a screen offline changes what the wall resolves", () => {
+register("taking a screen offline changes what the wall resolves", () => {
   const before = resolveScreen(
     initialState.saved.byScreen,
     initialState.saved.screens,
@@ -1094,7 +1137,7 @@ test("taking a screen offline changes what the wall resolves", () => {
   assert.equal(after.reason, "play.reason.offline");
 });
 
-test("UI view actions validate their input", () => {
+register("UI view actions validate their input", () => {
   assert.equal(reducer(initialState, uiSetWallView("list")).ui.wallView, "list");
   assert.equal(reducer(initialState, uiSetWallView("sideways")), initialState);
   assert.equal(
@@ -1104,7 +1147,7 @@ test("UI view actions validate their input", () => {
   assert.equal(reducer(initialState, uiSetScheduleView("nope")), initialState);
 });
 
-test("the reducer never mutates the state it is given", () => {
+register("the reducer never mutates the state it is given", () => {
   const frozen = deepFreeze(JSON.parse(JSON.stringify(initialState)));
   for (const action of [
     selectScreen("s5"),
@@ -1124,7 +1167,7 @@ test("the reducer never mutates the state it is given", () => {
   assert.equal(frozen.health.tick, 0);
 });
 
-test("the default screen wall resolves to a sensible starting state", () => {
+register("the default screen wall resolves to a sensible starting state", () => {
   // Nothing is scheduled yet at intake, so every screen should say so rather than
   // showing an invented creative.
   const all = resolveAllScreens(
@@ -1150,7 +1193,7 @@ test("the default screen wall resolves to a sensible starting state", () => {
 
 // --------------------------------------------- creatives (phase 5, no JSX) ----
 
-test("every manifest entry is well formed", () => {
+register("every manifest entry is well formed", () => {
   assert.ok(allCreatives.length > 0, "the library is not empty");
   const ids = new Set();
   for (const tpl of allCreatives) {
@@ -1184,7 +1227,7 @@ test("every manifest entry is well formed", () => {
   }
 });
 
-test("registry lookups", () => {
+register("registry lookups", () => {
   assert.equal(getTemplate("r_thali_combo").componentKey, "ThaliCombo");
   assert.equal(getTemplate("nope"), null);
   assert.ok(creativesFor("restaurant").length > 0);
@@ -1193,7 +1236,7 @@ test("registry lookups", () => {
   assert.deepEqual(mediaTypesFor("restaurant"), ["svg"]);
 });
 
-test("clamp collapses whitespace and truncates with an ellipsis", () => {
+register("clamp collapses whitespace and truncates with an ellipsis", () => {
   assert.equal(clamp("  hello   world  ", 40), "hello world");
   assert.equal(clamp("", 10), "");
   assert.equal(clamp(null, 10), "", "null never becomes the string 'null'");
@@ -1204,7 +1247,7 @@ test("clamp collapses whitespace and truncates with an ellipsis", () => {
   assert.equal(clamp("a\n\nb\tc", 40), "a b c", "newlines and tabs collapse");
 });
 
-test("clamp is total: no input produces unbounded output", () => {
+register("clamp is total: no input produces unbounded output", () => {
   const long = "x".repeat(5000);
   for (const limit of [1, 5, 8, 16, 24, 28, 34, 40]) {
     assert.ok(clamp(long, limit).length <= limit, `limit ${limit} not honoured`);
@@ -1221,7 +1264,7 @@ test("clamp is total: no input produces unbounded output", () => {
   }
 });
 
-test("wrapLines never drops a word silently and respects the line cap", () => {
+register("wrapLines never drops a word silently and respects the line cap", () => {
   assert.deepEqual(wrapLines("", 10, 2), []);
   const two = wrapLines("Full Thali Combo Offer", 12, 2);
   assert.ok(two.length <= 2, "honours the line cap");
@@ -1236,7 +1279,7 @@ test("wrapLines never drops a word silently and respects the line cap", () => {
 
 const TPL = "r_thali_combo";
 
-test("CREATIVE_ADD allowlists fields against the manifest", () => {
+register("CREATIVE_ADD allowlists fields against the manifest", () => {
   const next = reducer(
     initialState,
     creativeAdd("ci_1", TPL, { headline: "Hi", evil: "nope" }, 1000)
@@ -1255,7 +1298,7 @@ test("CREATIVE_ADD allowlists fields against the manifest", () => {
   assert.equal(next.save.status, "dirty", "adding a creative is an edit");
 });
 
-test("CREATIVE_ADD coerces every value to a string", () => {
+register("CREATIVE_ADD coerces every value to a string", () => {
   const next = reducer(
     initialState,
     creativeAdd("ci_1", TPL, { headline: 42, price: null, cta: { a: 1 } }, 0)
@@ -1266,11 +1309,11 @@ test("CREATIVE_ADD coerces every value to a string", () => {
   assert.equal(next.creativeInstances.ci_1.fields.headline, "42");
 });
 
-test("CREATIVE_ADD rejects an unknown template", () => {
+register("CREATIVE_ADD rejects an unknown template", () => {
   assert.equal(reducer(initialState, creativeAdd("ci_1", "nope", {}, 0)), initialState);
 });
 
-test("CREATIVE_FIELD edits ONE instance — a template never mutates globally", () => {
+register("CREATIVE_FIELD edits ONE instance — a template never mutates globally", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   s = reducer(s, creativeAdd("ci_b", TPL, {}, 2));
   const before = s.creativeInstances.ci_b.fields.headline;
@@ -1286,13 +1329,13 @@ test("CREATIVE_FIELD edits ONE instance — a template never mutates globally", 
   assert.equal(getTemplate(TPL).defaults.headline, "Full Thali Combo");
 });
 
-test("CREATIVE_FIELD rejects fields the template does not declare", () => {
+register("CREATIVE_FIELD rejects fields the template does not declare", () => {
   const s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   assert.equal(reducer(s, creativeField("ci_a", "evil", "x")), s);
   assert.equal(reducer(s, creativeField("ci_missing", "headline", "x")), s);
 });
 
-test("CREATIVE_DUPLICATE gives an independent copy", () => {
+register("CREATIVE_DUPLICATE gives an independent copy", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Original" }, 1));
   s = reducer(s, creativeDuplicate("ci_a", "ci_copy", 2));
   assert.equal(s.creativeInstances.ci_copy.fields.headline, "Original");
@@ -1302,7 +1345,7 @@ test("CREATIVE_DUPLICATE gives an independent copy", () => {
   assert.equal(reducer(s, creativeDuplicate("ci_missing", "x", 0)), s);
 });
 
-test("CREATIVE_REMOVE prunes slots referencing the instance", () => {
+register("CREATIVE_REMOVE prunes slots referencing the instance", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   // Hand-place slots on two screens, as SLOT_ADD (phase 6) will.
   s = {
@@ -1347,12 +1390,12 @@ test("CREATIVE_REMOVE prunes slots referencing the instance", () => {
   }
 });
 
-test("CREATIVE_REMOVE on an unknown id is a no-op", () => {
+register("CREATIVE_REMOVE on an unknown id is a no-op", () => {
   const s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   assert.equal(reducer(s, creativeRemove("ci_nope")), s);
 });
 
-test("a scheduled instance actually plays on the wall", () => {
+register("a scheduled instance actually plays on the wall", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
   const byScreen = {
     ...s.saved.byScreen,
@@ -1371,7 +1414,7 @@ test("a scheduled instance actually plays on the wall", () => {
   assert.equal(after.reason, "play.reason.creativeMissing");
 });
 
-test("the creative reducer cases never mutate frozen state", () => {
+register("the creative reducer cases never mutate frozen state", () => {
   const frozen = deepFreeze(JSON.parse(JSON.stringify(initialState)));
   const added = reducer(frozen, creativeAdd("ci_a", TPL, {}, 1));
   deepFreeze(added);
@@ -1397,7 +1440,7 @@ function addSlot(state, screenId, id, startMin, endMin, instanceId = "ci_a") {
   return reducer(state, slotAdd(screenId, { id, startMin, endMin, instanceId }));
 }
 
-test("SLOT_ADD stores a valid slot and marks only that screen dirty", () => {
+register("SLOT_ADD stores a valid slot and marks only that screen dirty", () => {
   const next = addSlot(withCreative(), "s1", "sl_1", 540, 720);
   assert.deepEqual(
     next.draft.byScreen.s1.slots.map((s) => [s.startMin, s.endMin, s.instanceId]),
@@ -1410,7 +1453,7 @@ test("SLOT_ADD stores a valid slot and marks only that screen dirty", () => {
 });
 
 // THE blocking rule for this phase.
-test("SLOT_ADD rejects an overlap, and validateSlot names the clashing slot", () => {
+register("SLOT_ADD rejects an overlap, and validateSlot names the clashing slot", () => {
   const s = addSlot(withCreative(), "s1", "sl_1", 540, 720); // 09:00-12:00
   const clashing = addSlot(s, "s1", "sl_2", 660, 780); // 11:00-13:00
   assert.equal(clashing, s, "the overlapping add is rejected outright");
@@ -1432,7 +1475,7 @@ test("SLOT_ADD rejects an overlap, and validateSlot names the clashing slot", ()
 
 // The half-open-interval payoff, asserted through the reducer rather than only
 // through overlaps().
-test("SLOT_ADD accepts 09:00-12:00 then 12:00-15:00 — adjacent, not overlapping", () => {
+register("SLOT_ADD accepts 09:00-12:00 then 12:00-15:00 — adjacent, not overlapping", () => {
   let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
   s = addSlot(s, "s1", "sl_2", 720, 900);
   assert.equal(s.draft.byScreen.s1.slots.length, 2, "both slots are stored");
@@ -1442,7 +1485,7 @@ test("SLOT_ADD accepts 09:00-12:00 then 12:00-15:00 — adjacent, not overlappin
   );
 });
 
-test("SLOT_ADD rejects a slot shorter than 5 minutes, or ending before it starts", () => {
+register("SLOT_ADD rejects a slot shorter than 5 minutes, or ending before it starts", () => {
   const s = withCreative();
   assert.equal(addSlot(s, "s1", "sl_1", 540, 543), s, "3 minutes is too short");
   assert.equal(addSlot(s, "s1", "sl_1", 720, 540), s, "end before start");
@@ -1450,7 +1493,7 @@ test("SLOT_ADD rejects a slot shorter than 5 minutes, or ending before it starts
   assert.equal(addSlot(s, "s1", "sl_1", 540, 545).draft.byScreen.s1.slots.length, 1, "5 is ok");
 });
 
-test("SLOT_ADD requires a creative that actually exists", () => {
+register("SLOT_ADD requires a creative that actually exists", () => {
   const s = withCreative();
   assert.equal(reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720 })), s);
   assert.equal(addSlot(s, "s1", "sl_1", 540, 720, "ci_ghost"), s, "unknown instance");
@@ -1459,7 +1502,7 @@ test("SLOT_ADD requires a creative that actually exists", () => {
 });
 
 // Outside active hours is a WARNING. The slot is legal; it simply never plays.
-test("a slot outside active hours is ACCEPTED, with a warning", () => {
+register("a slot outside active hours is ACCEPTED, with a warning", () => {
   const s = withCreative();
   const hours = s.draft.byScreen.s1.activeHours; // 09:00-21:00 by default
   const next = addSlot(s, "s1", "sl_night", 60, 240); // 01:00-04:00
@@ -1480,7 +1523,7 @@ test("a slot outside active hours is ACCEPTED, with a warning", () => {
   assert.equal(row.outsideHours, true);
 });
 
-test("the 8-slot cap blocks a 9th add but NOT an edit of an existing one", () => {
+register("the 8-slot cap blocks a 9th add but NOT an edit of an existing one", () => {
   let s = withCreative();
   // Eight 1-hour slots from 00:00, each adjacent to the last.
   for (let i = 0; i < 8; i += 1) {
@@ -1499,7 +1542,7 @@ test("the 8-slot cap blocks a 9th add but NOT an edit of an existing one", () =>
   assert.equal(edited.draft.byScreen.s1.slots.length, 8, "and does not add one");
 });
 
-test("SLOT_UPDATE excludes a slot from its own overlap test", () => {
+register("SLOT_UPDATE excludes a slot from its own overlap test", () => {
   let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
   s = addSlot(s, "s1", "sl_2", 720, 900);
 
@@ -1515,7 +1558,7 @@ test("SLOT_UPDATE excludes a slot from its own overlap test", () => {
   assert.equal(reducer(s, slotUpdate("s99", "sl_1", { endMin: 600 })), s);
 });
 
-test("SLOT_UPDATE allowlists its patch and will not rename a slot", () => {
+register("SLOT_UPDATE allowlists its patch and will not rename a slot", () => {
   const s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
 
   const next = reducer(
@@ -1538,14 +1581,14 @@ test("SLOT_UPDATE allowlists its patch and will not rename a slot", () => {
   assert.equal(reducer(s, slotUpdate("s1", "sl_1", { instanceId: null })), s);
 });
 
-test("SLOT_ADD refuses an id already on the screen", () => {
+register("SLOT_ADD refuses an id already on the screen", () => {
   const s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
   const dup = addSlot(s, "s1", "sl_1", 900, 960);
   assert.equal(dup, s, "a duplicate id would overwrite nothing and duplicate everything");
   assert.equal(s.draft.byScreen.s1.slots.length, 1);
 });
 
-test("SLOT_REMOVE and SLOTS_CLEAR close the editor sheet behind them", () => {
+register("SLOT_REMOVE and SLOTS_CLEAR close the editor sheet behind them", () => {
   let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
   s = addSlot(s, "s1", "sl_2", 720, 900);
   s = reducer(s, uiEditSlot("sl_1"));
@@ -1561,7 +1604,7 @@ test("SLOT_REMOVE and SLOTS_CLEAR close the editor sheet behind them", () => {
   assert.equal(reducer(cleared, slotsClear("s1")), cleared, "clearing an empty screen is a no-op");
 });
 
-test("ACTIVE_HOURS_SET validates, and rejects an overnight window in v1", () => {
+register("ACTIVE_HOURS_SET validates, and rejects an overnight window in v1", () => {
   const s = withCreative();
   const ok = reducer(s, activeHoursSet("s1", { start: 600, end: 1320 }));
   assert.deepEqual(ok.draft.byScreen.s1.activeHours, { start: 600, end: 1320 });
@@ -1576,7 +1619,7 @@ test("ACTIVE_HOURS_SET validates, and rejects an overnight window in v1", () => 
 
 // ---- the save machine ----
 
-test("SAVE_SUCCESS is the only path into `saved`", () => {
+register("SAVE_SUCCESS is the only path into `saved`", () => {
   const before = withCreative();
   const edited = addSlot(before, "s1", "sl_1", 540, 720);
 
@@ -1611,7 +1654,7 @@ test("SAVE_SUCCESS is the only path into `saved`", () => {
 });
 
 // The plan's phase-6 acceptance line: previews change only on save.
-test("resolveScreen against `saved` returns the OLD answer until the save lands", () => {
+register("resolveScreen against `saved` returns the OLD answer until the save lands", () => {
   const s = withCreative();
   const edited = addSlot(s, "s1", "sl_1", 540, 900); // covers 13:00
 
@@ -1648,7 +1691,7 @@ test("resolveScreen against `saved` returns the OLD answer until the save lands"
   assert.equal(afterSave.instanceId, "ci_a");
 });
 
-test("the status chip walks clean -> dirty -> saving -> applied -> saved", () => {
+register("the status chip walks clean -> dirty -> saving -> applied -> saved", () => {
   let s = withCreative();
   // withCreative already dirties (adding a creative is an edit), so start clean.
   s = reducer(s, saveSuccess(1));
@@ -1674,7 +1717,7 @@ test("the status chip walks clean -> dirty -> saving -> applied -> saved", () =>
   }
 });
 
-test("status never reaches 'saved' from SAVE_START without SAVE_SUCCESS", () => {
+register("status never reaches 'saved' from SAVE_START without SAVE_SUCCESS", () => {
   const edited = addSlot(withCreative(), "s1", "sl_1", 540, 720);
   const saving = reducer(edited, saveStart());
 
@@ -1704,7 +1747,7 @@ test("status never reaches 'saved' from SAVE_START without SAVE_SUCCESS", () => 
   assert.deepEqual(failed.saved.byScreen.s1.slots, [], "nothing was committed");
 });
 
-test("an edit during the 'applied' transient is not overwritten by the settle", () => {
+register("an edit during the 'applied' transient is not overwritten by the settle", () => {
   let s = reducer(withCreative(), saveSuccess(1));
   assert.equal(s.save.status, "applied");
   s = addSlot(s, "s1", "sl_1", 540, 720);
@@ -1714,7 +1757,7 @@ test("an edit during the 'applied' transient is not overwritten by the settle", 
   assert.equal(settled, s, "and it is a no-op outright");
 });
 
-test("DISCARD_DRAFT makes draft deep-equal saved again", () => {
+register("DISCARD_DRAFT makes draft deep-equal saved again", () => {
   let s = reducer(withCreative(), saveSuccess(1));
   s = addSlot(s, "s1", "sl_1", 540, 720);
   s = reducer(s, activeHoursSet("s2", { start: 600, end: 1200 }));
@@ -1730,7 +1773,7 @@ test("DISCARD_DRAFT makes draft deep-equal saved again", () => {
   assert.equal(discarded.ui.editingSlotId, null);
 });
 
-test("`saved` is a deep CLONE — later draft edits cannot reach it", () => {
+register("`saved` is a deep CLONE — later draft edits cannot reach it", () => {
   /**
    * This test mutates by hand, so the mutation must happen on a state that shares
    * nothing with `initialState`. The reducer spreads, so state.screens IS
@@ -1773,7 +1816,7 @@ test("`saved` is a deep CLONE — later draft edits cannot reach it", () => {
   assert.equal(initialState.screens[0].online, true, "initialState was not poisoned");
 });
 
-test("UI_EDIT_SLOT and UI_TOAST carry keys, not sentences", () => {
+register("UI_EDIT_SLOT and UI_TOAST carry keys, not sentences", () => {
   const opened = reducer(initialState, uiEditSlot("sl_1"));
   assert.equal(opened.ui.editingSlotId, "sl_1");
   assert.equal(reducer(opened, uiEditSlot("sl_1")), opened, "idempotent");
@@ -1785,7 +1828,7 @@ test("UI_EDIT_SLOT and UI_TOAST carry keys, not sentences", () => {
   assert.equal(reducer(toasted, uiToast(null)).ui.toast, null, "a null key clears it");
 });
 
-test("the schedule and save cases never mutate frozen state", () => {
+register("the schedule and save cases never mutate frozen state", () => {
   // Build a realistic state, then freeze it and run every case against it.
   let s = withCreative();
   s = addSlot(s, "s1", "sl_1", 540, 720);
@@ -1818,7 +1861,7 @@ test("the schedule and save cases never mutate frozen state", () => {
 
 // ------------------------------ reducer: timeline and clock (phase 7) ----
 
-test("the schedule view is reducer state, so both views share one switch", () => {
+register("the schedule view is reducer state, so both views share one switch", () => {
   // Not local state: the tutorial asserts on it, and the choice must survive
   // moving between screens and tabs.
   const timeline = reducer(initialState, uiSetScheduleView("timeline"));
@@ -1837,7 +1880,7 @@ test("the schedule view is reducer state, so both views share one switch", () =>
   assert.equal(looked.draft, s.draft, "and the draft is the same object");
 });
 
-test("SIM_SET_SPEED takes the three paces the clock offers", () => {
+register("SIM_SET_SPEED takes the three paces the clock offers", () => {
   for (const speed of [1, 60, 180]) {
     assert.equal(reducer(initialState, simSetSpeed(speed)).sim.speed, speed);
   }
@@ -1847,7 +1890,7 @@ test("SIM_SET_SPEED takes the three paces the clock offers", () => {
   assert.equal(fast.sim.playing, false);
 });
 
-test("the clock crosses a slot boundary exactly once", () => {
+register("the clock crosses a slot boundary exactly once", () => {
   // The half-open rule, through the clock rather than through overlaps(): at
   // 12:00 the 09:00-12:00 slot has stopped and nothing else has started.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
@@ -1868,7 +1911,7 @@ test("the clock crosses a slot boundary exactly once", () => {
   assert.equal(at(480).kind, "idle", "08:00 is before opening");
 });
 
-test("SIM_TICK walks the day at each speed without drifting off the rail", () => {
+register("SIM_TICK walks the day at each speed without drifting off the rail", () => {
   for (const speed of [1, 60, 180]) {
     let s = { ...initialState, sim: { nowMin: 0, playing: true, speed } };
     // A full day's worth of ticks must land back where it started, which is what
@@ -1879,7 +1922,7 @@ test("SIM_TICK walks the day at each speed without drifting off the rail", () =>
   }
 });
 
-test("findGaps describes exactly what the rail hatches", () => {
+register("findGaps describes exactly what the rail hatches", () => {
   // The rail draws these, so the geometry it hands them must be in range and
   // ordered — a gap outside active hours would be drawn over the dimmed ground.
   const hours = { start: 540, end: 1260 };
@@ -1911,7 +1954,7 @@ function mirror(state, b, a) {
   return reducer(state, setMirror(b, a));
 }
 
-test("SET_MIRROR links a secondary and marks only that screen dirty", () => {
+register("SET_MIRROR links a secondary and marks only that screen dirty", () => {
   const next = mirror(initialState, "s2", "s1");
   const s2 = next.screens.find((s) => s.id === "s2");
   assert.equal(s2.role, "secondary");
@@ -1926,7 +1969,7 @@ test("SET_MIRROR links a secondary and marks only that screen dirty", () => {
 });
 
 // The two blocked shapes from the plan's acceptance line.
-test("a screen cannot mirror ITSELF", () => {
+register("a screen cannot mirror ITSELF", () => {
   const next = mirror(initialState, "s2", "s2");
   assert.equal(next.screens.find((s) => s.id === "s2").role, "primary", "nothing changed");
   assert.equal(next.save.status, "clean", "and it is not an edit");
@@ -1934,7 +1977,7 @@ test("a screen cannot mirror ITSELF", () => {
   assertKey(next.ui.toast.key);
 });
 
-test("A -> B -> A is blocked", () => {
+register("A -> B -> A is blocked", () => {
   const linked = mirror(initialState, "s2", "s1"); // s2 mirrors s1
   const cycle = mirror(linked, "s1", "s2"); // s1 would mirror s2
   assert.equal(
@@ -1952,7 +1995,7 @@ test("A -> B -> A is blocked", () => {
   assert.equal(long.ui.toast.key, "screens.cannotMirrorCycle");
 });
 
-test("a legal chain of mirrors still resolves to the one primary", () => {
+register("a legal chain of mirrors still resolves to the one primary", () => {
   // s3 -> s2 -> s1 is not a cycle, and every screen in it shows s1's content.
   let s = mirror(initialState, "s2", "s1");
   s = mirror(s, "s3", "s2");
@@ -1963,7 +2006,7 @@ test("a legal chain of mirrors still resolves to the one primary", () => {
   assert.deepEqual(chain.path, ["s3", "s2", "s1"]);
 });
 
-test("a mirror shows the primary's content, INCLUDING its idle state", () => {
+register("a mirror shows the primary's content, INCLUDING its idle state", () => {
   // The plan's phase 8 acceptance line, and the one semantic judgement call in
   // playback.js: a secondary honours its PRIMARY's hours, not its own.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
@@ -1988,7 +2031,7 @@ test("a mirror shows the primary's content, INCLUDING its idle state", () => {
   assert.equal(at("s2", 1140).reason, "play.reason.outsideHours");
 });
 
-test("a mirror ignores its OWN slots — they are unreachable, not a fallback", () => {
+register("a mirror ignores its OWN slots — they are unreachable, not a fallback", () => {
   // The trap: a secondary with a stored schedule must show its primary's state,
   // including the primary's emptiness, rather than quietly playing its own.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
@@ -2007,7 +2050,7 @@ test("a mirror ignores its OWN slots — they are unreachable, not a fallback", 
   assert.equal(s.draft.byScreen.s2.slots.length, 1, "the stored slot survives");
 });
 
-test("a mirror of an OFFLINE primary is dark, and says whose fault it is", () => {
+register("a mirror of an OFFLINE primary is dark, and says whose fault it is", () => {
   let s = mirror(initialState, "s2", "s1");
   s = reducer(s, saveSuccess(1));
   s = reducer(s, toggleScreenOnline("s1"));
@@ -2025,7 +2068,7 @@ test("a mirror of an OFFLINE primary is dark, and says whose fault it is", () =>
   assert.equal(own.reason, "play.reason.offline");
 });
 
-test("a secondary pointing nowhere is a broken link, not a silent primary", () => {
+register("a secondary pointing nowhere is a broken link, not a silent primary", () => {
   // Demoting without naming a target is representable, and must not fall back to
   // the screen's own (unreachable) schedule.
   const s = reducer(initialState, setScreenRole("s2", "secondary"));
@@ -2045,7 +2088,7 @@ test("a secondary pointing nowhere is a broken link, not a silent primary", () =
   assert.equal(r.reason, "play.reason.unknownScreen");
 });
 
-test("promoting a secondary inherits a COPY of what it was showing", () => {
+register("promoting a secondary inherits a COPY of what it was showing", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
   s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
   s = reducer(s, activeHoursSet("s1", { start: 600, end: 1200 }));
@@ -2079,7 +2122,7 @@ test("promoting a secondary inherits a COPY of what it was showing", () => {
   );
 });
 
-test("promotion falls back to a derived slot id when the caller forgets", () => {
+register("promotion falls back to a derived slot id when the caller forgets", () => {
   // Not a licence to forget — but a duplicate id across two screens is worse than
   // an ugly one, so the fallback is deterministic rather than absent.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
@@ -2091,7 +2134,7 @@ test("promotion falls back to a derived slot id when the caller forgets", () => 
   assert.equal(id, "sl_1_s2");
 });
 
-test("CLEAR_MIRROR is promotion, through the same path", () => {
+register("CLEAR_MIRROR is promotion, through the same path", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
   s = mirror(s, "s2", "s1");
@@ -2106,7 +2149,7 @@ test("CLEAR_MIRROR is promotion, through the same path", () => {
   assert.equal(reducer(cleared, clearMirror("s99")), cleared, "unknown screen");
 });
 
-test("demoting a screen that has followers leaves them following it", () => {
+register("demoting a screen that has followers leaves them following it", () => {
   // s3 mirrors s2; then s2 is pointed at s1. s3 now follows s2 -> s1, which is a
   // legal two-hop chain, so the dialog warns rather than the reducer refusing.
   let s = mirror(initialState, "s3", "s2");
@@ -2128,7 +2171,7 @@ test("demoting a screen that has followers leaves them following it", () => {
   }
 });
 
-test("role and mirror edits are DRAFT-only — previews wait for the save", () => {
+register("role and mirror edits are DRAFT-only — previews wait for the save", () => {
   // The subtle invariant: saved.screens, not screens. Getting this wrong leaks a
   // mirror link into the wall before the visitor saves.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
@@ -2168,7 +2211,7 @@ test("role and mirror edits are DRAFT-only — previews wait for the save", () =
   assert.equal(r.sourceScreenId, "s1");
 });
 
-test("mirrorCandidates offers only links that would be legal", () => {
+register("mirrorCandidates offers only links that would be legal", () => {
   let s = mirror(initialState, "s2", "s1");
   s = mirror(s, "s3", "s2");
 
@@ -2185,7 +2228,7 @@ test("mirrorCandidates offers only links that would be legal", () => {
   }
 });
 
-test("HEALTH_TICK figures are reproducible and never claim perfection", () => {
+register("HEALTH_TICK figures are reproducible and never claim perfection", () => {
   const s = reducer(initialState, healthTick());
   const h = allScreenHealth(s.screens, s.sim.nowMin, s.health.tick);
   for (const [id, entry] of Object.entries(h)) {
@@ -2200,7 +2243,7 @@ test("HEALTH_TICK figures are reproducible and never claim perfection", () => {
   assert.notDeepEqual(allScreenHealth(next.screens, next.sim.nowMin, next.health.tick), h);
 });
 
-test("an offline screen reads as stale, not as 'last seen now'", () => {
+register("an offline screen reads as stale, not as 'last seen now'", () => {
   const s = reducer(initialState, toggleScreenOnline("s2"));
   const h = screenHealth(
     s.screens.find((x) => x.id === "s2"),
@@ -2213,7 +2256,7 @@ test("an offline screen reads as stale, not as 'last seen now'", () => {
   assert.ok(h.uptimePct < 95, "and its uptime reflects the outage");
 });
 
-test("playback is a separate axis from connectivity", () => {
+register("playback is a separate axis from connectivity", () => {
   // An online screen outside its hours is healthy AND not playing. Both rows.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
@@ -2232,7 +2275,7 @@ test("playback is a separate axis from connectivity", () => {
   assertKey(h.s1.playbackReason);
 });
 
-test("the role and mirror cases never mutate frozen state", () => {
+register("the role and mirror cases never mutate frozen state", () => {
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
   s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
   s = mirror(s, "s2", "s1");
@@ -2270,7 +2313,7 @@ test("the role and mirror cases never mutate frozen state", () => {
  * The fourth property (no key={lang} above TestDriveProvider) is a JSX fact,
  * commented at the provider and not reachable from here.
  */
-test("the reducer has no notion of language at all", () => {
+register("the reducer has no notion of language at all", () => {
   const keys = Object.keys(initialState);
   assert.equal(keys.includes("lang"), false, "lang is not in the state shape");
   assert.equal(keys.includes("language"), false);
@@ -2282,7 +2325,7 @@ test("the reducer has no notion of language at all", () => {
   }
 });
 
-test("a full mid-edit session is identical whatever the language", () => {
+register("a full mid-edit session is identical whatever the language", () => {
   /**
    * There is no language to pass in, so "switching" cannot be simulated by
    * dispatching. What CAN be proved is the thing that makes a switch safe: the
@@ -2326,7 +2369,7 @@ test("a full mid-edit session is identical whatever the language", () => {
   assert.equal(s.save.status, "dirty");
 });
 
-test("no stored value is a translated string — every one is a key", () => {
+register("no stored value is a translated string — every one is a key", () => {
   // Copy resolves at render via t(). A sentence in state would have to be
   // re-derived on a language switch, and nothing does that.
   let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
@@ -2343,7 +2386,7 @@ test("no stored value is a translated string — every one is a key", () => {
   assert.equal(s.creativeInstances.ci_a.fields.headline, "मेरा ऑफ़र", "their text is kept verbatim");
 });
 
-test("both industries resolve to a full, correctly-filed library", () => {
+register("both industries resolve to a full, correctly-filed library", () => {
   for (const [industry, prefix] of [
     ["restaurant", "r_"],
     ["cafe", "c_"],
@@ -2367,7 +2410,418 @@ test("both industries resolve to a full, correctly-filed library", () => {
   assert.deepEqual(creativesFor("laundromat"), creativesFor("restaurant"));
 });
 
+// ------------------------------- audio engine and tutorial (phase 10) ----
+
+/**
+ * A stand-in for HTMLAudioElement.
+ *
+ * The engine's status machine is driven entirely by media events, so a stub that
+ * records what was asked of it and can fire those events is enough to exercise
+ * every transition in node. It goes through the engine's own wire() — see
+ * __reset — so this tests the production listeners, not a copy of them.
+ */
+function stubAudio({ failOnPlay = null } = {}) {
+  const handlers = {};
+  return {
+    src: "",
+    muted: false,
+    currentTime: 0,
+    preload: "",
+    paused: true,
+    plays: 0,
+    pauses: 0,
+    addEventListener(type, fn) {
+      (handlers[type] ||= []).push(fn);
+    },
+    removeAttribute(name) {
+      if (name === "src") this.src = "";
+    },
+    async play() {
+      this.plays += 1;
+      if (failOnPlay) {
+        const err = new Error(failOnPlay);
+        err.name = failOnPlay;
+        throw err;
+      }
+      this.paused = false;
+      this.fire("playing");
+    },
+    pause() {
+      this.pauses += 1;
+      this.paused = true;
+      this.fire("pause");
+    },
+    /** Fire a media event, as the browser would. */
+    fire(type) {
+      for (const fn of handlers[type] ?? []) fn();
+    },
+  };
+}
+
+registerSerial("audio: a cue loads, plays and ends, and the status follows", async () => {
+  const el = engine.__reset(stubAudio());
+  assert.equal(engine.getState().status, "idle");
+
+  const result = await engine.play("welcome", "en");
+  assert.equal(result, "playing");
+  assert.equal(el.src, "/assets/audio/en/00_welcome.mp3", "the manifest's path");
+  assert.equal(engine.getState().status, "playing");
+  assert.equal(engine.getState().cueId, "welcome");
+
+  el.fire("ended");
+  assert.equal(engine.getState().status, "ended");
+  // A pause event after the end must not overwrite the terminal state.
+  el.fire("pause");
+  assert.equal(engine.getState().status, "ended", "ended is terminal");
+});
+
+registerSerial("audio: only ONE narration ever plays", async () => {
+  const el = engine.__reset(stubAudio());
+  await engine.play("welcome", "en");
+  assert.equal(engine.getState().cueId, "welcome");
+
+  await engine.play("exploreScreens", "en");
+  assert.equal(engine.getState().cueId, "exploreScreens", "the second cue took over");
+  assert.ok(el.pauses >= 1, "and the first was stopped, not left running");
+  assert.equal(el.src, "/assets/audio/en/01_explore_screens.mp3");
+});
+
+registerSerial("audio: a language switch stops cleanly, with no src left loaded", async () => {
+  const el = engine.__reset(stubAudio());
+  await engine.play("exploreScreens", "en");
+  engine.stop();
+  assert.equal(engine.getState().status, "idle");
+  assert.equal(engine.getState().cueId, null);
+  // Clearing src matters: a paused element with a src keeps buffering and could
+  // resume in the OLD language after the switch.
+  assert.equal(el.src, "", "the recording is detached, not merely paused");
+
+  // The new language then plays its own file.
+  await engine.play("exploreScreens", "hi");
+  assert.equal(el.src, "/assets/audio/hi/01_explore_screens.mp3");
+});
+
+registerSerial("audio: a missing file resolves the loading state rather than hanging", async () => {
+  const el = engine.__reset(stubAudio());
+  const pending = engine.play("welcome", "en");
+  await pending;
+  // The browser discovers the 404 asynchronously, after play() resolved.
+  el.fire("error");
+  assert.equal(engine.getState().status, "error", "the loading state is resolved");
+  assert.equal(engine.hasFailed("welcome", "en"), true, "and remembered");
+  assert.equal(engine.hasFailed("welcome", "hi"), false, "per language — files differ");
+
+  // A retry must not re-request a known 404 on every mission change.
+  const before = el.plays;
+  const result = await engine.play("welcome", "en");
+  assert.equal(result, "error");
+  assert.equal(el.plays, before, "no second request for a file known to be missing");
+});
+
+registerSerial("audio: a blocked autoplay is NORMAL, not an error", async () => {
+  // Mobile rejects play() outside a user gesture. That must not show the
+  // "narration unavailable" indicator, because nothing is wrong with the file.
+  engine.__reset(stubAudio({ failOnPlay: "NotAllowedError" }));
+  const result = await engine.play("welcome", "en");
+  assert.equal(result, "blocked");
+  assert.equal(engine.getState().status, "paused", "resumable, not failed");
+  assert.notEqual(engine.getState().status, "error");
+
+  // A file that genuinely cannot be decoded IS an error, and is told apart by
+  // the DOMException name rather than lumped in with autoplay.
+  engine.__reset(stubAudio({ failOnPlay: "NotSupportedError" }));
+  assert.equal(await engine.play("welcome", "en"), "error");
+  assert.equal(engine.getState().status, "error");
+});
+
+registerSerial("audio: no Audio constructor degrades to unavailable, never throws", async () => {
+  engine.__reset(null); // no element, and node has no global Audio
+  const result = await engine.play("welcome", "en");
+  assert.equal(result, "unavailable");
+  assert.equal(engine.getState().status, "unavailable");
+  // And the rest of the surface stays callable rather than exploding.
+  engine.pause();
+  engine.stop();
+  engine.setMuted(true);
+  assert.equal(engine.isMuted(), true);
+});
+
+registerSerial("audio: an unknown cue is refused without touching the element", async () => {
+  const el = engine.__reset(stubAudio());
+  assert.equal(await engine.play("nope", "en"), "unknown");
+  assert.equal(el.plays, 0);
+  assert.equal(cuePath("nope", "en"), null);
+  assert.equal(cuePath("welcome", "de"), null, "and an unknown language");
+});
+
+registerSerial("audio: subscribers get a fresh snapshot per change", async () => {
+  engine.__reset(stubAudio());
+  const seen = [];
+  const off = engine.subscribe((s) => seen.push(s));
+  assert.equal(seen.length, 1, "the current state arrives immediately");
+
+  await engine.play("welcome", "en");
+  assert.ok(seen.length > 1, "and again on each change");
+  // Fresh objects: subscribers compare by identity to decide whether to render.
+  assert.notEqual(seen[0], seen[seen.length - 1]);
+  off();
+  const count = seen.length;
+  engine.stop();
+  assert.equal(seen.length, count, "unsubscribe stops delivery");
+});
+
+registerSerial("audio: every mission cue and both hours exist in the manifest", () => {
+  assert.equal(CUE_IDS.length, 11, "eleven cues");
+  for (const cueId of CUE_IDS) {
+    for (const lang of ["en", "hi"]) {
+      const path = cuePath(cueId, lang);
+      assert.match(path, /^\/assets\/audio\/(en|hi)\/\d\d_[a-z_]+\.mp3$/, `${cueId} ${lang}`);
+      assert.ok(path.includes(`/${lang}/`), "filed under its language");
+    }
+  }
+  // One file name per cue, both languages derived — so en and hi cannot drift
+  // apart in name and 404 in one language only.
+  for (const cueId of CUE_IDS) {
+    const en_ = cuePath(cueId, "en").split("/").pop();
+    const hi_ = cuePath(cueId, "hi").split("/").pop();
+    assert.equal(en_, hi_, `${cueId}: the two languages share a file name`);
+  }
+});
+
+// ---- the missions ----
+
+register("every mission is well formed and reads in both languages", () => {
+  assert.equal(MISSIONS.length, 6, "the brief's six missions");
+  const ids = new Set();
+  const orders = new Set();
+  for (const m of MISSIONS) {
+    assert.ok(m.id, "has an id");
+    assert.equal(ids.has(m.id), false, `duplicate mission id ${m.id}`);
+    ids.add(m.id);
+    assert.equal(orders.has(m.order), false, `duplicate order ${m.order}`);
+    orders.add(m.order);
+    assertKey(m.titleKey);
+    assertKey(m.bodyKey);
+    assertKey(m.hintKey);
+    assert.ok(CUES[m.cueId], `${m.id}: cue "${m.cueId}" is not in the manifest`);
+    assert.equal(typeof m.isComplete, "function", `${m.id}: no predicate`);
+    assert.equal(typeof m.target, "string", `${m.id}: no spotlight target`);
+  }
+  assert.deepEqual([...orders].sort((a, b) => a - b), [1, 2, 3, 4, 5, 6]);
+});
+
+register("NO mission is already complete at the start", () => {
+  // A mission true on arrival teaches nothing and would advance itself. The one
+  // that nearly was is m1: s1 is selected by default, which is why its predicate
+  // requires a DIFFERENT screen.
+  for (const m of MISSIONS) {
+    assert.equal(m.isComplete(initialState), false, `${m.id} is already satisfied`);
+  }
+});
+
+register("each mission is completed by its own action and no other", () => {
+  /** Build the state each mission's action produces, from a clean start. */
+  const steps = {
+    m1: (s) => reducer(reducer(s, selectScreen("s2")), uiSetWallView("list")),
+    m2: (s) => reducer(s, healthTick()),
+    m3: (s) => {
+      let n = reducer(s, creativeAdd("ci_a", TPL, {}, 1));
+      return reducer(n, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+    },
+    m4: (s) => reducer(s, setMirror("s2", "s1")),
+    m5: (s) => reducer(s, toggleScreenOnline("s3")),
+    m6: (s) => reducer(s, saveSuccess(1)),
+  };
+
+  for (const m of MISSIONS) {
+    const after = steps[m.id](initialState);
+    assert.equal(m.isComplete(after), true, `${m.id} is not completed by its own action`);
+    // And the action must not accidentally satisfy a LATER mission, which would
+    // let the visitor skip past something they were never shown.
+    for (const other of MISSIONS) {
+      if (other.id === m.id) continue;
+      if (other.order < m.order) continue;
+      assert.equal(
+        other.isComplete(after),
+        false,
+        `${m.id}'s action also completed ${other.id}`
+      );
+    }
+  }
+});
+
+register("m1 needs BOTH halves of its action", () => {
+  const selected = reducer(initialState, selectScreen("s2"));
+  assert.equal(MISSIONS[0].isComplete(selected), false, "selecting alone is not enough");
+  const viewed = reducer(initialState, uiSetWallView("list"));
+  assert.equal(MISSIONS[0].isComplete(viewed), false, "nor switching view alone");
+  assert.equal(MISSIONS[0].isComplete(reducer(selected, uiSetWallView("list"))), true);
+});
+
+register("m3 needs a creative AND a time for it", () => {
+  const m3 = MISSIONS[2];
+  const withCreativeOnly = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  assert.equal(m3.isComplete(withCreativeOnly), false, "a creative that never plays");
+  const scheduled = reducer(
+    withCreativeOnly,
+    slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" })
+  );
+  assert.equal(m3.isComplete(scheduled), true);
+});
+
+register("m4 needs a real link, not just the secondary role", () => {
+  const m4 = MISSIONS[3];
+  // A secondary pointing nowhere is a broken link, not a finished mission.
+  const orphaned = reducer(initialState, setScreenRole("s2", "secondary"));
+  assert.equal(orphaned.screens.find((x) => x.id === "s2").role, "secondary");
+  assert.equal(m4.isComplete(orphaned), false, "role without a target is incomplete");
+  assert.equal(m4.isComplete(reducer(orphaned, setMirror("s2", "s1"))), true);
+});
+
+register("m6 needs a save that SUCCEEDED", () => {
+  const m6 = MISSIONS[5];
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, saveStart());
+  assert.equal(m6.isComplete(s), false, "pressing Save is not completing it");
+  const failed = reducer(s, saveFail("network"));
+  assert.equal(m6.isComplete(failed), false, "and a failed save updates no preview");
+  assert.equal(m6.isComplete(reducer(s, saveSuccess(1))), true);
+});
+
+register("every mission predicate is pure and survives a round-trip", () => {
+  /**
+   * Progress must survive a refresh. Persistence (phase 11) stores JSON, so a
+   * predicate that depended on object identity or on a non-serialisable value
+   * would evaluate differently after rehydration. Serialising and re-reading is
+   * exactly what a refresh does.
+   */
+  let s = reducer(initialState, selectScreen("s2"));
+  s = reducer(s, uiSetWallView("list"));
+  s = reducer(s, healthTick());
+  s = reducer(s, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+  s = reducer(s, setMirror("s2", "s1"));
+  s = reducer(s, toggleScreenOnline("s3"));
+  s = reducer(s, saveSuccess(1));
+
+  const rehydrated = JSON.parse(JSON.stringify(s));
+  for (const m of MISSIONS) {
+    assert.equal(m.isComplete(s), true, `${m.id} should be done`);
+    assert.equal(
+      m.isComplete(rehydrated),
+      m.isComplete(s),
+      `${m.id} evaluates differently after a round-trip`
+    );
+    // Pure: calling it twice cannot change the answer or the state.
+    assert.equal(m.isComplete(s), m.isComplete(s));
+  }
+  assert.deepEqual(rehydrated, s, "and nothing in the state is unserialisable");
+});
+
+register("predicates do not mutate the state they are handed", () => {
+  const frozen = deepFreeze(JSON.parse(JSON.stringify(initialState)));
+  for (const m of MISSIONS) {
+    m.isComplete(frozen); // throws if a predicate writes
+  }
+});
+
+register("every spotlight target exists somewhere in the components", () => {
+  // A target with no matching data-td-target draws no ring, silently — the
+  // mission would still work but would point at nothing.
+  const KNOWN = new Set([
+    "screen-wall",
+    "health-panel",
+    "control-panel",
+    "mirror-editor",
+    "save-bar",
+  ]);
+  for (const m of MISSIONS) {
+    assert.ok(KNOWN.has(m.target), `${m.id}: target "${m.target}" is not a known target`);
+  }
+});
+
+// ---- the tutorial reducer cases ----
+
+register("TUT_COMPLETE is idempotent, because a true predicate stays true", () => {
+  const once = reducer(initialState, tutComplete("m1"));
+  assert.deepEqual(once.tutorial.completed, ["m1"]);
+  assert.equal(reducer(once, tutComplete("m1")), once, "the same mission twice is a no-op");
+  const twice = reducer(once, tutComplete("m2"));
+  assert.deepEqual(twice.tutorial.completed, ["m1", "m2"]);
+  assert.equal(reducer(initialState, tutComplete(null)), initialState);
+});
+
+register("TUT_ADVANCE stops at the last mission", () => {
+  let s = initialState;
+  for (let i = 0; i < 20; i += 1) s = reducer(s, tutAdvance(6));
+  assert.equal(s.tutorial.missionIndex, 6, "one past the last index, and no further");
+  assert.equal(reducer(s, tutAdvance(6)), s, "and then it is a no-op");
+});
+
+register("skipping does NOT mark anything complete", () => {
+  // The completion checklist has to be honest: skipped is not done.
+  const skipped = reducer(initialState, tutSkipAll());
+  assert.equal(skipped.tutorial.mode, "explore");
+  assert.deepEqual(skipped.tutorial.completed, [], "skipping completes nothing");
+
+  const stepped = reducer(initialState, tutAdvance(6));
+  assert.deepEqual(stepped.tutorial.completed, [], "nor does skipping one step");
+});
+
+register("TUT_REPLAY restarts the run but keeps what was done", () => {
+  let s = reducer(initialState, tutComplete("m1"));
+  s = reducer(s, tutComplete("m2"));
+  s = reducer(s, tutAdvance(6));
+  s = reducer(s, tutSkipAll());
+  assert.equal(s.tutorial.mode, "explore");
+
+  const replayed = reducer(s, tutReplay());
+  assert.equal(replayed.tutorial.missionIndex, 0, "back to the first mission");
+  assert.equal(replayed.tutorial.mode, "guided");
+  assert.deepEqual(
+    replayed.tutorial.completed,
+    ["m1", "m2"],
+    "they still did those things — the checklist must not lie about it"
+  );
+});
+
+register("TUT_SET_MODE and TUT_OPEN_HELP validate and are idempotent", () => {
+  assert.equal(reducer(initialState, tutSetMode("explore")).tutorial.mode, "explore");
+  assert.equal(reducer(initialState, tutSetMode("guided")), initialState, "already guided");
+  assert.equal(reducer(initialState, tutSetMode("nonsense")), initialState, "unknown mode");
+
+  const helped = reducer(initialState, tutOpenHelp("m3"));
+  assert.equal(helped.tutorial.helpOpenFor, "m3");
+  assert.equal(reducer(helped, tutOpenHelp("m3")), helped);
+  assert.equal(reducer(helped, tutOpenHelp(null)).tutorial.helpOpenFor, null);
+
+  const seen = reducer(initialState, tutSkipIntro());
+  assert.equal(seen.tutorial.introSeen, true);
+  assert.equal(reducer(seen, tutSkipIntro()), seen);
+});
+
+register("the tutorial cases never mutate frozen state", () => {
+  const frozen = deepFreeze(JSON.parse(JSON.stringify(initialState)));
+  for (const action of [
+    tutComplete("m1"),
+    tutAdvance(6),
+    tutSkipAll(),
+    tutSkipIntro(),
+    tutReplay(),
+    tutSetMode("explore"),
+    tutOpenHelp("m2"),
+  ]) {
+    reducer(frozen, action);
+  }
+  assert.deepEqual(frozen.tutorial.completed, []);
+  assert.equal(frozen.tutorial.missionIndex, 0);
+  assert.equal(frozen.tutorial.mode, "guided");
+});
+
 // ------------------------------------------------------------------ report ----
+
+// Settle every registered test, including the async ones, before counting.
+await Promise.all(pending);
 
 for (const { name, err } of failures) {
   console.error(`\nFAIL  ${name}\n      ${err.message.split("\n").join("\n      ")}`);

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { I18nProvider } from "./i18n/I18nContext.jsx";
+import { AudioProvider } from "./audio/AudioContext.jsx";
 import { TestDriveProvider, useTd } from "./state/TestDriveContext.jsx";
+import { TutorialProvider } from "./tutorial/TutorialContext.jsx";
 import TdShell from "./components/TdShell.jsx";
 import Welcome from "./components/Welcome.jsx";
 import IntakeForm from "./components/IntakeForm.jsx";
@@ -15,9 +17,14 @@ import "./td.css";
  * PROVIDER ORDER IS LOAD-BEARING. Do not "tidy" it.
  *
  *   <I18nProvider>          owns ONLY { lang }
- *     <AudioProvider>       thin wrapper over a module singleton   (phase 10)
+ *     <AudioProvider>       thin wrapper over a module singleton
  *       <TestDriveProvider> the simulator reducer
- *         <TutorialProvider> reads simulator state                 (phase 10)
+ *         <TutorialProvider> derived only; reads simulator state
+ *
+ * AudioProvider sits above the simulator because it needs `lang` from I18n and
+ * owns no simulator state — and because a language switch must stop narration,
+ * which is an effect on `lang` alone. TutorialProvider sits below because every
+ * mission predicate is a function of simulator state.
  *
  * Language lives in its own provider ABOVE the simulator so that switching it is a
  * pure re-render: business details, the selected screen, draft edits, saved config
@@ -35,9 +42,13 @@ export default function TestDrive() {
       {/* reducedMotion="user" makes framer-motion respect the OS setting, as the
           signage pages do via SignageChrome. */}
       <MotionConfig reducedMotion="user">
-        <TestDriveProvider>
-          <TestDriveStages />
-        </TestDriveProvider>
+        <AudioProvider>
+          <TestDriveProvider>
+            <TutorialProvider>
+              <TestDriveStages />
+            </TutorialProvider>
+          </TestDriveProvider>
+        </AudioProvider>
       </MotionConfig>
     </I18nProvider>
   );

@@ -51,6 +51,12 @@ import SimClock from "../src/pages/test-drive/components/SimClock.jsx";
 import MirrorEditor from "../src/pages/test-drive/components/MirrorEditor.jsx";
 import HealthPanel from "../src/pages/test-drive/components/HealthPanel.jsx";
 import ScreenWall from "../src/pages/test-drive/components/ScreenWall.jsx";
+import { AudioCtx } from "../src/pages/test-drive/audio/contexts.js";
+import { TutorialCtx } from "../src/pages/test-drive/tutorial/contexts.js";
+import MissionCard from "../src/pages/test-drive/tutorial/MissionCard.jsx";
+import CompletionCard from "../src/pages/test-drive/tutorial/CompletionCard.jsx";
+import Spotlight from "../src/pages/test-drive/tutorial/Spotlight.jsx";
+import { MISSIONS, helpCueFor } from "../src/pages/test-drive/tutorial/missions.js";
 import CreativePicker from "../src/pages/test-drive/components/CreativePicker.jsx";
 import CreativeFrame from "../src/pages/test-drive/creatives/CreativeFrame.jsx";
 import {
@@ -113,6 +119,20 @@ function populated() {
 }
 
 const t = createT("en");
+
+/**
+ * Escape a string the way React escapes a text child.
+ *
+ * A copy containing & or ' arrives in the markup as an entity ("You&#x27;re in
+ * control.", "Iced &amp; Cold Brew"). Comparing the raw string would fail on
+ * exactly the strings that prove escaping works, so expectations are escaped to
+ * match. Any check asserting on copy that might contain punctuation uses this.
+ */
+const esc = (str) =>
+  String(str).replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/</g, "&lt;");
+
+/** t(), escaped — the usual way to assert that a piece of copy is on screen. */
+const tEsc = (key, vars) => esc(t(key, vars));
 
 // ---- the schedule list ----
 
@@ -668,15 +688,6 @@ check("a café visitor sees the café library, not the restaurant's", () => {
     business: { ...initialState.business, industry: "cafe", businessName: "Ganga Cafe" },
   };
   const { html } = render(h(CreativePicker, { onEdit: () => {} }), s);
-  /**
-   * React escapes text children, so a name containing & or ' arrives as an
-   * entity ("Iced &amp; Cold Brew", "Today&#x27;s Special"). Comparing the raw
-   * string would fail on exactly the names that prove escaping works, so the
-   * expectation is escaped to match.
-   */
-  const esc = (str) =>
-    str.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/</g, "&lt;");
-
   for (const tpl of creativesFor("cafe")) {
     assert.ok(html.includes(esc(t(tpl.nameKey))), `${tpl.id} is offered`);
   }
@@ -713,6 +724,258 @@ check("the field editor has a label for every field all 16 declare", () => {
   // per-template rather than a global five-field assumption.
   const shapes = new Set(allCreatives.map((tpl) => tpl.fields.length));
   assert.ok(shapes.size >= 3, `expected 3 field-count shapes, got ${[...shapes]}`);
+});
+
+// ---- the tutorial (phase 10) ----
+
+/**
+ * MissionCard reads three contexts, two of which are not the simulator's. Rather
+ * than a second harness, the tutorial and audio values are provided directly —
+ * the card is a presentation component over them, which is what makes it
+ * checkable at all without a browser.
+ */
+function renderCard(state, tutorialValue, audioValue = {}) {
+  const audio = {
+    status: "idle",
+    cueId: null,
+    muted: false,
+    unavailable: false,
+    resumable: false,
+    play: () => {},
+    replay: () => {},
+    pause: () => {},
+    stop: () => {},
+    toggleMute: () => {},
+    ...audioValue,
+  };
+  return renderToStaticMarkup(
+    h(
+      I18nProvider,
+      null,
+      h(
+        StateCtx.Provider,
+        { value: state },
+        h(
+          DispatchCtx.Provider,
+          { value: () => {} },
+          h(
+            AudioCtx.Provider,
+            { value: audio },
+            h(TutorialCtx.Provider, { value: tutorialValue }, h(MissionCard))
+          )
+        )
+      )
+    )
+  );
+}
+
+/** A tutorial context value for one mission. */
+function tutorialOn(index, { done = false } = {}) {
+  const mission = MISSIONS[index];
+  return {
+    mission,
+    missionIndex: index,
+    total: MISSIONS.length,
+    step: index + 1,
+    guided: true,
+    mode: "guided",
+    completed: [],
+    completionMap: {},
+    currentComplete: done,
+    isLast: index === MISSIONS.length - 1,
+    allComplete: false,
+    helpOpenFor: null,
+    advance: () => {},
+    skipStep: () => {},
+    skipAll: () => {},
+    replay: () => {},
+    setMode: () => {},
+    openHelp: () => {},
+  };
+}
+
+check("the card shows the step, the title and the narration script", () => {
+  const html = renderCard(populated(), tutorialOn(0));
+  assert.ok(html.includes(t("tutorial.progress", { current: 1, total: 6 })), "Step 1 of 6");
+  assert.ok(html.includes(tEsc("tutorial.m1.title")));
+  // The body IS the caption: a muted visitor reads what the recording says.
+  assert.ok(html.includes(tEsc("tutorial.m1.body")), "the script is on screen");
+  assert.ok(html.includes(tEsc("tutorial.m1.hint")), "and the hint, while undone");
+});
+
+// The brief's requirement: a mission cannot be clicked past.
+check("Continue is disabled until the mission's action is done", () => {
+  const undone = renderCard(populated(), tutorialOn(0, { done: false }));
+  assert.ok(
+    /<button[^>]*data-td-target="mission-next"[^>]*\sdisabled(\s|=|>)/.test(undone),
+    "the attribute, not the Tailwind variant"
+  );
+  assert.ok(undone.includes(tEsc("tutorial.actionNeeded")), "and it says why");
+  assert.ok(!undone.includes(t("tutorial.done")), "no done badge yet");
+
+  const done = renderCard(populated(), tutorialOn(0, { done: true }));
+  assert.ok(
+    !/<button[^>]*data-td-target="mission-next"[^>]*\sdisabled(\s|=|>)/.test(done),
+    "and it unlocks once the action is done"
+  );
+  assert.ok(done.includes(t("tutorial.done")), "with a done badge");
+  assert.ok(!done.includes(tEsc("tutorial.m1.hint")), "the hint goes once it is done");
+});
+
+check("Skip is offered whatever the state", () => {
+  for (const done of [false, true]) {
+    const html = renderCard(populated(), tutorialOn(2, { done }));
+    assert.ok(html.includes(t("tutorial.skip")), "skip the tutorial");
+    assert.ok(html.includes(t("tutorial.skipStep")), "and skip this step");
+  }
+});
+
+check("the last mission says Finish rather than Continue", () => {
+  const last = renderCard(populated(), tutorialOn(5, { done: true }));
+  assert.ok(last.includes(t("tutorial.finish")));
+  assert.ok(!last.includes(t("tutorial.next")));
+  const first = renderCard(populated(), tutorialOn(0, { done: true }));
+  assert.ok(first.includes(t("tutorial.next")));
+});
+
+check("a play control is ALWAYS present, for a blocked autoplay", () => {
+  // Mobile rejects autoplay routinely. A cue with no way to start it is the
+  // failure the brief names.
+  const blocked = renderCard(populated(), tutorialOn(0), {
+    status: "paused",
+    cueId: "exploreScreens",
+    resumable: true,
+  });
+  assert.ok(blocked.includes(t("audio.play")), "a play button");
+  assert.ok(blocked.includes(t("audio.replay")), "and a replay");
+  assert.ok(blocked.includes(t("audio.mute")), "and a mute");
+  // Nothing about a blocked cue should read as an error.
+  assert.ok(!blocked.includes(t("audio.unavailable")), "blocked is not unavailable");
+
+  const playing = renderCard(populated(), tutorialOn(0), {
+    status: "playing",
+    cueId: "exploreScreens",
+  });
+  assert.ok(playing.includes(t("audio.pause")), "and it offers Pause while playing");
+});
+
+check("missing narration is subtle and non-blocking", () => {
+  const html = renderCard(populated(), tutorialOn(0), {
+    status: "error",
+    cueId: "exploreScreens",
+    unavailable: true,
+  });
+  assert.ok(html.includes(t("audio.unavailable")), "an indicator appears");
+  // THE requirement: the text tutorial stays fully functional.
+  assert.ok(html.includes(tEsc("tutorial.m1.title")), "the mission is still there");
+  assert.ok(html.includes(tEsc("tutorial.m1.body")), "and its script");
+  assert.ok(html.includes(tEsc("tutorial.m1.hint")), "and its hint");
+  assert.ok(!html.includes(t("audio.loading")), "and it is not still 'loading'");
+});
+
+check("a loading cue says so, and an idle one does not", () => {
+  const loading = renderCard(populated(), tutorialOn(0), {
+    status: "loading",
+    cueId: "exploreScreens",
+  });
+  assert.ok(loading.includes(t("audio.loading")));
+  const idle = renderCard(populated(), tutorialOn(0));
+  assert.ok(!idle.includes(t("audio.loading")), "no spinner text when nothing is loading");
+});
+
+check("the two supplementary recordings are reachable from their missions", () => {
+  // m3 and m4 have a second, deeper cue. Without this button those two
+  // recordings would exist and never be heard.
+  for (const [index, missionId] of [[2, "m3"], [3, "m4"]]) {
+    assert.ok(helpCueFor(missionId), `${missionId} has a help cue`);
+    const html = renderCard(populated(), tutorialOn(index));
+    assert.ok(html.includes('data-td-target="mission-help"'), `${missionId} offers it`);
+    assert.ok(html.includes(t("tutorial.help")));
+  }
+  // And a mission without one does not show an inert button.
+  const m1 = renderCard(populated(), tutorialOn(0));
+  assert.ok(!m1.includes('data-td-target="mission-help"'), "m1 has no second cue");
+});
+
+check("the card is not rendered at all outside guided mode", () => {
+  const exploring = { ...tutorialOn(0), guided: false, mode: "explore" };
+  assert.equal(renderCard(populated(), exploring), "", "nothing to dismiss");
+  const noMission = { ...tutorialOn(0), mission: null };
+  assert.equal(renderCard(populated(), noMission), "");
+});
+
+check("the completion checklist ticks only what was actually done", () => {
+  // Driven by `completed`, which only a satisfied predicate writes. A skipped
+  // mission must show UNTICKED, or the screen is a participation certificate.
+  const value = {
+    ...tutorialOn(5),
+    guided: false,
+    completed: ["m1", "m3"],
+    allComplete: false,
+  };
+  const html = renderToStaticMarkup(
+    h(
+      I18nProvider,
+      null,
+      h(
+        StateCtx.Provider,
+        { value: populated() },
+        h(
+          DispatchCtx.Provider,
+          { value: () => {} },
+          h(
+            AudioCtx.Provider,
+            { value: { status: "idle", cueId: null, muted: false, stop: () => {} } },
+            h(TutorialCtx.Provider, { value }, h(CompletionCard))
+          )
+        )
+      )
+    )
+  );
+  assert.ok(html.includes(tEsc("complete.title")));
+  for (const key of [
+    "complete.checklist.explore",
+    "complete.checklist.schedule",
+    "complete.checklist.mirror",
+    "complete.checklist.monitor",
+    "complete.checklist.save",
+  ]) {
+    assert.ok(html.includes(tEsc(key)), `${key} is listed`);
+  }
+  // Two done, three not: the ticks must not be five.
+  const ticked = [...html.matchAll(/bg-sb-green\/30/g)].length;
+  assert.equal(ticked, 2, `expected 2 ticks for ["m1","m3"], got ${ticked}`);
+  assert.ok(!html.includes(t("tutorial.completeBadge")), "no completion badge while partial");
+
+  const all = { ...value, completed: ["m1", "m2", "m3", "m4", "m5", "m6"], allComplete: true };
+  const fullHtml = renderToStaticMarkup(
+    h(
+      I18nProvider,
+      null,
+      h(
+        StateCtx.Provider,
+        { value: populated() },
+        h(
+          DispatchCtx.Provider,
+          { value: () => {} },
+          h(
+            AudioCtx.Provider,
+            { value: { status: "idle", cueId: null, muted: false, stop: () => {} } },
+            h(TutorialCtx.Provider, { value: all }, h(CompletionCard))
+          )
+        )
+      )
+    )
+  );
+  assert.equal([...fullHtml.matchAll(/bg-sb-green\/30/g)].length, 5, "all five ticked");
+  assert.ok(fullHtml.includes(t("tutorial.completeBadge")), "and now the badge");
+});
+
+check("the spotlight renders nothing on the server", () => {
+  // It measures the DOM, which does not exist here. Returning null rather than a
+  // ring at 0,0 is what keeps it from flashing in the corner on first paint.
+  const html = renderToStaticMarkup(h(Spotlight, { target: "screen-wall" }));
+  assert.equal(html, "");
 });
 
 // ---- Hindi ----

@@ -5,6 +5,9 @@ import ScreenWall from "./ScreenWall.jsx";
 import SimClock from "./SimClock.jsx";
 import ControlPanel from "./ControlPanel.jsx";
 import SaveBar from "./SaveBar.jsx";
+import MissionCard from "../tutorial/MissionCard.jsx";
+import CompletionCard from "../tutorial/CompletionCard.jsx";
+import { useTutorial } from "../tutorial/TutorialContext.jsx";
 
 /**
  * The console stage: the screen wall, the preview clock, the Control Panel and
@@ -16,10 +19,15 @@ import SaveBar from "./SaveBar.jsx";
  * the chip is visible from wherever they are editing.
  *
  * On mobile the panel is full-width below the wall, never a narrow sidebar.
+ *
+ * The mission card is fixed to the bottom of the viewport rather than placed in
+ * this flow, so it follows the visitor while they work. Extra bottom padding
+ * below keeps it from covering the save bar on a short screen.
  */
 export default function Console() {
   const { t } = useI18n();
   const { business, lead } = useTd();
+  const { guided } = useTutorial();
 
   return (
     <TdShell showBadge>
@@ -57,8 +65,22 @@ export default function Console() {
           </aside>
         </div>
 
+        {/* Once the guided run is over, what they actually did. Driven by
+            `completed`, so a skipped mission shows unticked. */}
+        {!guided && (
+          <div className="mt-5">
+            <CompletionCard />
+          </div>
+        )}
+
         <SaveBar />
+
+        {/* Room for the fixed mission card, which would otherwise sit on top of
+            the save bar at the bottom of a short viewport. */}
+        {guided && <div aria-hidden="true" className="h-44 sm:h-0" />}
       </div>
+
+      <MissionCard />
     </TdShell>
   );
 }

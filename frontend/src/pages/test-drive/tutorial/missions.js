@@ -1,0 +1,164 @@
+/**
+ * The six missions, declarative.
+ *
+ * PREDICATES OVER STATE, not event subscription. Three reasons, all of which
+ * bite the alternative:
+ *   1. Idempotent. Re-evaluating on every state change cannot double-advance,
+ *      and cannot miss a change that happened between renders.
+ *   2. Survives a refresh. Persisted progress rehydrates and the predicates
+ *      re-evaluate against the restored state, so a half-finished mission is
+ *      still half-finished. An event listener would have missed the event.
+ *   3. Cannot miss an action. A visitor who does the thing before being asked —
+ *      and they will, the controls are right there — has already completed the
+ *      mission when it opens, rather than being told to do it again.
+ *
+ * `isComplete` receives the whole TestDrive state and returns a boolean. It must
+ * be PURE and cheap: it runs on every dispatch.
+ *
+ * Plain .js, no JSX and no React: scripts/check-test-drive.mjs validates the
+ * titleKey/bodyKey/hintKey of every mission against both dictionaries, and the
+ * cueId against the audio manifest.
+ */
+import { CUES } from "../audio/manifest.js";
+
+/** Did the visitor configure at least one creative of their own? */
+const hasInstance = (s) => Object.keys(s.creativeInstances).length > 0;
+
+/** Every slot the visitor has placed, across all screens. */
+const allSlots = (s) =>
+  Object.values(s.draft.byScreen).flatMap((cfg) => cfg.slots);
+
+export const MISSIONS = [
+  {
+    id: "m1",
+    order: 1,
+    titleKey: "tutorial.m1.title",
+    bodyKey: "tutorial.m1.body",
+    hintKey: "tutorial.m1.hint",
+    cueId: "exploreScreens",
+    target: "screen-wall",
+    /**
+     * Two actions: select a screen other than the default, and switch the wall
+     * view. Requiring a non-default selection is what makes this a real action
+     * rather than something true on arrival — s1 is already selected at start.
+     */
+    isComplete: (s) => s.selectedScreenId !== "s1" && s.ui.wallView !== "grid",
+  },
+  {
+    id: "m2",
+    order: 2,
+    titleKey: "tutorial.m2.title",
+    bodyKey: "tutorial.m2.body",
+    hintKey: "tutorial.m2.hint",
+    cueId: "controlPanelHealth",
+    target: "health-panel",
+    /**
+     * Opening a tab is local component state, which a predicate over reducer
+     * state cannot see — and moving it into the reducer to make it observable
+     * would be the tail wagging the dog.
+     *
+     * Re-rolling the simulated health IS observable (health.tick), is the thing
+     * the mission actually asks for ("start by checking its health"), and is
+     * only reachable from inside the health tab. So the predicate tests the
+     * action rather than the navigation to it.
+     */
+    isComplete: (s) => s.health.tick > 0,
+  },
+  {
+    id: "m3",
+    order: 3,
+    titleKey: "tutorial.m3.title",
+    bodyKey: "tutorial.m3.body",
+    hintKey: "tutorial.m3.hint",
+    cueId: "contentLibrary",
+    target: "control-panel",
+    /**
+     * Pick a creative AND give it a time. Both halves are required because
+     * either alone leaves nothing on screen: a creative with no slot never
+     * plays, and the slot cannot exist without a creative to point at.
+     */
+    isComplete: (s) => hasInstance(s) && allSlots(s).length > 0,
+  },
+  {
+    id: "m4",
+    order: 4,
+    titleKey: "tutorial.m4.title",
+    bodyKey: "tutorial.m4.body",
+    hintKey: "tutorial.m4.hint",
+    cueId: "primarySecondary",
+    target: "mirror-editor",
+    /** A real mirror link: role AND a target, since a secondary pointing
+        nowhere is a broken link rather than a completed mission. */
+    isComplete: (s) =>
+      s.screens.some((screen) => screen.role === "secondary" && Boolean(screen.mirrors)),
+  },
+  {
+    id: "m5",
+    order: 5,
+    titleKey: "tutorial.m5.title",
+    bodyKey: "tutorial.m5.body",
+    hintKey: "tutorial.m5.hint",
+    cueId: "monitorSetup",
+    target: "health-panel",
+    /**
+     * Notice a screen that has dropped. Taking one offline is the only way to
+     * reach the offline and primaryOffline playback states, so this mission is
+     * what makes two of the five renderings something the visitor has seen.
+     */
+    isComplete: (s) => s.screens.some((screen) => screen.online === false),
+  },
+  {
+    id: "m6",
+    order: 6,
+    titleKey: "tutorial.m6.title",
+    bodyKey: "tutorial.m6.body",
+    hintKey: "tutorial.m6.hint",
+    cueId: "saveSeeChanges",
+    target: "save-bar",
+    /**
+     * A SUCCESSFUL save, not a press. `savedAt` is written only by SAVE_SUCCESS,
+     * so this cannot complete on a save that failed — which matters, because the
+     * mission's whole point is watching the previews update, and a failed save
+     * updates nothing.
+     */
+    isComplete: (s) => s.savedAt !== null,
+  },
+];
+
+export const MISSION_COUNT = MISSIONS.length;
+
+/**
+ * Supplementary narration, offered as contextual help rather than played
+ * automatically.
+ *
+ * Two recordings exist that no mission's own cue covers: a deeper explanation of
+ * the timeline, and one of primary/secondary. They are extra depth on a mission
+ * the visitor is already in, so autoplaying them would mean two cues per mission
+ * and a card that talks for twice as long. Offered on request instead, from the
+ * mission they belong to.
+ *
+ * check:td asserts that every cue is either a mission's or listed here, so a
+ * recording cannot sit unreferenced and unheard.
+ */
+export const HELP_CUES = {
+  m3: "scheduleTimeline",
+  m4: "mirrorExplainer",
+};
+
+/** The extra cue available on a mission, or null. */
+export function helpCueFor(missionId) {
+  return HELP_CUES[missionId] ?? null;
+}
+
+export function getMission(index) {
+  return MISSIONS[index] ?? null;
+}
+
+export function missionById(id) {
+  return MISSIONS.find((m) => m.id === id) ?? null;
+}
+
+/** Every cue a mission refers to must exist in the audio manifest. */
+export function missionCueIds() {
+  return MISSIONS.map((m) => m.cueId).filter((id) => Boolean(CUES[id]));
+}

@@ -610,6 +610,69 @@ export function reducer(state, action) {
       };
     }
 
+    // ---- tutorial (phase 10) ----
+
+    case A.TUT_COMPLETE: {
+      /**
+       * Mark a mission done. Dispatched by TutorialProvider when a mission's
+       * predicate turns true — never by a component claiming completion, so
+       * "done" always means the visitor did the thing.
+       *
+       * Idempotent, because the predicate stays true after it fires and would
+       * otherwise re-dispatch on every subsequent state change.
+       */
+      if (!action.missionId || state.tutorial.completed.includes(action.missionId)) {
+        return state;
+      }
+      return {
+        ...state,
+        tutorial: {
+          ...state.tutorial,
+          completed: [...state.tutorial.completed, action.missionId],
+        },
+      };
+    }
+
+    case A.TUT_ADVANCE: {
+      const total = Number.isInteger(action.total) ? action.total : 6;
+      const next = Math.min(state.tutorial.missionIndex + 1, total);
+      if (next === state.tutorial.missionIndex) return state;
+      return { ...state, tutorial: { ...state.tutorial, missionIndex: next } };
+    }
+
+    case A.TUT_SKIP_ALL:
+      // Explicit, and always offered. Leaves `completed` alone: skipping is not
+      // doing, and the completion screen's checklist should say so honestly.
+      return {
+        ...state,
+        tutorial: { ...state.tutorial, mode: "explore", helpOpenFor: null },
+      };
+
+    case A.TUT_SKIP_INTRO:
+      if (state.tutorial.introSeen) return state;
+      return { ...state, tutorial: { ...state.tutorial, introSeen: true } };
+
+    case A.TUT_REPLAY:
+      // Back to the first mission in guided mode, keeping `completed`: the
+      // visitor has still done those things, and the checklist should not lie
+      // about it just because they are watching again.
+      return {
+        ...state,
+        tutorial: { ...state.tutorial, missionIndex: 0, mode: "guided", helpOpenFor: null },
+      };
+
+    case A.TUT_SET_MODE: {
+      const mode = action.mode === "explore" ? "explore" : "guided";
+      if (state.tutorial.mode === mode) return state;
+      return { ...state, tutorial: { ...state.tutorial, mode } };
+    }
+
+    case A.TUT_OPEN_HELP: {
+      const helpOpenFor = action.missionId ?? null;
+      if (state.tutorial.helpOpenFor === helpOpenFor) return state;
+      return { ...state, tutorial: { ...state.tutorial, helpOpenFor } };
+    }
+
     // ---- ui (phase 4) ----
 
     case A.UI_EDIT_SLOT:

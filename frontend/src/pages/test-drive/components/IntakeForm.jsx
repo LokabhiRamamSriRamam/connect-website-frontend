@@ -4,6 +4,7 @@ import { ArrowRight, Loader2, Lock } from "lucide-react";
 import { inputCls, Field, useFormErrors } from "../../../components/forms/fields";
 import { SB_SERVICE, LEAD_SOURCE_TEST_DRIVE } from "../../../components/forms/services";
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { useAudio } from "../audio/AudioContext.jsx";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
 import { INDUSTRY_LEAD_LABEL } from "../state/initialState.js";
 import {
@@ -64,6 +65,7 @@ export default function IntakeForm({ onBack }) {
   const { t } = useI18n();
   const { business, lead } = useTd();
   const dispatch = useTdDispatch();
+  const audio = useAudio();
   const reduce = useReducedMotion();
   const { errors, shakeKey, formRef, fail, clearError, errProps } = useFormErrors();
 
@@ -96,6 +98,18 @@ export default function IntakeForm({ onBack }) {
     }
 
     dispatch(businessSubmitStart());
+
+    /**
+     * Start the welcome narration HERE, inside the submit gesture and before any
+     * await.
+     *
+     * Mobile autoplay policy only permits play() synchronously within a user
+     * gesture; once the `await fetch` below yields, the gesture is spent and the
+     * browser will reject it. This is the single best chance the welcome cue
+     * gets. If it is still blocked, the engine resolves to "paused", the mission
+     * card's play button is always there, and the captions carry the same words.
+     */
+    if (!audio.muted) audio.play("welcome");
 
     // Every value is a string: pick() in leads.routes.js filters on
     // `typeof body[k] === "string"`, so a number would be dropped in silence.

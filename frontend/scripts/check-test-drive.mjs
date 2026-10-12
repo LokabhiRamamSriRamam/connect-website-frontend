@@ -29,6 +29,7 @@ import { dirname, join } from "node:path";
 import { en, hi, flattenKeys } from "../src/pages/test-drive/i18n/index.js";
 import { allCuePaths, CUES, CUE_IDS, LANGS } from "../src/pages/test-drive/audio/manifest.js";
 import { allCreatives, CREATIVES_BY_INDUSTRY } from "../src/pages/test-drive/creatives/registry.js";
+import { HELP_CUES, MISSIONS } from "../src/pages/test-drive/tutorial/missions.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(here, "..", "public");
@@ -194,6 +195,87 @@ check("every cue's mission id is one the tutorial will use", () => {
       `${cueId}: unknown missionId ${CUES[cueId].missionId}`
     );
   }
+});
+
+// -------------------------------------------------------------- missions ----
+
+check("every mission's copy resolves in both languages", () => {
+  assert.equal(MISSIONS.length, 6, "the brief's six missions");
+  for (const m of MISSIONS) {
+    for (const key of [m.titleKey, m.bodyKey, m.hintKey]) {
+      for (const [lang, dict] of [
+        ["en", en],
+        ["hi", hi],
+      ]) {
+        const value = get(dict, key);
+        assert.equal(typeof value, "string", `${m.id}: ${lang} has no ${key}`);
+        assert.ok(value.trim().length > 0, `${m.id}: ${lang}.${key} is empty`);
+      }
+    }
+  }
+});
+
+check("every mission's cue is in the audio manifest", () => {
+  // A mission pointing at a cue that does not exist narrates nothing, silently.
+  for (const m of MISSIONS) {
+    assert.ok(CUES[m.cueId], `${m.id}: cue "${m.cueId}" is not in the manifest`);
+  }
+});
+
+check("every mission cue has a recording in both languages", () => {
+  const paths = allCuePaths();
+  for (const m of MISSIONS) {
+    for (const lang of LANGS) {
+      const entry = paths.find((p) => p.cueId === m.cueId && p.lang === lang);
+      assert.ok(entry, `${m.id}: no ${lang} path for ${m.cueId}`);
+      assert.ok(
+        statSync(join(PUBLIC_DIR, entry.path)).size > 0,
+        `${m.id}: ${entry.path} is empty`
+      );
+    }
+  }
+});
+
+check("every recording is reachable from somewhere", () => {
+  /**
+   * Three cues are deliberately not mission narration: the welcome plays at
+   * intake, and the completion and replay prompts after the last mission. Two
+   * more are contextual help on a mission the visitor is already in.
+   *
+   * Anything ELSE unreferenced is a recording nobody will ever hear, which is
+   * worth knowing before someone re-records it. This check is what surfaced
+   * scheduleTimeline and mirrorExplainer, which had no caller at all until they
+   * were wired up as HELP_CUES.
+   */
+  const NON_MISSION = new Set(["welcome", "tutorialComplete", "replayTutorial"]);
+  const used = new Set([...MISSIONS.map((m) => m.cueId), ...Object.values(HELP_CUES)]);
+  const orphans = CUE_IDS.filter((id) => !used.has(id) && !NON_MISSION.has(id));
+  assert.deepEqual(orphans, [], "cues nothing plays and no exception covers");
+
+  // And a help cue must point at a mission that exists.
+  for (const [missionId, cueId] of Object.entries(HELP_CUES)) {
+    assert.ok(MISSIONS.some((m) => m.id === missionId), `help cue for unknown ${missionId}`);
+    assert.ok(CUES[cueId], `help cue "${cueId}" is not in the manifest`);
+  }
+});
+
+check("mission ids, orders and spotlight targets are sane", () => {
+  const ids = new Set();
+  const orders = [];
+  for (const m of MISSIONS) {
+    assert.equal(ids.has(m.id), false, `duplicate mission id ${m.id}`);
+    ids.add(m.id);
+    orders.push(m.order);
+    assert.equal(typeof m.isComplete, "function", `${m.id}: no predicate`);
+    assert.ok(m.target && typeof m.target === "string", `${m.id}: no spotlight target`);
+  }
+  assert.deepEqual(
+    orders.slice().sort((a, b) => a - b),
+    [1, 2, 3, 4, 5, 6],
+    "orders are 1..6 with no gaps or repeats"
+  );
+  // Declaration order must match `order`, since missionIndex indexes the array.
+  assert.deepEqual(orders, [1, 2, 3, 4, 5, 6], "declared in order");
 });
 
 // ------------------------------------------------------------- creatives ----
