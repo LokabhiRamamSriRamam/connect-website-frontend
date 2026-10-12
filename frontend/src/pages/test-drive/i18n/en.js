@@ -162,6 +162,22 @@ export const en = {
     fieldHint: "Shown on the screen exactly as typed.",
   },
 
+  /**
+   * Creative names and descriptions, keyed by template id. These live here rather
+   * than as literals in creatives/restaurant/index.js because the library has to
+   * read in Hindi too, and a translated string must never be stored as data.
+   */
+  creatives: {
+    r_thali_combo: {
+      name: "Thali Combo",
+      desc: "A full-plate meal offer with a price badge. Best for value messaging.",
+    },
+    r_lunch_special: {
+      name: "Lunch Special",
+      desc: "A light, time-limited offer with a corner ribbon.",
+    },
+  },
+
   schedule: {
     title: "Content schedule",
     listView: "List view",

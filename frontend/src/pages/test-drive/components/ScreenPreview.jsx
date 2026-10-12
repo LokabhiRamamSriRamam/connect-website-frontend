@@ -1,5 +1,8 @@
 import { useI18n } from "../i18n/I18nContext.jsx";
+import { useTd } from "../state/TestDriveContext.jsx";
 import { EMPTY_STATE_ART, CreativePlaceholderArt } from "./art/EmptyStates.jsx";
+import { getTemplate } from "../creatives/registry.js";
+import CreativeFrame from "../creatives/CreativeFrame.jsx";
 
 /**
  * The glass of one virtual screen: whatever resolveScreen() says is showing.
@@ -14,8 +17,21 @@ import { EMPTY_STATE_ART, CreativePlaceholderArt } from "./art/EmptyStates.jsx";
  */
 export default function ScreenPreview({ resolution, scan = false, className = "" }) {
   const { t } = useI18n();
+  const { creativeInstances } = useTd();
   const kind = resolution?.kind ?? "no-content";
   const lit = kind === "creative";
+
+  /**
+   * The instance resolveScreen named. It is looked up rather than passed in
+   * because resolveScreen deliberately returns only an id — the domain layer has
+   * no business knowing about field values or components.
+   *
+   * resolveScreen guarantees a real instance for kind "creative" (it returns
+   * "creativeMissing" otherwise), so this is a lookup, not a decision: the view
+   * never chooses what plays.
+   */
+  const instance = lit ? creativeInstances[resolution.instanceId] : null;
+  const template = instance ? getTemplate(instance.templateId) : null;
 
   // Short on-glass captions. The full sentence lives in the tile's status row and
   // in the Control Panel; inside a 160x90 viewBox only a few words fit, in either
@@ -42,7 +58,17 @@ export default function ScreenPreview({ resolution, scan = false, className = ""
       <div aria-hidden="true" className="h-full w-full">
         {Art ? (
           <Art label={caption} />
+        ) : instance ? (
+          /* A real creative, through the one audited render path. */
+          <CreativeFrame
+            templateId={instance.templateId}
+            fields={instance.fields}
+            label={template ? t(template.nameKey) : caption}
+          />
         ) : (
+          /* kind "creative" with no instance should be unreachable — resolveScreen
+             returns "creativeMissing" instead. Kept as a non-throwing fallback
+             rather than trusting an invariant with a blank screen. */
           <CreativePlaceholderArt
             label={caption}
             instanceId={resolution?.instanceId ?? ""}

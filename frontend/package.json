@@ -8,6 +8,7 @@
     "build": "vite build && node scripts/prerender-blogs.mjs",
     "lint": "eslint .",
     "test:td": "node scripts/test-td.mjs",
+    "check:creatives": "esbuild scripts/check-creative-safety.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --external:react --external:react-dom --outfile=node_modules/.cache/td-safety.mjs --log-level=error && node node_modules/.cache/td-safety.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

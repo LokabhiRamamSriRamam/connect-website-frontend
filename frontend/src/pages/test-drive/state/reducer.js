@@ -17,8 +17,35 @@ import { A } from "./actions.js";
 import { initialState } from "./initialState.js";
 import { clampMinute } from "../domain/time.js";
 import { advanceClock } from "../domain/health.js";
+import { getTemplate } from "../creatives/registry.js";
 
 export { initialState };
+
+/**
+ * Record that a screen has unsaved changes.
+ *
+ * Per-action rather than a deep comparison on render: cheaper, more honest (it
+ * reflects "you edited this", not "this differs"), and it gives the per-screen
+ * unsaved dots for free. Pass no screenId for an edit that is not scoped to one
+ * screen, such as editing a creative instance shared by several.
+ */
+function markDirty(next, screenId = null) {
+  const dirtyScreens =
+    screenId && !next.save.dirtyScreens.includes(screenId)
+      ? [...next.save.dirtyScreens, screenId]
+      : next.save.dirtyScreens;
+  return {
+    ...next,
+    save: { ...next.save, status: "dirty", error: null, dirtyScreens },
+  };
+}
+
+/** Screens whose draft slots reference a creative instance. */
+function screensUsingInstance(byScreen, instanceId) {
+  return Object.entries(byScreen)
+    .filter(([, cfg]) => cfg.slots.some((s) => s.instanceId === instanceId))
+    .map(([id]) => id);
+}
 
 export function reducer(state, action) {
   switch (action.type) {
@@ -127,6 +154,116 @@ export function reducer(state, action) {
     case A.HEALTH_TICK:
       // Just a counter — see the health comment in initialState.js.
       return { ...state, health: { ...state.health, tick: (state.health.tick ?? 0) + 1 } };
+
+    // ---- creatives (phase 5) ----
+
+    case A.CREATIVE_ADD: {
+      const tpl = getTemplate(action.templateId);
+      if (!tpl) {
+        if (import.meta.env?.DEV) {
+          console.warn(`[td] CREATIVE_ADD: unknown template "${action.templateId}"`);
+        }
+        return state;
+      }
+      // Allowlist on the way IN as well as at render: an instance should never
+      // hold a key the template does not declare, so a later template change
+      // cannot resurrect stale data as a visible field.
+      const fields = {};
+      for (const key of tpl.fields) {
+        fields[key] = String(action.fields?.[key] ?? tpl.defaults?.[key] ?? "");
+      }
+      return markDirty({
+        ...state,
+        creativeInstances: {
+          ...state.creativeInstances,
+          [action.id]: {
+            id: action.id,
+            templateId: action.templateId,
+            fields,
+            createdAt: action.createdAt ?? 0,
+          },
+        },
+      });
+    }
+
+    case A.CREATIVE_FIELD: {
+      const instance = state.creativeInstances[action.id];
+      if (!instance) return state;
+      const tpl = getTemplate(instance.templateId);
+      // Reject a field the template does not declare, for the reason above.
+      if (tpl && !tpl.fields.includes(action.field)) {
+        if (import.meta.env?.DEV) {
+          console.warn(`[td] CREATIVE_FIELD: "${action.field}" not in ${instance.templateId}`);
+        }
+        return state;
+      }
+      /**
+       * Writes to ONE instance. A template is never touched, so customising a
+       * creative on screen 1 cannot change what screen 2 shows — the four
+       * concepts (template, instance, slot assignment, resolved output) stay
+       * distinct. Two screens only move together if they share an instance id,
+       * which is what Duplicate exists to avoid.
+       */
+      const next = {
+        ...state,
+        creativeInstances: {
+          ...state.creativeInstances,
+          [action.id]: {
+            ...instance,
+            fields: { ...instance.fields, [action.field]: String(action.value ?? "") },
+          },
+        },
+      };
+      // Every screen scheduling this instance now differs from saved.
+      const affected = screensUsingInstance(state.draft.byScreen, action.id);
+      return affected.reduce((acc, id) => markDirty(acc, id), markDirty(next));
+    }
+
+    case A.CREATIVE_DUPLICATE: {
+      const source = state.creativeInstances[action.id];
+      if (!source || !action.newId) return state;
+      return markDirty({
+        ...state,
+        creativeInstances: {
+          ...state.creativeInstances,
+          [action.newId]: {
+            ...source,
+            id: action.newId,
+            fields: { ...source.fields },
+            createdAt: action.createdAt ?? 0,
+          },
+        },
+      });
+    }
+
+    case A.CREATIVE_REMOVE: {
+      if (!state.creativeInstances[action.id]) return state;
+      const creativeInstances = { ...state.creativeInstances };
+      delete creativeInstances[action.id];
+
+      /**
+       * Prune slots referencing the instance HERE, in the reducer — not in the
+       * view. A slot pointing at a deleted instance would otherwise render as a
+       * ghost row in the schedule and resolve to "creativeMissing" on the wall,
+       * which is a correct report of an incorrect state. The pruning is what
+       * keeps that state from existing.
+       */
+      const affected = screensUsingInstance(state.draft.byScreen, action.id);
+      const byScreen = { ...state.draft.byScreen };
+      for (const screenId of affected) {
+        byScreen[screenId] = {
+          ...byScreen[screenId],
+          slots: byScreen[screenId].slots.filter((s) => s.instanceId !== action.id),
+        };
+      }
+
+      const next = {
+        ...state,
+        creativeInstances,
+        draft: { ...state.draft, byScreen },
+      };
+      return affected.reduce((acc, id) => markDirty(acc, id), markDirty(next));
+    }
 
     // ---- ui (phase 4) ----
 

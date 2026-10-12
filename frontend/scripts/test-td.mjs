@@ -61,8 +61,20 @@ import {
   seededUnit,
 } from "../src/pages/test-drive/domain/health.js";
 
+import {
+  allCreatives,
+  creativesFor,
+  getTemplate,
+  mediaTypesFor,
+} from "../src/pages/test-drive/creatives/registry.js";
+import { clamp, wrapLines } from "../src/pages/test-drive/creatives/text.js";
+
 import { initialState, reducer } from "../src/pages/test-drive/state/reducer.js";
 import {
+  creativeAdd,
+  creativeDuplicate,
+  creativeField,
+  creativeRemove,
   healthTick,
   selectScreen,
   simPause,
@@ -1116,6 +1128,243 @@ test("the default screen wall resolves to a sensible starting state", () => {
     120
   );
   for (const r of Object.values(night)) assert.equal(r.kind, "idle");
+});
+
+// --------------------------------------------- creatives (phase 5, no JSX) ----
+
+test("every manifest entry is well formed", () => {
+  assert.ok(allCreatives.length > 0, "the library is not empty");
+  const ids = new Set();
+  for (const tpl of allCreatives) {
+    assert.ok(tpl.id, "has an id");
+    assert.equal(ids.has(tpl.id), false, `duplicate template id ${tpl.id}`);
+    ids.add(tpl.id);
+    assert.ok(tpl.componentKey, `${tpl.id} has a componentKey`);
+    assert.ok(Array.isArray(tpl.fields) && tpl.fields.length, `${tpl.id} declares fields`);
+    assert.ok(tpl.palette && typeof tpl.palette === "object", `${tpl.id} has a palette`);
+    assert.ok(["svg", "image", "video"].includes(tpl.mediaType), `${tpl.id} mediaType`);
+
+    // Every field needs a limit, or CText would fall back to its default 40 and
+    // silently overflow a template tuned for less.
+    for (const field of tpl.fields) {
+      assert.equal(
+        typeof tpl.limits?.[field],
+        "number",
+        `${tpl.id}: field "${field}" has no limits entry`
+      );
+      assert.ok(tpl.limits[field] > 0, `${tpl.id}.${field} limit is positive`);
+      // A default longer than its own limit would render clipped from the start.
+      const def = tpl.defaults?.[field] ?? "";
+      assert.ok(
+        def.length <= tpl.limits[field],
+        `${tpl.id}.${field} default (${def.length}) exceeds limit ${tpl.limits[field]}`
+      );
+    }
+    // Names and descriptions must exist in BOTH languages.
+    assertKey(tpl.nameKey);
+    assertKey(tpl.descKey);
+  }
+});
+
+test("registry lookups", () => {
+  assert.equal(getTemplate("r_thali_combo").componentKey, "ThaliCombo");
+  assert.equal(getTemplate("nope"), null);
+  assert.ok(creativesFor("restaurant").length > 0);
+  assert.ok(creativesFor("cafe").length > 0, "an empty industry falls back, never blank");
+  assert.ok(creativesFor("").length > 0);
+  assert.deepEqual(mediaTypesFor("restaurant"), ["svg"]);
+});
+
+test("clamp collapses whitespace and truncates with an ellipsis", () => {
+  assert.equal(clamp("  hello   world  ", 40), "hello world");
+  assert.equal(clamp("", 10), "");
+  assert.equal(clamp(null, 10), "", "null never becomes the string 'null'");
+  assert.equal(clamp(undefined, 10), "", "nor 'undefined'");
+  assert.equal(clamp("abcdefghij", 10), "abcdefghij", "exactly at the limit is untouched");
+  assert.equal(clamp("abcdefghijk", 10), "abcdefghi…", "over the limit gets an ellipsis");
+  assert.equal(clamp("abcdefghijk", 10).length, 10, "and still fits the limit");
+  assert.equal(clamp("a\n\nb\tc", 40), "a b c", "newlines and tabs collapse");
+});
+
+test("clamp is total: no input produces unbounded output", () => {
+  const long = "x".repeat(5000);
+  for (const limit of [1, 5, 8, 16, 24, 28, 34, 40]) {
+    assert.ok(clamp(long, limit).length <= limit, `limit ${limit} not honoured`);
+  }
+  // Every real limit in every manifest must hold for pathological input.
+  for (const tpl of allCreatives) {
+    for (const field of tpl.fields) {
+      const out = clamp(long, tpl.limits[field]);
+      assert.ok(
+        out.length <= tpl.limits[field],
+        `${tpl.id}.${field} overflowed`
+      );
+    }
+  }
+});
+
+test("wrapLines never drops a word silently and respects the line cap", () => {
+  assert.deepEqual(wrapLines("", 10, 2), []);
+  const two = wrapLines("Full Thali Combo Offer", 12, 2);
+  assert.ok(two.length <= 2, "honours the line cap");
+  assert.ok(two.join(" ").length > 0);
+  // A single unbreakable word longer than the line still comes back clamped.
+  const one = wrapLines("x".repeat(100), 10, 2);
+  assert.ok(one.length <= 2);
+  for (const row of one) assert.ok(row.length <= 20, `row too long: ${row.length}`);
+});
+
+// ------------------------------------------------- reducer: creatives (p5) ----
+
+const TPL = "r_thali_combo";
+
+test("CREATIVE_ADD allowlists fields against the manifest", () => {
+  const next = reducer(
+    initialState,
+    creativeAdd("ci_1", TPL, { headline: "Hi", evil: "nope" }, 1000)
+  );
+  const inst = next.creativeInstances.ci_1;
+  assert.ok(inst, "instance created");
+  assert.equal(inst.headline, undefined);
+  assert.equal(inst.fields.headline, "Hi");
+  assert.equal("evil" in inst.fields, false, "an undeclared field cannot be stored");
+  assert.deepEqual(
+    Object.keys(inst.fields).sort(),
+    [...getTemplate(TPL).fields].sort(),
+    "exactly the declared fields, no more and no fewer"
+  );
+  assert.equal(inst.fields.price, getTemplate(TPL).defaults.price, "defaults fill the gaps");
+  assert.equal(next.save.status, "dirty", "adding a creative is an edit");
+});
+
+test("CREATIVE_ADD coerces every value to a string", () => {
+  const next = reducer(
+    initialState,
+    creativeAdd("ci_1", TPL, { headline: 42, price: null, cta: { a: 1 } }, 0)
+  );
+  for (const [k, v] of Object.entries(next.creativeInstances.ci_1.fields)) {
+    assert.equal(typeof v, "string", `${k} is not a string`);
+  }
+  assert.equal(next.creativeInstances.ci_1.fields.headline, "42");
+});
+
+test("CREATIVE_ADD rejects an unknown template", () => {
+  assert.equal(reducer(initialState, creativeAdd("ci_1", "nope", {}, 0)), initialState);
+});
+
+test("CREATIVE_FIELD edits ONE instance — a template never mutates globally", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, creativeAdd("ci_b", TPL, {}, 2));
+  const before = s.creativeInstances.ci_b.fields.headline;
+
+  s = reducer(s, creativeField("ci_a", "headline", "Only mine"));
+  assert.equal(s.creativeInstances.ci_a.fields.headline, "Only mine");
+  assert.equal(
+    s.creativeInstances.ci_b.fields.headline,
+    before,
+    "the other instance of the SAME template is untouched"
+  );
+  // And the manifest itself must not have been written through.
+  assert.equal(getTemplate(TPL).defaults.headline, "Full Thali Combo");
+});
+
+test("CREATIVE_FIELD rejects fields the template does not declare", () => {
+  const s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  assert.equal(reducer(s, creativeField("ci_a", "evil", "x")), s);
+  assert.equal(reducer(s, creativeField("ci_missing", "headline", "x")), s);
+});
+
+test("CREATIVE_DUPLICATE gives an independent copy", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Original" }, 1));
+  s = reducer(s, creativeDuplicate("ci_a", "ci_copy", 2));
+  assert.equal(s.creativeInstances.ci_copy.fields.headline, "Original");
+  s = reducer(s, creativeField("ci_copy", "headline", "Changed"));
+  assert.equal(s.creativeInstances.ci_a.fields.headline, "Original", "source unaffected");
+  assert.equal(s.creativeInstances.ci_copy.fields.headline, "Changed");
+  assert.equal(reducer(s, creativeDuplicate("ci_missing", "x", 0)), s);
+});
+
+test("CREATIVE_REMOVE prunes slots referencing the instance", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  // Hand-place slots on two screens, as SLOT_ADD (phase 6) will.
+  s = {
+    ...s,
+    draft: {
+      byScreen: {
+        ...s.draft.byScreen,
+        s1: {
+          ...s.draft.byScreen.s1,
+          slots: [
+            { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a", enabled: true },
+            { id: "sl_2", startMin: 720, endMin: 900, instanceId: "ci_other", enabled: true },
+          ],
+        },
+        s3: {
+          ...s.draft.byScreen.s3,
+          slots: [
+            { id: "sl_3", startMin: 600, endMin: 660, instanceId: "ci_a", enabled: true },
+          ],
+        },
+      },
+    },
+  };
+
+  const next = reducer(s, creativeRemove("ci_a"));
+  assert.equal("ci_a" in next.creativeInstances, false, "instance gone");
+  assert.deepEqual(
+    next.draft.byScreen.s1.slots.map((x) => x.id),
+    ["sl_2"],
+    "only the slot using it is pruned"
+  );
+  assert.deepEqual(next.draft.byScreen.s3.slots, [], "across every screen");
+  assert.ok(
+    next.save.dirtyScreens.includes("s1") && next.save.dirtyScreens.includes("s3"),
+    "both affected screens are marked dirty"
+  );
+  // No slot anywhere may point at a removed instance — the ghost-slot invariant.
+  for (const cfg of Object.values(next.draft.byScreen)) {
+    for (const slot of cfg.slots) {
+      assert.notEqual(slot.instanceId, "ci_a");
+    }
+  }
+});
+
+test("CREATIVE_REMOVE on an unknown id is a no-op", () => {
+  const s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  assert.equal(reducer(s, creativeRemove("ci_nope")), s);
+});
+
+test("a scheduled instance actually plays on the wall", () => {
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, { headline: "Lunch" }, 1));
+  const byScreen = {
+    ...s.saved.byScreen,
+    s1: {
+      ...s.saved.byScreen.s1,
+      slots: [{ id: "sl_1", startMin: 540, endMin: 900, instanceId: "ci_a", enabled: true }],
+    },
+  };
+  const r = resolveScreen(byScreen, s.saved.screens, s.creativeInstances, "s1", 780);
+  assert.equal(r.kind, "creative");
+  assert.equal(r.instanceId, "ci_a");
+  // And after removal the same schedule reports the loss rather than inventing.
+  s = reducer(s, creativeRemove("ci_a"));
+  const after = resolveScreen(byScreen, s.saved.screens, s.creativeInstances, "s1", 780);
+  assert.equal(after.kind, "no-content");
+  assert.equal(after.reason, "play.reason.creativeMissing");
+});
+
+test("the creative reducer cases never mutate frozen state", () => {
+  const frozen = deepFreeze(JSON.parse(JSON.stringify(initialState)));
+  const added = reducer(frozen, creativeAdd("ci_a", TPL, {}, 1));
+  deepFreeze(added);
+  for (const action of [
+    creativeField("ci_a", "headline", "x"),
+    creativeDuplicate("ci_a", "ci_b", 2),
+    creativeRemove("ci_a"),
+  ]) {
+    reducer(added, action);
+  }
+  assert.equal(Object.keys(frozen.creativeInstances).length, 0);
 });
 
 // ------------------------------------------------------------------ report ----
