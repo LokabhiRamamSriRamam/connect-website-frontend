@@ -40,6 +40,19 @@ const n = (value, fallback = 0) => {
 };
 
 /**
+ * Round a computed coordinate to three decimals.
+ *
+ * Sub-pixel precision past three decimals is invisible at every size these
+ * creatives render at, and the long tail is binary-float noise: a CtaPill at
+ * h=19 computes 139 + 19 * 0.68 = 151.92000000000002. That is harmless in
+ * itself, but the safety check treats absurd precision as the signature of the
+ * string-concatenation bug that once put text at y="7425.299999...". Rounding
+ * here keeps that signal unambiguous instead of teaching the check to ignore a
+ * class of value.
+ */
+const r3 = (value) => Math.round(n(value) * 1000) / 1000;
+
+/**
  * Clamped text for creatives. The ONLY way visitor text is drawn.
  *
  * `children` is passed as a JSX text child — never an attribute, never innerHTML.
@@ -68,7 +81,7 @@ export function CText({
           <text
             key={i}
             x={x}
-            y={n(y) + i * n(size) * n(lineHeight, 1.15)}
+            y={r3(n(y) + i * n(size) * n(lineHeight, 1.15))}
             fontFamily={FONT}
             fontSize={size}
             fontWeight={weight}
@@ -116,7 +129,7 @@ export function PriceBadge({ cx, cy, r = 26, bg = C.gold, fg = C.ink, limit = 8,
       <circle cx={cx} cy={cy} r={rad} fill="none" stroke={C.ink} strokeWidth="2" />
       <text
         x={cx}
-        y={n(cy) + size * 0.35}
+        y={r3(n(cy) + size * 0.35)}
         fontFamily={FONT}
         fontSize={size}
         fontWeight="800"
@@ -140,8 +153,8 @@ export function CtaPill({ x, y, h = 20, bg = C.ink, fg = C.white, limit = 22, ch
     <g>
       <rect x={x} y={y} width={w} height={ht} rx={ht / 2} fill={bg} />
       <text
-        x={n(x) + w / 2}
-        y={n(y) + ht * 0.68}
+        x={r3(n(x) + w / 2)}
+        y={r3(n(y) + ht * 0.68)}
         fontFamily={FONT}
         fontSize={size}
         fontWeight="800"
@@ -168,8 +181,8 @@ export function Ribbon({ x, y, w = 92, h = 22, bg = C.alert, fg = C.white, limit
         fill={bg}
       />
       <text
-        x={px + 8}
-        y={py + ht * 0.7}
+        x={r3(px + 8)}
+        y={r3(py + ht * 0.7)}
         fontFamily={FONT}
         fontSize={ht * 0.5}
         fontWeight="800"

@@ -51,6 +51,12 @@ import SimClock from "../src/pages/test-drive/components/SimClock.jsx";
 import MirrorEditor from "../src/pages/test-drive/components/MirrorEditor.jsx";
 import HealthPanel from "../src/pages/test-drive/components/HealthPanel.jsx";
 import ScreenWall from "../src/pages/test-drive/components/ScreenWall.jsx";
+import CreativePicker from "../src/pages/test-drive/components/CreativePicker.jsx";
+import CreativeFrame from "../src/pages/test-drive/creatives/CreativeFrame.jsx";
+import {
+  allCreatives,
+  creativesFor,
+} from "../src/pages/test-drive/creatives/registry.js";
 
 const { createElement: h } = React;
 
@@ -646,6 +652,67 @@ check("a mirror link does not reach the wall before the save", () => {
     after.includes(t("screens.mirroring", { screen: "Screen 1" })),
     "naming the screen it follows"
   );
+});
+
+// ---- the café library (phase 9) ----
+
+check("a café visitor sees the café library, not the restaurant's", () => {
+  /**
+   * A clean state, not populated(): that fixture configures an instance of a
+   * RESTAURANT template, and the picker lists configured instances under "Your
+   * creatives" whatever the industry — correctly, since they are the visitor's
+   * own work. What is being checked here is the template catalogue below that.
+   */
+  const s = {
+    ...initialState,
+    business: { ...initialState.business, industry: "cafe", businessName: "Ganga Cafe" },
+  };
+  const { html } = render(h(CreativePicker, { onEdit: () => {} }), s);
+  /**
+   * React escapes text children, so a name containing & or ' arrives as an
+   * entity ("Iced &amp; Cold Brew", "Today&#x27;s Special"). Comparing the raw
+   * string would fail on exactly the names that prove escaping works, so the
+   * expectation is escaped to match.
+   */
+  const esc = (str) =>
+    str.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/</g, "&lt;");
+
+  for (const tpl of creativesFor("cafe")) {
+    assert.ok(html.includes(esc(t(tpl.nameKey))), `${tpl.id} is offered`);
+  }
+  // And none of the restaurant set leaks in.
+  for (const tpl of creativesFor("restaurant")) {
+    assert.ok(!html.includes(esc(t(tpl.nameKey))), `${tpl.id} should not be here`);
+  }
+});
+
+check("all 16 creatives render their defaults without a blank or an 'undefined'", () => {
+  for (const tpl of allCreatives) {
+    const { html } = render(
+      h(CreativeFrame, { templateId: tpl.id, fields: tpl.defaults, label: tpl.id }),
+      populated()
+    );
+    assert.ok(html.includes("<svg"), `${tpl.id} renders an svg`);
+    assert.ok(!html.includes("undefined"), `${tpl.id} leaked "undefined" into the markup`);
+    assert.ok(!html.includes("NaN"), `${tpl.id} leaked NaN into a coordinate`);
+    // A creative that draws no text at all is a blank screen in production.
+    assert.ok(/<text[\s>]/.test(html), `${tpl.id} drew no text`);
+  }
+});
+
+check("the field editor has a label for every field all 16 declare", () => {
+  // CreativeEditor renders t(`library.fields.${field}`), so a missing label
+  // shows the visitor a raw dotted key.
+  const fields = new Set(allCreatives.flatMap((tpl) => tpl.fields));
+  for (const field of fields) {
+    const key = `library.fields.${field}`;
+    assert.notEqual(t(key), key, `no English label for ${field}`);
+    assert.notEqual(createT("hi")(key), key, `no Hindi label for ${field}`);
+  }
+  // Three shapes across the two sets, which is what keeps the allowlist honestly
+  // per-template rather than a global five-field assumption.
+  const shapes = new Set(allCreatives.map((tpl) => tpl.fields.length));
+  assert.ok(shapes.size >= 3, `expected 3 field-count shapes, got ${[...shapes]}`);
 });
 
 // ---- Hindi ----

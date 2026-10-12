@@ -208,6 +208,38 @@ export const en = {
       name: "Opening Hours",
       desc: "Information rather than an offer: your trading hours, with a clock.",
     },
+    c_coffee_of_day: {
+      name: "Coffee of the Day",
+      desc: "A single featured brew with a price badge. The café's everyday workhorse.",
+    },
+    c_morning_combo: {
+      name: "Morning Combo",
+      desc: "Coffee and a bake together, for the before-work rush.",
+    },
+    c_loyalty_card: {
+      name: "Loyalty Card",
+      desc: "Buy a few, get one free — drawn as stamps on a card.",
+    },
+    c_fresh_bakes: {
+      name: "Fresh Bakes",
+      desc: "Out-of-the-oven announcement, warm and bright.",
+    },
+    c_iced_summer: {
+      name: "Iced & Cold Brew",
+      desc: "A cool palette for cold drinks, with a tall glass.",
+    },
+    c_wifi_workspace: {
+      name: "Wi-Fi & Workspace",
+      desc: "For the laptop crowd: fast Wi-Fi and a seat to use it from.",
+    },
+    c_evening_unwind: {
+      name: "Evening Unwind",
+      desc: "A dark, calm layout for the last hours of the day.",
+    },
+    c_opening_hours: {
+      name: "Café Hours",
+      desc: "Informational: when you open and close, with a cup.",
+    },
   },
 
   schedule: {

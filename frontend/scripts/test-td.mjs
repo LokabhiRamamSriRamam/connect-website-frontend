@@ -100,6 +100,9 @@ import {
   clearMirror,
   setMirror,
   setScreenRole,
+  businessField,
+  businessSubmitOk,
+  enterConsole,
 } from "../src/pages/test-drive/state/actions.js";
 
 import { en } from "../src/pages/test-drive/i18n/en.js";
@@ -2249,6 +2252,119 @@ test("the role and mirror cases never mutate frozen state", () => {
   assert.equal(frozen.screens.find((x) => x.id === "s2").mirrors, "s1", "untouched");
   assert.equal(frozen.screens.find((x) => x.id === "s3").role, "primary");
   assert.equal(frozen.draft.byScreen.s1.slots.length, 1);
+});
+
+// ----------------------------------- the language-switch guarantee (p9) ----
+
+/**
+ * The explicit brief requirement, asserted structurally rather than by clicking.
+ *
+ * A language switch must not reset business details, the selected screen, draft
+ * edits, saved config or tutorial progress. That holds because of THREE
+ * properties, and each is checkable here:
+ *   1. `lang` is not in the reducer's state shape, so no action can carry it.
+ *   2. No reducer case reads it, so the same action gives the same result
+ *      whatever the language.
+ *   3. No state value is a translated string — they are i18n KEYS — so nothing
+ *      stored needs re-deriving when the language changes.
+ * The fourth property (no key={lang} above TestDriveProvider) is a JSX fact,
+ * commented at the provider and not reachable from here.
+ */
+test("the reducer has no notion of language at all", () => {
+  const keys = Object.keys(initialState);
+  assert.equal(keys.includes("lang"), false, "lang is not in the state shape");
+  assert.equal(keys.includes("language"), false);
+  assert.equal(keys.includes("locale"), false);
+  // Nor nested anywhere: a lang hidden in ui or business would reset just as hard.
+  const json = JSON.stringify(initialState);
+  for (const probe of ['"lang"', '"locale"', '"language"']) {
+    assert.equal(json.includes(probe), false, `${probe} appears in the state shape`);
+  }
+});
+
+test("a full mid-edit session is identical whatever the language", () => {
+  /**
+   * There is no language to pass in, so "switching" cannot be simulated by
+   * dispatching. What CAN be proved is the thing that makes a switch safe: the
+   * reducer is a pure function of (state, action) with no other input, so the
+   * same sequence always lands in the same state. Were a case reading a locale
+   * from anywhere — navigator.language, a module global — this would be the test
+   * that caught it, because the run below is deterministic.
+   */
+  const run = () => {
+    let s = initialState;
+    s = reducer(s, businessField("businessName", "गंगा ढाबा"));
+    s = reducer(s, businessField("industry", "cafe"));
+    s = reducer(s, businessSubmitOk("lead_1"));
+    s = reducer(s, enterConsole());
+    s = reducer(s, selectScreen("s3"));
+    s = reducer(s, creativeAdd("ci_a", TPL, { headline: "दोपहर का भोजन" }, 1));
+    s = reducer(s, slotAdd("s3", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
+    s = reducer(s, saveSuccess(1));
+    s = reducer(s, saveAppliedSettle());
+    // Unsaved work on top of the save, so the test covers draft AND saved.
+    s = reducer(s, slotAdd("s3", { id: "sl_2", startMin: 720, endMin: 900, instanceId: "ci_a" }));
+    s = reducer(s, activeHoursSet("s3", { start: 600, end: 1320 }));
+    s = reducer(s, setMirror("s4", "s3"));
+    s = reducer(s, uiSetScheduleView("timeline"));
+    return s;
+  };
+
+  assert.deepEqual(run(), run(), "the reducer is a pure function of its inputs");
+
+  // And the things the brief names are all present and distinct afterwards.
+  const s = run();
+  assert.equal(s.business.businessName, "गंगा ढाबा", "business details survive");
+  assert.equal(s.business.industry, "cafe");
+  assert.equal(s.lead.id, "lead_1", "the lead id survives");
+  assert.equal(s.selectedScreenId, "s3", "selection survives");
+  assert.equal(s.draft.byScreen.s3.slots.length, 2, "draft edits survive");
+  assert.deepEqual(s.draft.byScreen.s3.activeHours, { start: 600, end: 1320 });
+  assert.equal(s.saved.byScreen.s3.slots.length, 1, "and saved is still its own thing");
+  assert.equal(s.screens.find((x) => x.id === "s4").mirrors, "s3", "role edits survive");
+  assert.equal(s.ui.scheduleView, "timeline");
+  assert.equal(s.save.status, "dirty");
+});
+
+test("no stored value is a translated string — every one is a key", () => {
+  // Copy resolves at render via t(). A sentence in state would have to be
+  // re-derived on a language switch, and nothing does that.
+  let s = reducer(initialState, creativeAdd("ci_a", TPL, {}, 1));
+  s = reducer(s, setMirror("s2", "s2")); // rejected, so it sets a toast
+  assert.ok(s.ui.toast, "a toast was set");
+  // The toast carries a key, not a sentence: it resolves in both dictionaries
+  // and has no spaces, which a sentence would.
+  assertKey(s.ui.toast.key);
+  assert.equal(s.ui.toast.key.includes(" "), false, "a key has no spaces");
+
+  // The one deliberate exception is visitor-supplied creative text, which is
+  // their own words and must NOT be translated.
+  s = reducer(s, creativeField("ci_a", "headline", "मेरा ऑफ़र"));
+  assert.equal(s.creativeInstances.ci_a.fields.headline, "मेरा ऑफ़र", "their text is kept verbatim");
+});
+
+test("both industries resolve to a full, correctly-filed library", () => {
+  for (const [industry, prefix] of [
+    ["restaurant", "r_"],
+    ["cafe", "c_"],
+  ]) {
+    const list = creativesFor(industry);
+    assert.equal(list.length, 8, `${industry} has eight creatives`);
+    for (const tpl of list) {
+      assert.equal(tpl.industry, industry, `${tpl.id} is filed under ${industry}`);
+      assert.ok(tpl.id.startsWith(prefix), `${tpl.id} carries the ${prefix} prefix`);
+      assert.ok(getTemplate(tpl.id), `${tpl.id} resolves through the registry`);
+      // Names and descriptions must read in both languages.
+      assertKey(tpl.nameKey);
+      assertKey(tpl.descKey);
+    }
+  }
+  assert.equal(allCreatives.length, 16, "sixteen in total");
+  // Café no longer falls back to restaurant, which it did until this phase.
+  assert.notDeepEqual(creativesFor("cafe"), creativesFor("restaurant"));
+  // An industry the intake form does not offer still gets a library rather than
+  // an empty panel — reachable via stale persisted state.
+  assert.deepEqual(creativesFor("laundromat"), creativesFor("restaurant"));
 });
 
 // ------------------------------------------------------------------ report ----

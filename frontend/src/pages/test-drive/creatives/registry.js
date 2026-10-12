@@ -15,17 +15,24 @@
  * by which registry you came through.
  */
 import { restaurantCreatives } from "./restaurant/index.js";
+import { cafeCreatives } from "./cafe/index.js";
 
-/** Industry slug -> manifest array. Café lands in phase 9. */
+/** Industry slug -> manifest array. */
 export const CREATIVES_BY_INDUSTRY = {
   restaurant: restaurantCreatives,
-  cafe: [],
+  cafe: cafeCreatives,
 };
 
 /** Every manifest entry, across industries. */
 export const allCreatives = Object.values(CREATIVES_BY_INDUSTRY).flat();
 
-/** The library for one industry. Unknown or empty slug falls back to restaurant. */
+/**
+ * The library for one industry. Unknown or empty slug falls back to restaurant.
+ *
+ * Both industries now have a full set, so the fallback is only reached by an
+ * industry the intake form does not offer — kept because a visitor arriving with
+ * stale persisted state must still see a library rather than an empty panel.
+ */
 export function creativesFor(industry) {
   const list = CREATIVES_BY_INDUSTRY[industry];
   return list && list.length ? list : CREATIVES_BY_INDUSTRY.restaurant;

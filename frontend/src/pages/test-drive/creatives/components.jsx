@@ -19,6 +19,14 @@ import FamilyFeast from "./restaurant/FamilyFeast.jsx";
 import NewOnMenu from "./restaurant/NewOnMenu.jsx";
 import WeekendBrunch from "./restaurant/WeekendBrunch.jsx";
 import OpeningHours from "./restaurant/OpeningHours.jsx";
+import CoffeeOfDay from "./cafe/CoffeeOfDay.jsx";
+import MorningCombo from "./cafe/MorningCombo.jsx";
+import LoyaltyCard from "./cafe/LoyaltyCard.jsx";
+import FreshBakes from "./cafe/FreshBakes.jsx";
+import IcedSummer from "./cafe/IcedSummer.jsx";
+import WifiWorkspace from "./cafe/WifiWorkspace.jsx";
+import EveningUnwind from "./cafe/EveningUnwind.jsx";
+import CafeHours from "./cafe/CafeHours.jsx";
 
 const COMPONENTS = {
   ThaliCombo,
@@ -29,6 +37,14 @@ const COMPONENTS = {
   NewOnMenu,
   WeekendBrunch,
   OpeningHours,
+  CoffeeOfDay,
+  MorningCombo,
+  LoyaltyCard,
+  FreshBakes,
+  IcedSummer,
+  WifiWorkspace,
+  EveningUnwind,
+  CafeHours,
 };
 
 /**
