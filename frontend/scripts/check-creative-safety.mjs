@@ -188,6 +188,57 @@ check("all rendered coordinates stay inside the frame", () => {
   }
 });
 
+/**
+ * Limit-length text in BOTH languages must stay inside the frame.
+ *
+ * §13 calls this the most likely visual regression in the whole feature, because
+ * SVG <text> neither wraps nor shrinks and Devanagari sets wider than Latin at
+ * the same size. The width estimate is crude — there is no font metric available
+ * in node — so it is tuned to flag plausible overflow rather than to be exact.
+ * It earned its place immediately: it caught Today's Special, whose CENTRED
+ * headline has only 160 units either side of x=160 and ran past the frame edge
+ * at a limit that is fine for the left-aligned templates.
+ *
+ * A flag here means "look at this one in a browser", not necessarily a bug.
+ */
+check("limit-length text fits the frame in English and Hindi", () => {
+  const SAMPLES = {
+    en: "Wonderful Weekend Special Offer Today Only Hurry",
+    hi: "शानदार सप्ताहांत विशेष छूट आज ही सीमित समय के लिए",
+  };
+  const overflows = [];
+
+  for (const tpl of allCreatives) {
+    for (const [lang, sample] of Object.entries(SAMPLES)) {
+      const fields = {};
+      for (const field of tpl.fields) fields[field] = sample.slice(0, tpl.limits[field]);
+      const html = renderToStaticMarkup(
+        React.createElement(CreativeFrame, { templateId: tpl.id, fields, label: tpl.id })
+      );
+
+      for (const m of html.matchAll(
+        /<text x="([\d.]+)"[^>]*font-size="([\d.]+)"[^>]*text-anchor="(\w+)"[^>]*>([^<]*)<\/text>/g
+      )) {
+        const x = Number(m[1]);
+        const size = Number(m[2]);
+        const anchor = m[3];
+        // Entities count as one glyph, not as "&#x27;".
+        const chars = m[4].replace(/&[a-z#0-9]+;/gi, "x").length;
+        const width = chars * size * (lang === "hi" ? 0.62 : 0.56);
+        const right = anchor === "middle" ? x + width / 2 : x + width;
+        const left = anchor === "middle" ? x - width / 2 : x;
+        if (right > 332 || left < -12) {
+          overflows.push(
+            `${tpl.id} [${lang}] "${m[4].slice(0, 20)}" spans ${Math.round(left)}..${Math.round(right)}`
+          );
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(overflows, [], `text estimated to overflow the 320-wide frame`);
+});
+
 // Every manifest componentKey must resolve, or a creative renders as a fallback
 // placeholder in production and nobody notices until a visitor sees it.
 check("every manifest componentKey resolves to a component", () => {

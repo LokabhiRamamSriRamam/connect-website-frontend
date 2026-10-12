@@ -158,6 +158,8 @@ export const en = {
       offer: "Offer text",
       price: "Price",
       cta: "Call to action",
+      // Only the informational creatives declare this one.
+      hours: "Opening hours",
     },
     fieldHint: "Shown on the screen exactly as typed.",
   },
@@ -175,6 +177,30 @@ export const en = {
     r_lunch_special: {
       name: "Lunch Special",
       desc: "A light, time-limited offer with a corner ribbon.",
+    },
+    r_happy_hour: {
+      name: "Happy Hours",
+      desc: "An evening drinks offer on a dark background.",
+    },
+    r_todays_special: {
+      name: "Today's Special",
+      desc: "A centred menu card for the dish of the day.",
+    },
+    r_family_feast: {
+      name: "Family Feast",
+      desc: "A sharing offer for groups, with a saving ribbon.",
+    },
+    r_new_on_menu: {
+      name: "New on the Menu",
+      desc: "A bright announcement for a newly added dish.",
+    },
+    r_weekend_brunch: {
+      name: "Weekend Brunch",
+      desc: "A warm morning layout for weekend service.",
+    },
+    r_opening_hours: {
+      name: "Opening Hours",
+      desc: "Information rather than an offer: your trading hours, with a clock.",
     },
   },
 

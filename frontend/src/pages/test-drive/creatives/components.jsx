@@ -13,10 +13,22 @@
  */
 import ThaliCombo from "./restaurant/ThaliCombo.jsx";
 import LunchSpecial from "./restaurant/LunchSpecial.jsx";
+import HappyHour from "./restaurant/HappyHour.jsx";
+import TodaysSpecial from "./restaurant/TodaysSpecial.jsx";
+import FamilyFeast from "./restaurant/FamilyFeast.jsx";
+import NewOnMenu from "./restaurant/NewOnMenu.jsx";
+import WeekendBrunch from "./restaurant/WeekendBrunch.jsx";
+import OpeningHours from "./restaurant/OpeningHours.jsx";
 
 const COMPONENTS = {
   ThaliCombo,
   LunchSpecial,
+  HappyHour,
+  TodaysSpecial,
+  FamilyFeast,
+  NewOnMenu,
+  WeekendBrunch,
+  OpeningHours,
 };
 
 /**
