@@ -19,6 +19,7 @@ export default function ScreenTile({
   onSelect,
   mirrorLabel = "",
   compact = false,
+  dirty = false,
 }) {
   const { t } = useI18n();
 
@@ -66,6 +67,18 @@ export default function ScreenTile({
               }`}
             />
             <span className="truncate text-[13px] font-extrabold">{screen.label}</span>
+            {/* This screen has edits the preview above does not yet show — which
+                is exactly the thing a visitor could otherwise misread as the save
+                having done nothing. save.dirtyScreens makes it per-screen for
+                free, since it is maintained per action rather than by comparing. */}
+            {dirty && (
+              <span
+                title={t("save.unsaved")}
+                className="td-dot-dirty inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-sb-violet"
+              >
+                <span className="sr-only">{t("save.unsaved")}</span>
+              </span>
+            )}
           </div>
 
           <p className="mt-0.5 truncate text-[11px] font-bold text-sb-muted">{status}</p>

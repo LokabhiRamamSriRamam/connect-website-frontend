@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test:td": "node scripts/test-td.mjs",
     "check:creatives": "esbuild scripts/check-creative-safety.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --external:react --external:react-dom --outfile=node_modules/.cache/td-safety.mjs --log-level=error && node node_modules/.cache/td-safety.mjs",
+    "check:td-render": "esbuild scripts/check-td-render.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --main-fields=module,main --external:react --external:react-dom --outfile=node_modules/.cache/td-render.mjs --log-level=error && node node_modules/.cache/td-render.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

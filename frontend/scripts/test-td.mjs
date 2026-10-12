@@ -85,6 +85,18 @@ import {
   toggleScreenOnline,
   uiSetScheduleView,
   uiSetWallView,
+  activeHoursSet,
+  discardDraft,
+  saveAppliedSettle,
+  saveFail,
+  saveStart,
+  saveSuccess,
+  slotAdd,
+  slotRemove,
+  slotUpdate,
+  slotsClear,
+  uiEditSlot,
+  uiToast,
 } from "../src/pages/test-drive/state/actions.js";
 
 import { en } from "../src/pages/test-drive/i18n/en.js";
@@ -1365,6 +1377,417 @@ test("the creative reducer cases never mutate frozen state", () => {
     reducer(added, action);
   }
   assert.equal(Object.keys(frozen.creativeInstances).length, 0);
+});
+
+// -------------------------------------- reducer: schedule + save (phase 6) ----
+
+/** A state with one creative instance, ready to be scheduled. */
+function withCreative(id = "ci_a") {
+  return reducer(initialState, creativeAdd(id, TPL, { headline: "Lunch" }, 1));
+}
+
+/** Add a slot and return the next state. Minutes, not strings. */
+function addSlot(state, screenId, id, startMin, endMin, instanceId = "ci_a") {
+  return reducer(state, slotAdd(screenId, { id, startMin, endMin, instanceId }));
+}
+
+test("SLOT_ADD stores a valid slot and marks only that screen dirty", () => {
+  const next = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  assert.deepEqual(
+    next.draft.byScreen.s1.slots.map((s) => [s.startMin, s.endMin, s.instanceId]),
+    [[540, 720, "ci_a"]]
+  );
+  assert.equal(next.draft.byScreen.s1.slots[0].enabled, true, "enabled by default");
+  assert.equal(next.save.status, "dirty");
+  assert.deepEqual(next.save.dirtyScreens, ["s1"], "per-action, per-screen");
+  assert.deepEqual(next.draft.byScreen.s2.slots, [], "other screens untouched");
+});
+
+// THE blocking rule for this phase.
+test("SLOT_ADD rejects an overlap, and validateSlot names the clashing slot", () => {
+  const s = addSlot(withCreative(), "s1", "sl_1", 540, 720); // 09:00-12:00
+  const clashing = addSlot(s, "s1", "sl_2", 660, 780); // 11:00-13:00
+  assert.equal(clashing, s, "the overlapping add is rejected outright");
+  assert.equal(clashing.draft.byScreen.s1.slots.length, 1);
+
+  // And the message the view shows identifies WHICH slot is in the way.
+  const result = validateSlot(
+    { startMin: 660, endMin: 780, instanceId: "ci_a" },
+    { slots: s.draft.byScreen.s1.slots, labelFor: () => "Thali Combo" }
+  );
+  assert.equal(result.ok, false);
+  const overlap = result.errors.find((e) => e.key === "schedule.err.overlap");
+  assert.ok(overlap, "the overlap error is present");
+  assert.equal(overlap.slotId, "sl_1", "it names the clashing slot id");
+  assert.equal(overlap.vars.creative, "Thali Combo", "and the creative in the way");
+  assert.deepEqual(overlap.vars.range, { startMin: 540, endMin: 720 });
+  assertKey("schedule.err.overlap");
+});
+
+// The half-open-interval payoff, asserted through the reducer rather than only
+// through overlaps().
+test("SLOT_ADD accepts 09:00-12:00 then 12:00-15:00 — adjacent, not overlapping", () => {
+  let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  s = addSlot(s, "s1", "sl_2", 720, 900);
+  assert.equal(s.draft.byScreen.s1.slots.length, 2, "both slots are stored");
+  assert.deepEqual(
+    s.draft.byScreen.s1.slots.map((x) => x.id).sort(),
+    ["sl_1", "sl_2"]
+  );
+});
+
+test("SLOT_ADD rejects a slot shorter than 5 minutes, or ending before it starts", () => {
+  const s = withCreative();
+  assert.equal(addSlot(s, "s1", "sl_1", 540, 543), s, "3 minutes is too short");
+  assert.equal(addSlot(s, "s1", "sl_1", 720, 540), s, "end before start");
+  assert.equal(addSlot(s, "s1", "sl_1", 540, 540), s, "zero length");
+  assert.equal(addSlot(s, "s1", "sl_1", 540, 545).draft.byScreen.s1.slots.length, 1, "5 is ok");
+});
+
+test("SLOT_ADD requires a creative that actually exists", () => {
+  const s = withCreative();
+  assert.equal(reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720 })), s);
+  assert.equal(addSlot(s, "s1", "sl_1", 540, 720, "ci_ghost"), s, "unknown instance");
+  assert.equal(addSlot(s, "s1", null, 540, 720), s, "a slot with no id is rejected");
+  assert.equal(addSlot(s, "s99", "sl_1", 540, 720), s, "unknown screen");
+});
+
+// Outside active hours is a WARNING. The slot is legal; it simply never plays.
+test("a slot outside active hours is ACCEPTED, with a warning", () => {
+  const s = withCreative();
+  const hours = s.draft.byScreen.s1.activeHours; // 09:00-21:00 by default
+  const next = addSlot(s, "s1", "sl_night", 60, 240); // 01:00-04:00
+
+  assert.equal(next.draft.byScreen.s1.slots.length, 1, "stored, not refused");
+
+  const result = validateSlot(
+    { startMin: 60, endMin: 240, instanceId: "ci_a" },
+    { slots: [], activeHours: hours, creativeInstances: s.creativeInstances }
+  );
+  assert.equal(result.ok, true, "a warning does not make it invalid");
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(result.warnings, [{ key: "schedule.warn.outsideHours" }]);
+  assertKey("schedule.warn.outsideHours");
+
+  // And the list view sees it flagged, via the same normalizeSlots both views use.
+  const [row] = normalizeSlots(next.draft.byScreen.s1.slots, { activeHours: hours });
+  assert.equal(row.outsideHours, true);
+});
+
+test("the 8-slot cap blocks a 9th add but NOT an edit of an existing one", () => {
+  let s = withCreative();
+  // Eight 1-hour slots from 00:00, each adjacent to the last.
+  for (let i = 0; i < 8; i += 1) {
+    s = addSlot(s, "s1", `sl_${i}`, i * 60, i * 60 + 60);
+  }
+  assert.equal(s.draft.byScreen.s1.slots.length, 8, "eight fit");
+
+  const ninth = addSlot(s, "s1", "sl_8", 540, 600);
+  assert.equal(ninth, s, "a 9th is refused");
+
+  // The cap must not make the full screen read-only. (Shrinking, because every
+  // slot here is adjacent to the next — growing one would clash, correctly.)
+  const edited = reducer(s, slotUpdate("s1", "sl_0", { endMin: 30 }));
+  assert.notEqual(edited, s, "editing the 8th-of-8 screen still works");
+  assert.equal(edited.draft.byScreen.s1.slots.find((x) => x.id === "sl_0").endMin, 30);
+  assert.equal(edited.draft.byScreen.s1.slots.length, 8, "and does not add one");
+});
+
+test("SLOT_UPDATE excludes a slot from its own overlap test", () => {
+  let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  s = addSlot(s, "s1", "sl_2", 720, 900);
+
+  // Shrinking sl_1 must not clash with itself.
+  const shrunk = reducer(s, slotUpdate("s1", "sl_1", { endMin: 660 }));
+  assert.equal(shrunk.draft.byScreen.s1.slots.find((x) => x.id === "sl_1").endMin, 660);
+
+  // Growing it into its neighbour must still be refused.
+  const grown = reducer(shrunk, slotUpdate("s1", "sl_1", { endMin: 780 }));
+  assert.equal(grown, shrunk, "an edit into a neighbour is rejected");
+
+  assert.equal(reducer(s, slotUpdate("s1", "sl_ghost", { endMin: 600 })), s);
+  assert.equal(reducer(s, slotUpdate("s99", "sl_1", { endMin: 600 })), s);
+});
+
+test("SLOT_UPDATE allowlists its patch and will not rename a slot", () => {
+  const s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+
+  const next = reducer(
+    s,
+    slotUpdate("s1", "sl_1", { endMin: 660, id: "sl_hijack", evil: "nope" })
+  );
+  const [slot] = next.draft.byScreen.s1.slots;
+  assert.equal(slot.id, "sl_1", "the id is not patchable");
+  assert.equal(slot.endMin, 660, "the real change landed");
+  assert.equal("evil" in slot, false, "an undeclared key cannot be stored");
+  assert.deepEqual(
+    Object.keys(slot).sort(),
+    ["enabled", "endMin", "id", "instanceId", "startMin"],
+    "exactly the declared shape"
+  );
+
+  // Pointing a slot at a creative that does not exist is refused, not stored —
+  // that is the ghost-slot invariant from the other direction.
+  assert.equal(reducer(s, slotUpdate("s1", "sl_1", { instanceId: "ci_ghost" })), s);
+  assert.equal(reducer(s, slotUpdate("s1", "sl_1", { instanceId: null })), s);
+});
+
+test("SLOT_ADD refuses an id already on the screen", () => {
+  const s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  const dup = addSlot(s, "s1", "sl_1", 900, 960);
+  assert.equal(dup, s, "a duplicate id would overwrite nothing and duplicate everything");
+  assert.equal(s.draft.byScreen.s1.slots.length, 1);
+});
+
+test("SLOT_REMOVE and SLOTS_CLEAR close the editor sheet behind them", () => {
+  let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  s = addSlot(s, "s1", "sl_2", 720, 900);
+  s = reducer(s, uiEditSlot("sl_1"));
+  assert.equal(s.ui.editingSlotId, "sl_1");
+
+  const removed = reducer(s, slotRemove("s1", "sl_1"));
+  assert.deepEqual(removed.draft.byScreen.s1.slots.map((x) => x.id), ["sl_2"]);
+  assert.equal(removed.ui.editingSlotId, null, "the sheet was bound to the gone slot");
+  assert.equal(reducer(removed, slotRemove("s1", "sl_1")), removed, "removing twice is a no-op");
+
+  const cleared = reducer(removed, slotsClear("s1"));
+  assert.deepEqual(cleared.draft.byScreen.s1.slots, []);
+  assert.equal(reducer(cleared, slotsClear("s1")), cleared, "clearing an empty screen is a no-op");
+});
+
+test("ACTIVE_HOURS_SET validates, and rejects an overnight window in v1", () => {
+  const s = withCreative();
+  const ok = reducer(s, activeHoursSet("s1", { start: 600, end: 1320 }));
+  assert.deepEqual(ok.draft.byScreen.s1.activeHours, { start: 600, end: 1320 });
+  assert.deepEqual(ok.save.dirtyScreens, ["s1"]);
+
+  assert.equal(reducer(s, activeHoursSet("s1", { start: 1320, end: 120 })), s, "overnight");
+  assert.equal(reducer(s, activeHoursSet("s1", { start: 600, end: 600 })), s, "zero width");
+  assert.equal(reducer(s, activeHoursSet("s1", { start: 600, end: 620 })), s, "under 30 min");
+  assert.equal(reducer(s, activeHoursSet("s1", { start: 540, end: 1260 })), s, "no change");
+  assert.equal(reducer(s, activeHoursSet("s99", { start: 600, end: 1320 })), s, "unknown screen");
+});
+
+// ---- the save machine ----
+
+test("SAVE_SUCCESS is the only path into `saved`", () => {
+  const before = withCreative();
+  const edited = addSlot(before, "s1", "sl_1", 540, 720);
+
+  assert.equal(edited.saved, before.saved, "a slot edit leaves `saved` the same object");
+  assert.deepEqual(edited.saved.byScreen.s1.slots, [], "and therefore empty");
+
+  // Every other case in the machine must leave it alone too.
+  for (const action of [
+    saveStart(),
+    saveFail("network"),
+    saveAppliedSettle(),
+    uiEditSlot("sl_1"),
+    uiToast("save.error"),
+    slotUpdate("s1", "sl_1", { endMin: 780 }),
+    activeHoursSet("s1", { start: 600, end: 1200 }),
+    slotsClear("s1"),
+  ]) {
+    assert.equal(
+      reducer(edited, action).saved,
+      edited.saved,
+      `${action.type} must not write saved`
+    );
+  }
+
+  const saved = reducer(edited, saveSuccess(1700000000000));
+  assert.deepEqual(
+    saved.saved.byScreen.s1.slots.map((x) => x.id),
+    ["sl_1"],
+    "only SAVE_SUCCESS commits"
+  );
+  assert.equal(saved.savedAt, 1700000000000);
+});
+
+// The plan's phase-6 acceptance line: previews change only on save.
+test("resolveScreen against `saved` returns the OLD answer until the save lands", () => {
+  const s = withCreative();
+  const edited = addSlot(s, "s1", "sl_1", 540, 900); // covers 13:00
+
+  const beforeSave = resolveScreen(
+    edited.saved.byScreen,
+    edited.saved.screens,
+    edited.creativeInstances,
+    "s1",
+    780
+  );
+  assert.equal(beforeSave.kind, "no-content", "the preview has not changed");
+  assert.equal(beforeSave.reason, "play.reason.gap");
+
+  // The draft, resolved, already shows it — proving the difference is the source
+  // passed in and not the schedule being wrong.
+  const draftView = resolveScreen(
+    edited.draft.byScreen,
+    edited.screens,
+    edited.creativeInstances,
+    "s1",
+    780
+  );
+  assert.equal(draftView.kind, "creative", "the draft would play it");
+
+  const saved = reducer(edited, saveSuccess(1));
+  const afterSave = resolveScreen(
+    saved.saved.byScreen,
+    saved.saved.screens,
+    saved.creativeInstances,
+    "s1",
+    780
+  );
+  assert.equal(afterSave.kind, "creative", "and now the preview does too");
+  assert.equal(afterSave.instanceId, "ci_a");
+});
+
+test("the status chip walks clean -> dirty -> saving -> applied -> saved", () => {
+  let s = withCreative();
+  // withCreative already dirties (adding a creative is an edit), so start clean.
+  s = reducer(s, saveSuccess(1));
+  s = reducer(s, saveAppliedSettle());
+  assert.equal(s.save.status, "saved");
+
+  s = addSlot(s, "s1", "sl_1", 540, 720);
+  assert.equal(s.save.status, "dirty");
+
+  s = reducer(s, saveStart());
+  assert.equal(s.save.status, "saving");
+  assert.equal(reducer(s, saveStart()), s, "a second Save press while in flight is a no-op");
+
+  s = reducer(s, saveSuccess(2));
+  assert.equal(s.save.status, "applied", "the ~2.5s transient, not 'saved'");
+  assert.deepEqual(s.save.dirtyScreens, [], "the dots clear on commit");
+
+  s = reducer(s, saveAppliedSettle());
+  assert.equal(s.save.status, "saved");
+  assert.equal(reducer(s, saveAppliedSettle()), s, "settling twice is a no-op");
+  for (const k of ["clean", "dirty", "saving", "saved", "applied", "error"]) {
+    assertKey(k === "clean" ? "save.clean" : `save.${k === "dirty" ? "unsaved" : k}`);
+  }
+});
+
+test("status never reaches 'saved' from SAVE_START without SAVE_SUCCESS", () => {
+  const edited = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  const saving = reducer(edited, saveStart());
+
+  // Every action that is not SAVE_SUCCESS, applied through the saving state.
+  for (const action of [
+    saveFail("network"),
+    saveStart(),
+    saveAppliedSettle(),
+    uiEditSlot("sl_1"),
+    uiToast("save.error"),
+    selectScreen("s2"),
+    simSetTime(900),
+    healthTick(),
+    slotRemove("s1", "sl_1"),
+  ]) {
+    const next = reducer(saving, action);
+    assert.notEqual(next.save.status, "saved", `${action.type} must not claim success`);
+    assert.notEqual(next.save.status, "applied", `nor ${action.type} apply anything`);
+  }
+
+  // SAVE_FAIL in particular keeps the work and the dirty marks.
+  const failed = reducer(saving, saveFail("network"));
+  assert.equal(failed.save.status, "error");
+  assert.equal(failed.save.error, "network");
+  assert.deepEqual(failed.save.dirtyScreens, ["s1"], "the edits are still unsaved");
+  assert.equal(failed.draft.byScreen.s1.slots.length, 1, "and still there to retry");
+  assert.deepEqual(failed.saved.byScreen.s1.slots, [], "nothing was committed");
+});
+
+test("an edit during the 'applied' transient is not overwritten by the settle", () => {
+  let s = reducer(withCreative(), saveSuccess(1));
+  assert.equal(s.save.status, "applied");
+  s = addSlot(s, "s1", "sl_1", 540, 720);
+  assert.equal(s.save.status, "dirty");
+  const settled = reducer(s, saveAppliedSettle());
+  assert.equal(settled.save.status, "dirty", "the stale timer must not claim 'saved'");
+  assert.equal(settled, s, "and it is a no-op outright");
+});
+
+test("DISCARD_DRAFT makes draft deep-equal saved again", () => {
+  let s = reducer(withCreative(), saveSuccess(1));
+  s = addSlot(s, "s1", "sl_1", 540, 720);
+  s = reducer(s, activeHoursSet("s2", { start: 600, end: 1200 }));
+  s = reducer(s, uiEditSlot("sl_1"));
+  assert.notDeepEqual(s.draft.byScreen, s.saved.byScreen, "they have diverged");
+
+  const discarded = reducer(s, discardDraft());
+  assert.deepEqual(discarded.draft.byScreen, discarded.saved.byScreen);
+  assert.deepEqual(discarded.draft.byScreen.s1.slots, [], "the added slot is gone");
+  assert.deepEqual(discarded.draft.byScreen.s2.activeHours, { start: 540, end: 1260 });
+  assert.equal(discarded.save.status, "clean");
+  assert.deepEqual(discarded.save.dirtyScreens, []);
+  assert.equal(discarded.ui.editingSlotId, null);
+});
+
+test("`saved` is a deep CLONE — later draft edits cannot reach it", () => {
+  let s = addSlot(withCreative(), "s1", "sl_1", 540, 720);
+  s = reducer(s, saveSuccess(1));
+
+  // Not the same objects at any level.
+  assert.notEqual(s.saved.byScreen, s.draft.byScreen);
+  assert.notEqual(s.saved.byScreen.s1, s.draft.byScreen.s1);
+  assert.notEqual(s.saved.byScreen.s1.slots, s.draft.byScreen.s1.slots);
+  assert.notEqual(s.saved.byScreen.s1.slots[0], s.draft.byScreen.s1.slots[0]);
+  assert.notEqual(s.saved.byScreen.s1.activeHours, s.draft.byScreen.s1.activeHours);
+  assert.notEqual(s.saved.screens, s.screens);
+  assert.notEqual(s.saved.screens[0], s.screens[0]);
+  assert.deepEqual(s.saved.byScreen.s1.slots, s.draft.byScreen.s1.slots, "equal, not shared");
+
+  // Mutate the draft by hand, as nothing in the app does but a future case might.
+  s.draft.byScreen.s1.slots[0].endMin = 1;
+  s.draft.byScreen.s1.slots.push({ id: "sl_x" });
+  s.screens[0].online = false;
+  assert.equal(s.saved.byScreen.s1.slots[0].endMin, 720, "saved is unaffected");
+  assert.equal(s.saved.byScreen.s1.slots.length, 1);
+  assert.equal(s.saved.screens[0].online, true);
+});
+
+test("UI_EDIT_SLOT and UI_TOAST carry keys, not sentences", () => {
+  const opened = reducer(initialState, uiEditSlot("sl_1"));
+  assert.equal(opened.ui.editingSlotId, "sl_1");
+  assert.equal(reducer(opened, uiEditSlot("sl_1")), opened, "idempotent");
+  assert.equal(reducer(opened, uiEditSlot(null)).ui.editingSlotId, null);
+
+  const toasted = reducer(initialState, uiToast("save.success", { n: 1 }, "ok"));
+  assert.deepEqual(toasted.ui.toast, { key: "save.success", vars: { n: 1 }, tone: "ok" });
+  assertKey(toasted.ui.toast.key);
+  assert.equal(reducer(toasted, uiToast(null)).ui.toast, null, "a null key clears it");
+});
+
+test("the schedule and save cases never mutate frozen state", () => {
+  // Build a realistic state, then freeze it and run every case against it.
+  let s = withCreative();
+  s = addSlot(s, "s1", "sl_1", 540, 720);
+  s = addSlot(s, "s1", "sl_2", 720, 900);
+  s = reducer(s, saveSuccess(1));
+  s = addSlot(s, "s2", "sl_3", 600, 660);
+  const frozen = deepFreeze(s);
+
+  for (const action of [
+    slotAdd("s1", { id: "sl_4", startMin: 960, endMin: 1020, instanceId: "ci_a" }),
+    slotUpdate("s1", "sl_1", { endMin: 660 }),
+    slotUpdate("s1", "sl_1", { instanceId: "ci_a", enabled: false }),
+    slotRemove("s1", "sl_1"),
+    slotsClear("s1"),
+    activeHoursSet("s1", { start: 600, end: 1200 }),
+    saveStart(),
+    saveSuccess(2),
+    saveAppliedSettle(),
+    saveFail("network"),
+    discardDraft(),
+    uiEditSlot("sl_2"),
+    uiToast("save.saved"),
+  ]) {
+    reducer(frozen, action); // throws if any case writes in place
+  }
+
+  assert.equal(frozen.draft.byScreen.s1.slots.length, 2, "untouched");
+  assert.equal(frozen.save.status, "dirty");
 });
 
 // ------------------------------------------------------------------ report ----

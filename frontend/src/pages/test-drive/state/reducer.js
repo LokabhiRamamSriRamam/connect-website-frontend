@@ -18,6 +18,7 @@ import { initialState } from "./initialState.js";
 import { clampMinute } from "../domain/time.js";
 import { advanceClock } from "../domain/health.js";
 import { getTemplate } from "../creatives/registry.js";
+import { validateActiveHours, validateSlot } from "../domain/schedule.js";
 
 export { initialState };
 
@@ -45,6 +46,42 @@ function screensUsingInstance(byScreen, instanceId) {
   return Object.entries(byScreen)
     .filter(([, cfg]) => cfg.slots.some((s) => s.instanceId === instanceId))
     .map(([id]) => id);
+}
+
+/**
+ * Write one screen's draft config and mark it dirty. Every schedule case goes
+ * through here, so "edited the schedule" and "the screen has unsaved changes"
+ * cannot drift apart.
+ */
+function writeDraft(state, screenId, patch) {
+  const current = state.draft.byScreen[screenId];
+  return markDirty(
+    {
+      ...state,
+      draft: {
+        ...state.draft,
+        byScreen: { ...state.draft.byScreen, [screenId]: { ...current, ...patch } },
+      },
+    },
+    screenId
+  );
+}
+
+/**
+ * A deep clone of a screen-config map.
+ *
+ * SAVE_SUCCESS must not alias draft's arrays into `saved`: a later SLOT_UPDATE
+ * replaces the array it writes, but a hand-mutation or a future case that pushed
+ * in place would otherwise be visible in `saved` without a save ever happening.
+ * Structural, not structuredClone, because the shape is known and plain.
+ */
+function cloneByScreen(byScreen) {
+  return Object.fromEntries(
+    Object.entries(byScreen).map(([id, cfg]) => [
+      id,
+      { activeHours: { ...cfg.activeHours }, slots: cfg.slots.map((s) => ({ ...s })) },
+    ])
+  );
 }
 
 export function reducer(state, action) {
@@ -265,7 +302,204 @@ export function reducer(state, action) {
       return affected.reduce((acc, id) => markDirty(acc, id), markDirty(next));
     }
 
+    // ---- schedule (phase 6) ----
+
+    case A.SLOT_ADD: {
+      const cfg = state.draft.byScreen[action.screenId];
+      if (!cfg) return state;
+
+      const slot = {
+        id: action.slot?.id,
+        startMin: clampMinute(action.slot?.startMin),
+        endMin: clampMinute(action.slot?.endMin),
+        instanceId: action.slot?.instanceId ?? null,
+        enabled: action.slot?.enabled !== false,
+      };
+      if (!slot.id) return state;
+
+      // An id already in use would overwrite nothing and duplicate everything.
+      if (cfg.slots.some((s) => s.id === slot.id)) return state;
+
+      /**
+       * Re-validate here even though the view validated first.
+       *
+       * The view's validation exists to show the visitor a message naming the
+       * clashing creative; this one exists so an invalid slot cannot reach state
+       * by any other route. Only `errors` block — a slot outside active hours is
+       * a warning and is stored, because it is legal and simply never plays.
+       *
+       * The id is withheld from the validator deliberately: validateSlot reads a
+       * present id as "editing an existing slot" and skips the per-screen cap, so
+       * passing the freshly generated one would let a 9th slot through.
+       */
+      const { ok } = validateSlot(
+        {
+          startMin: slot.startMin,
+          endMin: slot.endMin,
+          instanceId: slot.instanceId,
+          enabled: slot.enabled,
+        },
+        { slots: cfg.slots, creativeInstances: state.creativeInstances }
+      );
+      if (!ok) return state;
+
+      return writeDraft(state, action.screenId, { slots: [...cfg.slots, slot] });
+    }
+
+    case A.SLOT_UPDATE: {
+      const cfg = state.draft.byScreen[action.screenId];
+      if (!cfg) return state;
+      const existing = cfg.slots.find((s) => s.id === action.slotId);
+      if (!existing) return state;
+
+      /**
+       * Allowlist the patch, as CREATIVE_FIELD allowlists field names: a slot
+       * should never grow a key the shape does not declare, since there is no
+       * type checker here to notice one. `id` is deliberately not patchable —
+       * renaming a slot would make it a different slot that happens to overwrite
+       * this one, and it would be excluded from the wrong row's overlap test on
+       * the way there.
+       */
+      const patch = action.patch ?? {};
+      const candidate = { ...existing, id: existing.id };
+      // Boundaries are re-clamped; whichever the patch omits is left as-is.
+      if (Object.prototype.hasOwnProperty.call(patch, "startMin")) {
+        candidate.startMin = clampMinute(patch.startMin);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "endMin")) {
+        candidate.endMin = clampMinute(patch.endMin);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "instanceId")) {
+        candidate.instanceId = patch.instanceId ?? null;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, "enabled")) {
+        candidate.enabled = patch.enabled !== false;
+      }
+
+      /**
+       * `candidate` carries its own id, so validateSlot excludes it from its own
+       * overlap test and does not apply the per-screen cap — editing the 8th slot
+       * of 8 stays possible, only adding a 9th does not.
+       */
+      const { ok } = validateSlot(candidate, {
+        slots: cfg.slots,
+        creativeInstances: state.creativeInstances,
+      });
+      if (!ok) return state;
+
+      return writeDraft(state, action.screenId, {
+        slots: cfg.slots.map((s) => (s.id === action.slotId ? candidate : s)),
+      });
+    }
+
+    case A.SLOT_REMOVE: {
+      const cfg = state.draft.byScreen[action.screenId];
+      if (!cfg || !cfg.slots.some((s) => s.id === action.slotId)) return state;
+      const next = writeDraft(state, action.screenId, {
+        slots: cfg.slots.filter((s) => s.id !== action.slotId),
+      });
+      // Close the editor if it was open on the slot that just went away, or the
+      // sheet would sit there bound to nothing.
+      return state.ui.editingSlotId === action.slotId
+        ? { ...next, ui: { ...next.ui, editingSlotId: null } }
+        : next;
+    }
+
+    case A.SLOTS_CLEAR: {
+      const cfg = state.draft.byScreen[action.screenId];
+      if (!cfg || cfg.slots.length === 0) return state;
+      const next = writeDraft(state, action.screenId, { slots: [] });
+      return { ...next, ui: { ...next.ui, editingSlotId: null } };
+    }
+
+    case A.ACTIVE_HOURS_SET: {
+      const cfg = state.draft.byScreen[action.screenId];
+      if (!cfg) return state;
+      const activeHours = {
+        start: clampMinute(action.activeHours?.start),
+        end: clampMinute(action.activeHours?.end),
+      };
+      // Rejects an overnight window: v1's UI does not author them, though
+      // withinActiveHours resolves them so stored data still plays correctly.
+      if (!validateActiveHours(activeHours).ok) return state;
+      if (
+        cfg.activeHours.start === activeHours.start &&
+        cfg.activeHours.end === activeHours.end
+      ) {
+        return state;
+      }
+      return writeDraft(state, action.screenId, { activeHours });
+    }
+
+    // ---- save (phase 6) ----
+
+    case A.SAVE_START:
+      if (state.save.status === "saving") return state;
+      return { ...state, save: { ...state.save, status: "saving", error: null } };
+
+    case A.SAVE_SUCCESS:
+      /**
+       * The ONLY write to `saved`, and therefore the only way the previews can
+       * change. A deep clone of draft plus a snapshot of `screens`: the wall
+       * resolves against saved.byScreen and saved.screens, so role and mirror
+       * edits (phase 8) stay invisible until this moment too.
+       *
+       * Status goes to "applied", not "saved" — the ~2.5s transient that says
+       * "Applied to virtual screens" and settles via SAVE_APPLIED_SETTLE.
+       */
+      return {
+        ...state,
+        saved: {
+          byScreen: cloneByScreen(state.draft.byScreen),
+          screens: state.screens.map((s) => ({ ...s })),
+        },
+        savedAt: typeof action.at === "number" ? action.at : null,
+        save: { status: "applied", error: null, dirtyScreens: [] },
+      };
+
+    case A.SAVE_APPLIED_SETTLE:
+      // Only settles the transient. An edit made during those 2.5s has already
+      // set "dirty", and that must not be overwritten with "saved".
+      if (state.save.status !== "applied") return state;
+      return { ...state, save: { ...state.save, status: "saved" } };
+
+    case A.SAVE_FAIL:
+      // Leaves draft and dirtyScreens alone: the edits are still unsaved, and the
+      // visitor needs them intact to retry.
+      return {
+        ...state,
+        save: { ...state.save, status: "error", error: action.error ?? "error" },
+      };
+
+    case A.DISCARD_DRAFT: {
+      // Restore from saved, deep-cloned in the other direction so the two never
+      // share arrays.
+      return {
+        ...state,
+        draft: { byScreen: cloneByScreen(state.saved.byScreen) },
+        save: { status: "clean", error: null, dirtyScreens: [] },
+        ui: { ...state.ui, editingSlotId: null },
+      };
+    }
+
     // ---- ui (phase 4) ----
+
+    case A.UI_EDIT_SLOT:
+      if (state.ui.editingSlotId === (action.slotId ?? null)) return state;
+      return { ...state, ui: { ...state.ui, editingSlotId: action.slotId ?? null } };
+
+    case A.UI_TOAST:
+      // An i18n key and its vars, never a sentence — a toast must re-render in the
+      // new language if the visitor switches while it is up.
+      return {
+        ...state,
+        ui: {
+          ...state.ui,
+          toast: action.key
+            ? { key: action.key, vars: action.vars ?? null, tone: action.tone ?? "info" }
+            : null,
+        },
+      };
 
     case A.UI_SET_WALL_VIEW: {
       if (action.view !== "grid" && action.view !== "list") return state;

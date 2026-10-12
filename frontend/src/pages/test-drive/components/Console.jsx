@@ -1,30 +1,27 @@
-import { useState } from "react";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
 import { toggleScreenOnline } from "../state/actions.js";
 import TdShell from "./TdShell.jsx";
 import ScreenWall from "./ScreenWall.jsx";
 import SimClock from "./SimClock.jsx";
-import CreativePicker from "./CreativePicker.jsx";
-import CreativeEditor from "./CreativeEditor.jsx";
+import ControlPanel from "./ControlPanel.jsx";
+import SaveBar from "./SaveBar.jsx";
 
 /**
- * The console stage: the screen wall and the preview clock.
+ * The console stage: the screen wall, the preview clock, the Control Panel and
+ * the save bar.
  *
- * The Control Panel (content library, schedule, active hours, role, health) lands
- * in phases 5-8 and will sit beside the wall on desktop and in a full-width sheet
- * on mobile — never a narrow sidebar, per the mobile requirement.
+ * The wall reads SAVED config and the Control Panel writes DRAFT, which is the
+ * whole point of the layout: edits appear in the panel immediately and on the
+ * screens only when the visitor saves. The save bar is sticky at the bottom so
+ * the chip is visible from wherever they are editing.
+ *
+ * On mobile the panel is full-width below the wall, never a narrow sidebar.
  */
 export default function Console() {
   const { t } = useI18n();
   const { business, lead, saved } = useTd();
   const dispatch = useTdDispatch();
-  /**
-   * Which instance the editor is open on. Local state, not reducer state: it is
-   * transient view position with nothing to preserve across a refresh, and
-   * `ui.editingSlotId` in the state spec is the schedule's equivalent, not this.
-   */
-  const [editingId, setEditingId] = useState(null);
 
   return (
     <TdShell showBadge>
@@ -53,27 +50,9 @@ export default function Console() {
           <aside className="flex flex-col gap-4">
             <SimClock />
 
-            {/*
-              The content library and editor.
-              Phases 6-8 fold these into the full Control Panel alongside the
-              schedule, active hours, role and health sections — full-width in a
-              sheet on mobile, never a narrow sidebar. Until then they sit here so
-              phase 5 is reachable and judgeable on its own.
-            */}
-            <section
-              data-td-target="content-panel"
-              aria-label={t("library.title")}
-              className="rounded-2xl border-2 border-sb-ink bg-white p-3 shadow-[3px_3px_0_#191919]"
-            >
-              {editingId ? (
-                <CreativeEditor
-                  instanceId={editingId}
-                  onBack={(next) => setEditingId(next ?? null)}
-                />
-              ) : (
-                <CreativePicker onEdit={(id) => setEditingId(id)} />
-              )}
-            </section>
+            {/* Content, schedule and active hours. Role and health join it as
+                further tabs in phase 8. */}
+            <ControlPanel />
 
             {/*
               Simulated connectivity.
@@ -119,6 +98,8 @@ export default function Console() {
             </section>
           </aside>
         </div>
+
+        <SaveBar />
       </div>
     </TdShell>
   );

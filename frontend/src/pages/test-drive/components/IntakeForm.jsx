@@ -5,6 +5,7 @@ import { inputCls, Field, useFormErrors } from "../../../components/forms/fields
 import { SB_SERVICE, LEAD_SOURCE_TEST_DRIVE } from "../../../components/forms/services";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
+import { INDUSTRY_LEAD_LABEL } from "../state/initialState.js";
 import {
   businessField,
   businessSubmitStart,
@@ -29,13 +30,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** The two industries with a creative library. Values are slugs; labels translate. */
 const INDUSTRY_SLUGS = ["restaurant", "cafe"];
-
-/**
- * What goes in the Lead document. Not the translated label: a Hindi visitor would
- * otherwise send Devanagari into a field the sales team reads in English, and the
- * same business would bucket under two different industry strings.
- */
-const INDUSTRY_LEAD_LABEL = { restaurant: "Restaurant", cafe: "Café / Coffee Shop" };
 
 function validate(business, t) {
   const e = {};

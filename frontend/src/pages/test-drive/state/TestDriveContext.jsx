@@ -1,22 +1,16 @@
-import { createContext, useContext, useReducer } from "react";
+import { useContext, useReducer } from "react";
 import { initialState, reducer } from "./reducer.js";
+import { DispatchCtx, StateCtx } from "./contexts.js";
 
 /**
- * The simulator's state, split across two contexts.
- *
- * State and dispatch are separate so that a component which only dispatches — a
- * button, a field — does not re-render when unrelated state changes. `dispatch`
- * from useReducer has a stable identity for the life of the provider, so
- * DispatchCtx never produces a new value at all.
+ * The simulator's state, split across the two contexts in contexts.js (which
+ * explains why they live in their own module).
  *
  * This provider must sit INSIDE I18nProvider, and nothing above it may carry
  * key={lang}. That is what keeps a language switch from resetting business
  * details, selection, draft, saved config and tutorial progress. The full
  * reasoning is in the provider-order comment in TestDrive.jsx.
  */
-
-const StateCtx = createContext(null);
-const DispatchCtx = createContext(null);
 
 export function TestDriveProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);

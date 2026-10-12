@@ -20,6 +20,20 @@
 export const SCREEN_COUNT = 5;
 export const MAX_SLOTS_PER_SCREEN = 8;
 
+/**
+ * What goes in the Lead document for each industry slug — the English label, not
+ * the translated one: a Hindi visitor would otherwise send Devanagari into a
+ * field the sales team reads in English, and the same business would bucket under
+ * two different industry strings.
+ *
+ * Here rather than in IntakeForm because the quiet lead retry on first Save
+ * (plan §10) builds the same payload, and a second copy of this map could drift.
+ */
+export const INDUSTRY_LEAD_LABEL = {
+  restaurant: "Restaurant",
+  cafe: "Café / Coffee Shop",
+};
+
 /** Default active hours: 09:00-21:00, as minutes since midnight. */
 export const DEFAULT_ACTIVE_HOURS = { start: 540, end: 1260 };
 

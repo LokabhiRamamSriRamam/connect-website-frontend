@@ -23,7 +23,7 @@ export default function ScreenWall() {
   const { t } = useI18n();
   const state = useTd();
   const dispatch = useTdDispatch();
-  const { saved, creativeInstances, sim, health, selectedScreenId, ui } = state;
+  const { saved, creativeInstances, sim, health, selectedScreenId, ui, save } = state;
 
   /**
    * Five pure resolutions, recomputed only when something that can change what is
@@ -139,6 +139,7 @@ export default function ScreenWall() {
               onSelect={(id) => dispatch(selectScreen(id))}
               mirrorLabel={labelFor(screen.mirrors)}
               compact={grid}
+              dirty={save.dirtyScreens.includes(screen.id)}
             />
           </li>
         ))}

@@ -175,3 +175,70 @@ export const uiSetScheduleView = (view) => ({ type: A.UI_SET_SCHEDULE_VIEW, view
 
 /** "list" | "grid" — how the screen wall itself is laid out. */
 export const uiSetWallView = (view) => ({ type: A.UI_SET_WALL_VIEW, view });
+
+// ---- creators: schedule (phase 6) ----
+
+/**
+ * Add a slot to one screen. `id` comes from newSlotId() at the call site for the
+ * same purity reason as creative ids.
+ *
+ * The reducer re-validates with the domain layer and REJECTS an invalid add
+ * rather than storing it — the view validates first to show the message, but a
+ * dispatch that skipped that step must not be able to write an overlap.
+ */
+export const slotAdd = (screenId, slot) => ({ type: A.SLOT_ADD, screenId, slot });
+
+/** Patch one slot. `patch` carries only the changed keys. */
+export const slotUpdate = (screenId, slotId, patch) => ({
+  type: A.SLOT_UPDATE,
+  screenId,
+  slotId,
+  patch,
+});
+
+export const slotRemove = (screenId, slotId) => ({ type: A.SLOT_REMOVE, screenId, slotId });
+
+/** Empty a screen's schedule. */
+export const slotsClear = (screenId) => ({ type: A.SLOTS_CLEAR, screenId });
+
+/** Set a screen's active-hours window. Minutes since midnight, both ends. */
+export const activeHoursSet = (screenId, activeHours) => ({
+  type: A.ACTIVE_HOURS_SET,
+  screenId,
+  activeHours,
+});
+
+// ---- creators: save (phase 6) ----
+
+/** The save POST (simulated) is in flight. */
+export const saveStart = () => ({ type: A.SAVE_START });
+
+/**
+ * The save landed. THE ONLY action that writes `saved`, which is what makes
+ * "Saved" impossible to show before success. `at` is epoch ms from the caller.
+ */
+export const saveSuccess = (at) => ({ type: A.SAVE_SUCCESS, at });
+
+/** The ~2.5s "Applied to virtual screens" transient has elapsed. */
+export const saveAppliedSettle = () => ({ type: A.SAVE_APPLIED_SETTLE });
+
+export const saveFail = (error = null) => ({ type: A.SAVE_FAIL, error });
+
+/** Throw away draft edits by restoring it from `saved`. */
+export const discardDraft = () => ({ type: A.DISCARD_DRAFT });
+
+// ---- creators: ui (phase 6) ----
+
+/** Which slot the editor sheet is open on, or null to close it. */
+export const uiEditSlot = (slotId) => ({ type: A.UI_EDIT_SLOT, slotId });
+
+/**
+ * A transient message. Carries an i18n KEY and vars, never a sentence, so the
+ * toast re-renders in the new language if the visitor switches mid-toast.
+ */
+export const uiToast = (key, vars = null, tone = "info") => ({
+  type: A.UI_TOAST,
+  key,
+  vars,
+  tone,
+});
