@@ -26,12 +26,14 @@ import {
   BEAUTY_SERVICE,
   LEAD_SOURCE_CONTACT,
 } from "../components/forms/services";
+import { WA_PRIMARY, WA_SECONDARY, waDisplay, waLink } from "../lib/whatsapp";
 import "../components/screenbazaar/sb.css";
 
 /* Contact Us — Screen Bazaar. Same look as the landing page (see SCREEN_BAZAAR_PLAN.md §1). */
 
-const PHONE_DISPLAY = "+91 99673 92920";
-const PHONE_TEL = "+919967392920";
+const PHONE_DISPLAY = "+91 82914 89909";
+const PHONE_TEL = "+918291489909";
+const WHATSAPP_NUMBERS = [WA_PRIMARY, WA_SECONDARY];
 
 const CHANNELS = [
   {
@@ -46,10 +48,11 @@ const CHANNELS = [
   {
     Icon: ChatBubbleIcon,
     title: "WhatsApp",
-    line: "Chat with sales",
     note: "Send a photo of your space",
-    href: `https://wa.me/${PHONE_TEL.slice(1)}?text=${encodeURIComponent("Hi! I'd like to know more about Screen Bazaar.")}`,
-    external: true,
+    links: WHATSAPP_NUMBERS.map((n) => ({
+      label: waDisplay(n),
+      href: waLink("contact", n),
+    })),
     bg: "bg-sb-mint",
     rot: "rotate-1",
   },
@@ -543,28 +546,61 @@ export default function GetInTouch() {
               </div>
 
               <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {CHANNELS.map(({ Icon, title, line, note, href, external, bg, rot }, i) => (
-                  <motion.a
-                    key={title}
-                    href={href}
-                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.4 }}
-                    transition={{ delay: i * 0.1, type: "spring", stiffness: 200, damping: 20 }}
-                    whileHover={{ rotate: 0, y: -6 }}
-                    className={`group relative flex flex-col rounded-[28px] border-2 border-sb-ink p-6 text-sb-ink shadow-[6px_6px_0_#191919] transition-shadow hover:shadow-[9px_9px_0_#191919] ${bg} ${rot}`}
-                  >
-                    <Icon size={64} />
-                    <h3 className="mt-4 font-manrope text-2xl font-extrabold tracking-tight">{title}</h3>
-                    <p className="mt-1 break-words font-manrope text-base font-extrabold">{line}</p>
-                    <p className="mt-1 font-manrope text-sm font-semibold opacity-70">{note}</p>
-                    <span className="mt-5 inline-flex items-center gap-1.5 font-manrope text-sm font-extrabold text-sb-violet">
-                      {external ? "Open" : title === "Call us" ? "Call now" : "Write to us"}
-                      <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-                    </span>
-                  </motion.a>
-                ))}
+                {CHANNELS.map(({ Icon, title, line, note, href, external, links, bg, rot }, i) =>
+                  links ? (
+                    <motion.div
+                      key={title}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.4 }}
+                      transition={{ delay: i * 0.1, type: "spring", stiffness: 200, damping: 20 }}
+                      whileHover={{ rotate: 0, y: -6 }}
+                      className={`group relative flex flex-col rounded-[28px] border-2 border-sb-ink p-6 text-sb-ink shadow-[6px_6px_0_#191919] transition-shadow hover:shadow-[9px_9px_0_#191919] ${bg} ${rot}`}
+                    >
+                      <Icon size={64} />
+                      <h3 className="mt-4 font-manrope text-2xl font-extrabold tracking-tight">{title}</h3>
+                      <div className="mt-1 flex flex-col gap-1">
+                        {links.map((l) => (
+                          <a
+                            key={l.href}
+                            href={l.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="break-words font-manrope text-base font-extrabold underline-offset-2 hover:underline"
+                          >
+                            {l.label}
+                          </a>
+                        ))}
+                      </div>
+                      <p className="mt-1 font-manrope text-sm font-semibold opacity-70">{note}</p>
+                      <span className="mt-5 inline-flex items-center gap-1.5 font-manrope text-sm font-extrabold text-sb-violet">
+                        Open
+                        <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <motion.a
+                      key={title}
+                      href={href}
+                      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.4 }}
+                      transition={{ delay: i * 0.1, type: "spring", stiffness: 200, damping: 20 }}
+                      whileHover={{ rotate: 0, y: -6 }}
+                      className={`group relative flex flex-col rounded-[28px] border-2 border-sb-ink p-6 text-sb-ink shadow-[6px_6px_0_#191919] transition-shadow hover:shadow-[9px_9px_0_#191919] ${bg} ${rot}`}
+                    >
+                      <Icon size={64} />
+                      <h3 className="mt-4 font-manrope text-2xl font-extrabold tracking-tight">{title}</h3>
+                      <p className="mt-1 break-words font-manrope text-base font-extrabold">{line}</p>
+                      <p className="mt-1 font-manrope text-sm font-semibold opacity-70">{note}</p>
+                      <span className="mt-5 inline-flex items-center gap-1.5 font-manrope text-sm font-extrabold text-sb-violet">
+                        {external ? "Open" : title === "Call us" ? "Call now" : "Write to us"}
+                        <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                      </span>
+                    </motion.a>
+                  )
+                )}
               </div>
             </div>
           </section>

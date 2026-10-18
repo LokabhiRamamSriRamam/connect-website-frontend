@@ -129,6 +129,9 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
             <a href="/test-drive" className="flex items-center gap-2 rounded-xl px-3 py-3 font-bold text-sb-violet hover:bg-sb-lavender">
               <MonitorPlay size={17} /> Test Drive
             </a>
+            <a href="/get-in-touch" className="block rounded-xl px-3 py-3 font-bold hover:bg-sb-lavender">
+              Contact us
+            </a>
           </div>
         )}
       </div>
@@ -167,6 +170,10 @@ const TopNav = ({ variant = "glass", theme = "dark" }) => {
 
           <a href="/test-drive" className="flex items-center gap-1.5 text-sb-violet hover:opacity-80">
             <MonitorPlay size={16} /> Test Drive
+          </a>
+
+          <a href="/get-in-touch" className="hover:opacity-80">
+            Contact us
           </a>
 
           <div className="relative" {...hoverProps("Others")}>

@@ -1,6 +1,7 @@
 import ScreenBazaarLogo from "./ScreenBazaarLogo";
 import FooterWordmark from "../FooterWordmark";
 import { INDUSTRIES, industryPath } from "./content";
+import { WA_PRIMARY, WA_SECONDARY, waDisplay, waLink } from "../../lib/whatsapp";
 
 const OTHER_PRODUCTS = [
   { name: "Vital AI", href: "/products/vital" },
@@ -56,7 +57,17 @@ export default function SBFooter() {
             Mumbai, Maharashtra 400078, IN
           </p>
           <p>
-            <a href="tel:+919967392920" className="hover:text-white">+91 9967392920</a>
+            <a href="tel:+918291489909" className="hover:text-white">+91 82914 89909</a>
+          </p>
+          <p className="text-white/60">
+            WhatsApp:{" "}
+            <a href={waLink("generic", WA_PRIMARY)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+              {waDisplay(WA_PRIMARY)}
+            </a>
+            {" / "}
+            <a href={waLink("generic", WA_SECONDARY)} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+              {waDisplay(WA_SECONDARY)}
+            </a>
           </p>
           <p>
             <a href="mailto:connectgenai@gmail.com" className="hover:text-white">connectgenai@gmail.com</a>

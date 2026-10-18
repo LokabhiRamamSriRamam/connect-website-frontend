@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, HeartPulse, Stethoscope, Building2, Megaphone, Handshake, Play } from "lucide-react";
 import SignageChrome from "./SignageChrome";
+import WhatsAppIcon from "../../components/WhatsAppIcon";
+import { waLink } from "../../lib/whatsapp";
 import { getIndustry } from "../../components/screenbazaar/content";
 import { Sparkle } from "../../components/screenbazaar/Decor";
 import { HeartbeatSticker, PillSticker, CrossSticker, StethoscopeSticker, WaitingRoomScene, HEALTHCARE_ICONS } from "./art/healthcare";
@@ -41,14 +43,26 @@ function Hero() {
             Make the waiting room <span className="sb-gradient-text">work for you.</span>
           </motion.h1>
           <p className="mx-auto mt-7 max-w-xl text-lg font-semibold leading-relaxed text-sb-slate sm:text-xl lg:mx-0">{ind.modal.intro}</p>
-          <motion.a
-            href="/get-in-touch"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="group mt-10 inline-flex items-center gap-3 rounded-2xl bg-sb-gradient px-8 py-4 text-lg font-extrabold text-white shadow-[0_14px_30px_-10px_rgba(31,48,160,.6)]"
-          >
-            Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
-          </motion.a>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <motion.a
+              href="/get-in-touch"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="group inline-flex items-center gap-3 rounded-2xl bg-sb-gradient px-8 py-4 text-lg font-extrabold text-white shadow-[0_14px_30px_-10px_rgba(31,48,160,.6)]"
+            >
+              Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+            </motion.a>
+            <motion.a
+              href={waLink("healthcare")}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2.5 rounded-2xl border-2 border-sb-ink bg-white px-7 py-4 text-lg font-extrabold text-sb-ink shadow-[0_14px_30px_-12px_rgba(25,25,25,.35)]"
+            >
+              <WhatsAppIcon size={20} /> WhatsApp us
+            </motion.a>
+          </div>
         </div>
 
         <div className="relative mx-auto w-full max-w-2xl">

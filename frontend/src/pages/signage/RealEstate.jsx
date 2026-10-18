@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Building, Ruler } from "lucide-react";
 import SignageChrome from "./SignageChrome";
+import WhatsAppIcon from "../../components/WhatsAppIcon";
+import { waLink } from "../../lib/whatsapp";
 import { getIndustry } from "../../components/screenbazaar/content";
 import { SalesOfficeScene, HouseSticker, CraneSticker, SoldSticker, PinSticker, REALESTATE_ICONS } from "./art/realestate";
 
@@ -74,14 +76,26 @@ function Hero() {
             Let your properties <span className="text-sb-gold">sell themselves.</span>
           </motion.h1>
           <p className="mx-auto mt-7 max-w-xl text-lg font-semibold text-white/75 sm:text-xl lg:mx-0">{ind.modal.intro}</p>
-          <motion.a
-            href="/get-in-touch"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="group mt-10 inline-flex items-center gap-3 rounded-md bg-sb-gold px-8 py-4 text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
-          >
-            Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
-          </motion.a>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <motion.a
+              href="/get-in-touch"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="group inline-flex items-center gap-3 rounded-md bg-sb-gold px-8 py-4 text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
+            >
+              Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+            </motion.a>
+            <motion.a
+              href={waLink("real-estate")}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2.5 rounded-md bg-white px-7 py-4 text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
+            >
+              <WhatsAppIcon size={20} /> WhatsApp us
+            </motion.a>
+          </div>
         </div>
 
         <div className="relative mx-auto w-full max-w-xl">

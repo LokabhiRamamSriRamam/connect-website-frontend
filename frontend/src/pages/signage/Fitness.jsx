@@ -2,6 +2,8 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Dumbbell, Sunrise, MoonStar, Check, Flame } from "lucide-react";
 import SignageChrome from "./SignageChrome";
+import WhatsAppIcon from "../../components/WhatsAppIcon";
+import { waLink } from "../../lib/whatsapp";
 import { getIndustry } from "../../components/screenbazaar/content";
 import { GymScene, DumbbellSticker, BoltSticker, BottleSticker, StopwatchSticker, FITNESS_ICONS } from "./art/fitness";
 
@@ -93,14 +95,26 @@ function Hero() {
             Keep your members engaged <span className="text-sb-violet">beyond the workout.</span>
           </motion.h1>
           <p className="mx-auto mt-7 max-w-xl text-lg font-semibold text-white/70 sm:text-xl lg:mx-0">{ind.modal.intro}</p>
-          <motion.a
-            href="/get-in-touch"
-            whileHover={{ scale: 1.05, rotate: -1 }}
-            whileTap={{ scale: 0.95 }}
-            className="group mt-10 inline-flex items-center gap-3 border-2 border-white bg-sb-violet px-8 py-4 text-lg font-extrabold uppercase tracking-wide text-white shadow-[6px_6px_0_#F5C542]"
-          >
-            Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
-          </motion.a>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <motion.a
+              href="/get-in-touch"
+              whileHover={{ scale: 1.05, rotate: -1 }}
+              whileTap={{ scale: 0.95 }}
+              className="group inline-flex items-center gap-3 border-2 border-white bg-sb-violet px-8 py-4 text-lg font-extrabold uppercase tracking-wide text-white shadow-[6px_6px_0_#F5C542]"
+            >
+              Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+            </motion.a>
+            <motion.a
+              href={waLink("fitness")}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.05, rotate: 1 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2.5 border-2 border-white bg-transparent px-7 py-4 text-lg font-extrabold uppercase tracking-wide text-white shadow-[6px_6px_0_#F5C542] hover:bg-white/10"
+            >
+              <WhatsAppIcon size={20} /> WhatsApp
+            </motion.a>
+          </div>
         </div>
         <div className="relative mx-auto w-full max-w-xl">
           {HERO_IMAGE ? (

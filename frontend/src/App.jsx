@@ -1,6 +1,7 @@
 import "./App.css";
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import WhatsAppFab from "./components/WhatsAppFab";
 import SEO from "./components/SEO";
 import GSAPWorldMap from "./components/GSAPWorldMap";
 import LandingPage from "./pages/LandingPage";
@@ -130,7 +131,24 @@ const signageRoutes = INDUSTRIES.map(({ slug, seo }) => {
   };
 });
 
+/*
+ * Pathless layout route: renders the matched page plus the chrome that belongs
+ * on every page. The floating WhatsApp button lives here so it mounts once and
+ * can read the current path (it hides itself on /test-drive).
+ */
+function SiteLayout() {
+  return (
+    <>
+      <Outlet />
+      <WhatsAppFab />
+    </>
+  );
+}
+
 const router = createBrowserRouter([
+  {
+    element: <SiteLayout />,
+    children: [
   {
     path: "/",
     element: (
@@ -533,7 +551,8 @@ const router = createBrowserRouter([
       </div>
     ),
   },
-
+    ],
+  },
 ]);
 
 function App() {

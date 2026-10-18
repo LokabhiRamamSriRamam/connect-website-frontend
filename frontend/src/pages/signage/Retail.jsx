@@ -2,6 +2,8 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ShoppingBag, Store, Send, RotateCcw } from "lucide-react";
 import SignageChrome from "./SignageChrome";
+import WhatsAppIcon from "../../components/WhatsAppIcon";
+import { waLink } from "../../lib/whatsapp";
 import { getIndustry } from "../../components/screenbazaar/content";
 import { Squiggle, Sparkle, Blob, Ticker } from "../../components/screenbazaar/Decor";
 import { PriceTagSticker, BagSticker, HangerSticker, PercentSticker, HighStreetScene, RETAIL_ICONS } from "./art/retail";
@@ -50,6 +52,16 @@ function Hero() {
               className="group inline-flex items-center gap-3 rounded-full border-2 border-sb-ink bg-sb-gradient px-8 py-4 text-lg font-extrabold text-white shadow-[5px_5px_0_#191919]"
             >
               Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+            </motion.a>
+            <motion.a
+              href={waLink("retail")}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.04, rotate: 1 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2.5 rounded-full border-2 border-sb-ink bg-white px-7 py-4 text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
+            >
+              <WhatsAppIcon size={20} /> WhatsApp us
             </motion.a>
             <a href="#window" className="font-extrabold text-sb-ink underline decoration-sb-violet decoration-2 underline-offset-4">
               Dress the window →

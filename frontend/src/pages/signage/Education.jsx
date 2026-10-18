@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Coffee, DoorOpen, Library, RefreshCw, GraduationCap } from "lucide-react";
 import SignageChrome from "./SignageChrome";
+import WhatsAppIcon from "../../components/WhatsAppIcon";
+import { waLink } from "../../lib/whatsapp";
 import { getIndustry } from "../../components/screenbazaar/content";
 import { Squiggle } from "../../components/screenbazaar/Decor";
 import { CampusScene, PencilSticker, BookSticker, GradCapSticker, AtomSticker, EDUCATION_ICONS } from "./art/education";
@@ -55,14 +57,26 @@ function Hero() {
             </span>
           </motion.h1>
           <p className="mx-auto mt-8 max-w-lg text-lg font-semibold text-sb-slate sm:text-xl lg:mx-0">{ind.modal.intro}</p>
-          <motion.a
-            href="/get-in-touch"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="group mt-10 inline-flex items-center gap-3 rounded-xl border-2 border-sb-ink bg-sb-indigo px-8 py-4 text-lg font-extrabold text-white shadow-[5px_5px_0_#191919]"
-          >
-            Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
-          </motion.a>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <motion.a
+              href="/get-in-touch"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="group inline-flex items-center gap-3 rounded-xl border-2 border-sb-ink bg-sb-indigo px-8 py-4 text-lg font-extrabold text-white shadow-[5px_5px_0_#191919]"
+            >
+              Get Started <ArrowRight className="transition-transform group-hover:translate-x-1" size={20} />
+            </motion.a>
+            <motion.a
+              href={waLink("education")}
+              target="_blank"
+              rel="noopener noreferrer"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2.5 rounded-xl border-2 border-sb-ink bg-white px-7 py-4 text-lg font-extrabold text-sb-ink shadow-[5px_5px_0_#191919]"
+            >
+              <WhatsAppIcon size={20} /> WhatsApp us
+            </motion.a>
+          </div>
         </div>
 
         <div className="relative mx-auto w-full max-w-xl">
