@@ -127,7 +127,7 @@ export default function CreativePicker({ onEdit }) {
           <p className="mt-2 text-[11px] font-bold text-sb-muted">{t("library.empty")}</p>
         ) : (
           <ul className="mt-1.5 grid grid-cols-2 gap-2">
-            {shown.map((tpl) => (
+            {shown.map((tpl, i) => (
               <li
                 key={tpl.id}
                 className="flex flex-col overflow-hidden rounded-xl border-2 border-sb-ink bg-white shadow-[2px_2px_0_#191919]"
@@ -151,6 +151,10 @@ export default function CreativePicker({ onEdit }) {
                   </p>
                   <button
                     type="button"
+                    /* The first card's button is mission 3's arrow target: the
+                       step asks for "a creative", and naming one is the only way
+                       to point at a control rather than at the whole grid. */
+                    data-td-target={i === 0 ? "creative-use-first" : undefined}
                     onClick={() => use(tpl)}
                     className="td-tap mt-2 self-start rounded-full border-2 border-sb-ink bg-sb-gradient px-3 py-1 text-[11px] font-extrabold text-white shadow-[2px_2px_0_#191919]"
                   >

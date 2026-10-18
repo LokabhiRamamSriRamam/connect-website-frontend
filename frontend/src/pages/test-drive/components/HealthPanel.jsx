@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { screenLabel } from "../i18n/index.js";
 import { useTd, useTdDispatch } from "../state/TestDriveContext.jsx";
-import { healthTick, toggleScreenOnline } from "../state/actions.js";
+import { healthInspect, healthTick, toggleScreenOnline } from "../state/actions.js";
 import { allScreenHealth, healthSummary } from "../domain/health.js";
 import { resolveAllScreens } from "../domain/playback.js";
 import { minutesToHHMM } from "../domain/time.js";
@@ -127,9 +127,23 @@ export default function HealthPanel({ screenId }) {
                   online ? "bg-sb-green" : "bg-sb-muted"
                 }`}
               />
-              <span className="min-w-0 flex-1 truncate text-[11px] font-bold">
+              {/* The row selects the screen the detail block above describes.
+                  It used to be inert text, so "inspect one screen's status"
+                  asked for something the panel offered no way to do — the only
+                  live control was the connectivity toggle, which is a different
+                  action entirely. */}
+              <button
+                type="button"
+                data-td-target={`health-row-${s.id}`}
+                onClick={() => dispatch(healthInspect(s.id))}
+                /* aria-current, not aria-pressed: this selects which screen the
+                   detail block describes, it does not toggle anything. The
+                   toggle beside it is the pressed control. */
+                aria-current={s.id === screen?.id ? "true" : undefined}
+                className="min-w-0 flex-1 truncate text-left text-[11px] font-bold"
+              >
                 {screenLabel(t, s)}
-              </span>
+              </button>
               <span className="shrink-0 text-[10px] font-bold tabular-nums text-sb-muted">
                 {entry ? `${entry.uptimePct.toFixed(1)}%` : ""}
               </span>

@@ -147,7 +147,9 @@ export const initialState = {
    * hash. That keeps HEALTH_TICK a pure reducer case and means a refresh at the
    * same tick shows the same numbers instead of reshuffling the whole fleet.
    */
-  health: { tick: 0 },
+  /** `inspected`: has the visitor opened one screen's readings from the fleet
+      list? Mission 5's predicate, kept separate from `tick` (mission 2's). */
+  health: { tick: 0, inspected: false },
 
   tutorial: {
     missionIndex: 0,

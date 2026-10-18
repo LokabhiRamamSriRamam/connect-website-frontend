@@ -268,7 +268,10 @@ export function hydrate(state, patch) {
     }
 
     if (progress.health && Number.isInteger(progress.health.tick)) {
-      merged.health = { tick: progress.health.tick };
+      merged.health = {
+        tick: progress.health.tick,
+        inspected: progress.health.inspected === true,
+      };
     }
 
     if (progress.tutorial && typeof progress.tutorial === "object") {

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { useAudio } from "../audio/AudioContext.jsx";
+import { useTd } from "../state/TestDriveContext.jsx";
 import { useTutorial } from "./TutorialContext.jsx";
 import { helpCueFor } from "./missions.js";
 import Spotlight from "./Spotlight.jsx";
@@ -42,6 +43,7 @@ import TdArrow from "./TdArrow.jsx";
 export default function MissionCard() {
   const { t } = useI18n();
   const audio = useAudio();
+  const state = useTd();
   const tutorial = useTutorial();
 
   const { mission, step, total, currentComplete, isLast, guided } = tutorial;
@@ -75,7 +77,16 @@ export default function MissionCard() {
           the visitor through the mission's steps instead of stopping at the
           first one. */}
       {!currentComplete && mission.arrowTargets && (
-        <TdArrow targets={mission.arrowTargets} />
+        <TdArrow
+          /* A chain may be a function of state: mission 3 has two phases and
+             points into the library until a creative exists, then at the
+             schedule. */
+          targets={
+            typeof mission.arrowTargets === "function"
+              ? mission.arrowTargets(state)
+              : mission.arrowTargets
+          }
+        />
       )}
 
       <aside

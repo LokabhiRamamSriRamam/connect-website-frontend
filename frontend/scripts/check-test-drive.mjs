@@ -278,6 +278,31 @@ check("mission ids, orders and spotlight targets are sane", () => {
   assert.deepEqual(orders, [1, 2, 3, 4, 5, 6], "declared in order");
 });
 
+/**
+ * Every arrow chain a mission can produce.
+ *
+ * A chain may be a plain array, or a function of state for a mission with more
+ * than one phase (m3 points into the content library until a creative exists,
+ * then at the schedule). Both phases are exercised against probe states so that
+ * neither branch can name a target that does not exist.
+ */
+function chainsOf(mission) {
+  const { arrowTargets } = mission;
+  if (Array.isArray(arrowTargets)) return [arrowTargets];
+  if (typeof arrowTargets !== "function") return [];
+
+  // Two probes: nothing done yet, and the mission's own work done. Shaped to
+  // satisfy the predicates the chains read, not to be a realistic state.
+  const empty = { creativeInstances: {}, draft: { byScreen: {} }, screens: [], health: {} };
+  const filled = {
+    creativeInstances: { ci_probe: { templateId: "t", fields: {} } },
+    draft: { byScreen: { s1: { slots: [{ id: "sl" }] } } },
+    screens: [],
+    health: { tick: 1, inspected: true },
+  };
+  return [arrowTargets(empty), arrowTargets(filled)].filter(Array.isArray);
+}
+
 check("every mission's arrow chain resolves to a real data-td-target", () => {
   /**
    * The arrow points at the first target in its chain that is on screen, so a
@@ -308,7 +333,13 @@ check("every mission's arrow chain resolves to a real data-td-target", () => {
     .join("\n");
 
   const known = new Set();
+  // Literal attributes: data-td-target="name"
   for (const m of sources.matchAll(/data-td-target="([a-z0-9-]+)"/g)) known.add(m[1]);
+  // Conditional ones: data-td-target={cond ? "name" : undefined}. Every quoted
+  // literal inside the braces counts, since each is a name the DOM can carry.
+  for (const m of sources.matchAll(/data-td-target=\{([^}]*)\}/g)) {
+    for (const lit of m[1].matchAll(/"([a-z0-9-]+)"/g)) known.add(lit[1]);
+  }
 
   // The templated families, expanded over the ids their loops actually run on.
   const SCREEN_IDS = ["s1", "s2", "s3", "s4", "s5"];
@@ -319,15 +350,16 @@ check("every mission's arrow chain resolves to a real data-td-target", () => {
   for (const id of SCREEN_IDS) {
     known.add(`screen-tile-${id}`);
     known.add(`screen-online-${id}`);
+    known.add(`health-row-${id}`);
   }
 
   for (const m of MISSIONS) {
-    assert.ok(
-      Array.isArray(m.arrowTargets) && m.arrowTargets.length > 0,
-      `${m.id}: no arrowTargets chain`
-    );
-    for (const target of m.arrowTargets) {
-      assert.ok(known.has(target), `${m.id}: arrow target "${target}" does not exist`);
+    // Every branch of a state-dependent chain is checked, not just one.
+    for (const chain of chainsOf(m)) {
+      assert.ok(chain.length > 0, `${m.id}: empty arrowTargets chain`);
+      for (const target of chain) {
+        assert.ok(known.has(target), `${m.id}: arrow target "${target}" does not exist`);
+      }
     }
     // The spotlight's own target must resolve too.
     assert.ok(known.has(m.target), `${m.id}: spotlight target "${m.target}" does not exist`);
@@ -352,12 +384,15 @@ check("every mission's arrow chain resolves to a real data-td-target", () => {
   ]);
 
   for (const m of MISSIONS) {
-    const first = m.arrowTargets[0];
-    assert.equal(
-      NOT_AT_START.has(first),
-      false,
-      `${m.id}: leads with "${first}", which is not rendered in the mission's starting state`
-    );
+    // The first entry of each branch, since each is a chain the visitor can meet.
+    for (const chain of chainsOf(m)) {
+      const first = chain[0];
+      assert.equal(
+        NOT_AT_START.has(first),
+        false,
+        `${m.id}: leads with "${first}", which is not rendered in the mission's starting state`
+      );
+    }
   }
 });
 
@@ -370,7 +405,9 @@ check("a mission that points into the Control Panel declares which tab", () => {
    */
   const PANEL_TABS = new Set(["creative", "schedule", "hours", "mirror", "health"]);
   for (const m of MISSIONS) {
-    const needsPanel = m.arrowTargets.some(
+    const chains = chainsOf(m);
+    const all = chains.flat();
+    const needsPanel = all.some(
       (target) => target.startsWith("panel-tab-") || target === "console-tab-panel"
     );
     if (!needsPanel) continue;
@@ -379,18 +416,18 @@ check("a mission that points into the Control Panel declares which tab", () => {
       `${m.id}: points into the Control Panel but declares panelTab="${m.panelTab}"`
     );
     /**
-     * The tab it opens must appear in its own chain — not necessarily first.
-     * m3 is genuinely two-part (pick a creative on Content, then schedule it on
-     * Schedule), so it names both and leads with the schedule half, which is
-     * the step that outlives the other. What would be wrong is opening a tab
-     * the chain never mentions: nothing would point at the panel it just put
-     * the visitor in front of.
+     * The tab the mission OPENS on must be the one its STARTING chain points
+     * at. Checked per-branch rather than across the union: m3 opens on Content
+     * and its first-phase chain points there, while its second-phase chain
+     * points at Schedule — which is correct, and a union check would have
+     * accepted the reverse too.
      */
-    const named = m.arrowTargets.filter((target) => target.startsWith("panel-tab-"));
+    const starting = chains[0] ?? [];
+    const named = starting.filter((target) => target.startsWith("panel-tab-"));
     if (named.length > 0) {
       assert.ok(
         named.includes(`panel-tab-${m.panelTab}`),
-        `${m.id}: opens "${m.panelTab}" but its chain only points at ${named.join(", ")}`
+        `${m.id}: opens "${m.panelTab}" but its starting chain points at ${named.join(", ")}`
       );
     }
   }

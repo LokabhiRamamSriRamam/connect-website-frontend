@@ -82,16 +82,33 @@ export const MISSIONS = [
     target: "control-panel",
     // Opens on the content library, which is the mission's first instruction.
     panelTab: "creative",
-    // Needs a creative AND a slot for it. Add-slot outranks the library so that
-    // once a creative exists the arrow moves on to the half still outstanding.
-    arrowTargets: [
-      "add-slot",
-      "add-slot-timeline",
-      "panel-tab-schedule",
-      "creative-library",
-      "panel-tab-creative",
-      "console-tab-panel",
-    ],
+    /**
+     * TWO PHASES, so the chain is a function of state rather than a fixed list.
+     *
+     * A fixed list could not express this and got it wrong: `panel-tab-schedule`
+     * sat above `creative-library`, and because that tab button is always
+     * rendered the chain stopped there every time. For the whole of phase one
+     * the arrow pointed at the Schedule tab while the instruction said "open the
+     * content library" — it never once pointed at the library, at "Use this
+     * creative", or at the editor.
+     *
+     * Phase one: no creative yet, so point into the library. Phase two: the
+     * creative exists, so send them to Schedule and then to Add a time slot.
+     */
+    arrowTargets: (s) =>
+      hasInstance(s)
+        ? [
+            "add-slot",
+            "add-slot-timeline",
+            "panel-tab-schedule",
+            "console-tab-panel",
+          ]
+        : [
+            "creative-use-first",
+            "creative-library",
+            "panel-tab-creative",
+            "console-tab-panel",
+          ],
     /**
      * Pick a creative AND give it a time. Both halves are required because
      * either alone leaves nothing on screen: a creative with no slot never
@@ -135,20 +152,35 @@ export const MISSIONS = [
     cueId: "monitorSetup",
     target: "health-panel",
     panelTab: "health",
-    // The fleet's own online/offline toggle is what completes this; s2's is the
-    // one the arrow names.
+    /**
+     * The fleet row, which opens that screen's readings in the detail block.
+     * s2's is the one the arrow names.
+     *
+     * It used to name the connectivity toggle, which was the only live control
+     * in the list — the rows themselves were inert text, so "inspect one
+     * screen's status" asked for something the panel gave no way to do, and
+     * completion secretly depended on taking a screen offline instead.
+     */
     arrowTargets: [
-      "screen-online-s2",
+      "health-row-s2",
       "health-panel",
       "panel-tab-health",
       "console-tab-panel",
     ],
     /**
-     * Notice a screen that has dropped. Taking one offline is the only way to
-     * reach the offline and primaryOffline playback states, so this mission is
-     * what makes two of the five renderings something the visitor has seen.
+     * EITHER inspecting a screen's readings OR taking one offline.
+     *
+     * The mission says "check connectivity and playback… then inspect one
+     * screen's status", and the narration says the same, so inspecting must
+     * satisfy it — requiring an offline toggle meant the stated action did
+     * nothing and an unstated one was the real gate.
+     *
+     * The offline branch is kept because taking a screen down is the only way
+     * to reach the offline and primaryOffline playback states, and a visitor
+     * who explores that way has done more than the mission asked, not less.
      */
-    isComplete: (s) => s.screens.some((screen) => screen.online === false),
+    isComplete: (s) =>
+      s.health.inspected === true || s.screens.some((screen) => screen.online === false),
   },
   {
     id: "m6",

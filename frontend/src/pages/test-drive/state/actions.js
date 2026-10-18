@@ -55,6 +55,7 @@ export const A = {
   SIM_TICK: "SIM_TICK",
   SIM_SET_SPEED: "SIM_SET_SPEED",
   HEALTH_TICK: "HEALTH_TICK",
+  HEALTH_INSPECT: "HEALTH_INSPECT",
 
   // ---- tutorial (phase 10) ----
   TUT_ADVANCE: "TUT_ADVANCE",
@@ -128,6 +129,8 @@ export const simSetSpeed = (speed) => ({ type: A.SIM_SET_SPEED, speed });
  * always yields the same numbers and a rehydrate does not reshuffle them.
  */
 export const healthTick = () => ({ type: A.HEALTH_TICK });
+/** The visitor opened one screen's readings from the fleet list. */
+export const healthInspect = (screenId) => ({ type: A.HEALTH_INSPECT, screenId });
 
 /** Flip a screen's simulated connectivity — what makes the offline state reachable. */
 export const toggleScreenOnline = (screenId) => ({

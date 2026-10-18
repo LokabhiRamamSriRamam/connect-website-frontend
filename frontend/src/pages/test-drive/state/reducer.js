@@ -321,6 +321,29 @@ export function reducer(state, action) {
       // Just a counter — see the health comment in initialState.js.
       return { ...state, health: { ...state.health, tick: (state.health.tick ?? 0) + 1 } };
 
+    case A.HEALTH_INSPECT: {
+      /**
+       * Inspecting a screen from the fleet list. It both selects the screen —
+       * the detail block above the list reads selectedScreenId — and records
+       * that an inspection happened, which is what mission 5 asks for.
+       *
+       * A separate flag rather than reusing selectedScreenId: that is set on
+       * arrival and by the screen wall, so a predicate over it would be true
+       * without the visitor ever opening the health tab.
+       */
+      if (!state.screens.some((s) => s.id === action.screenId)) {
+        if (import.meta.env?.DEV) {
+          console.warn(`[td] HEALTH_INSPECT: unknown screen "${action.screenId}"`);
+        }
+        return state;
+      }
+      return {
+        ...state,
+        selectedScreenId: action.screenId,
+        health: { ...state.health, inspected: true },
+      };
+    }
+
     // ---- creatives (phase 5) ----
 
     case A.CREATIVE_ADD: {

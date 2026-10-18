@@ -641,7 +641,7 @@ export const en = {
     m5: {
       title: "Monitor your setup",
       body: "Use the screen overview to check connectivity and playback. In this test drive those readings are simulated to show how monitoring works.",
-      hint: "Check the overview, then inspect one screen's status.",
+      hint: "Tap a screen in the list to see its readings.",
     },
     m6: {
       title: "Save and see the result",
