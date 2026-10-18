@@ -118,6 +118,7 @@ export default function MirrorEditor({ screenId }) {
               <span className="text-[11px] font-extrabold">{t("screens.demoteConfirm")}</span>
               <select
                 value=""
+                data-td-target="demote-screen"
                 onChange={(e) => e.target.value && setPending(e.target.value)}
                 className="td-tap mt-1 w-full rounded-xl border-2 border-sb-ink bg-white px-2.5 py-1.5 text-[13px] font-bold"
               >

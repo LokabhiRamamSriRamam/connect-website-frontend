@@ -20,6 +20,18 @@ const POLL_MS = 500;
 /** Breathing room between the element's box and the ring. */
 const PAD = 6;
 
+/**
+ * Past this share of the viewport height, draw no ring at all.
+ *
+ * A ring is a way of saying "this one, not the others". On a phone the screen
+ * wall measures ~970px against an 844px viewport, so its ring enclosed
+ * everything on screen — including the mission card's own text, which it then
+ * drew a line through. Something that highlights everything highlights nothing,
+ * and the arrow is the better cue at that size. Desktop targets stay well under
+ * this, so the ring behaves exactly as before there.
+ */
+const MAX_VIEWPORT_SHARE = 0.7;
+
 export default function Spotlight({ target, pulse = true }) {
   const [box, setBox] = useState(null);
 
@@ -41,6 +53,11 @@ export default function Spotlight({ target, pulse = true }) {
       // An element scrolled out of view, or collapsed, gets no ring rather than
       // a ring around nothing at the top-left corner.
       if (r.width === 0 || r.height === 0) {
+        setBox(null);
+        return;
+      }
+      // Too big to mean anything — see MAX_VIEWPORT_SHARE.
+      if (r.height > window.innerHeight * MAX_VIEWPORT_SHARE) {
         setBox(null);
         return;
       }

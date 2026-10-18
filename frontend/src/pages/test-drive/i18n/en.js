@@ -616,6 +616,8 @@ export const en = {
     restart: "Restart test drive",
     completeBadge: "Tutorial completed",
     actionNeeded: "Try the action above to continue.",
+    collapse: "Hide the details",
+    expand: "Show the details",
     m1: {
       title: "Explore your screens",
       body: "You have five virtual screens. Tap one to preview what it is showing. Switch between list and thumbnail views to see them all. Primary screens hold their own schedule; secondary screens mirror a primary you pick.",

@@ -4,7 +4,6 @@ import { ScreenBazaarMark } from "../../../components/screenbazaar/ScreenBazaarL
 import { Sparkle, Squiggle } from "../../../components/screenbazaar/Decor";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import WelcomeArt from "./art/WelcomeArt.jsx";
-import LangToggle from "./LangToggle.jsx";
 
 /** Stage 1: welcome + language choice, before any details are asked for. */
 export default function Welcome({ onStart }) {
@@ -29,15 +28,13 @@ export default function Welcome({ onStart }) {
 
       <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
         <div>
-          <motion.div {...rise(0)} className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <ScreenBazaarMark size={34} />
-              <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sb-violet">
-                {t("welcome.kicker")}
-              </p>
-            </div>
-            {/* Prominent language choice before the visitor does anything else */}
-            <LangToggle className="ml-auto sm:ml-0" />
+          {/* No LangToggle here: TdShell's header already renders one directly
+              above this, and a second copy 87px below it read as a bug. */}
+          <motion.div {...rise(0)} className="flex items-center gap-2">
+            <ScreenBazaarMark size={34} />
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-sb-violet">
+              {t("welcome.kicker")}
+            </p>
           </motion.div>
 
           <motion.h1

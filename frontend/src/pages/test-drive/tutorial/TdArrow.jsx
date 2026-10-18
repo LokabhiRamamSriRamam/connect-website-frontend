@@ -8,29 +8,97 @@ import { useEffect, useState } from "react";
  * below the target's centre by default; pass `side="right"` to put it to the
  * right instead (used when the target is near the screen bottom).
  *
- * Only renders when the target element exists in the DOM and has non-zero size.
+ * `targets` is an ordered CHAIN, most specific first, and the arrow points at
+ * the first one that is actually on screen. That is what keeps a pointer present
+ * for the whole mission rather than for its first step: m2 asks the visitor into
+ * the health tab and then to press Refresh, so the chain is
+ * ["health-refresh", "panel-tab-health", "console-tab-panel"] — Refresh once the
+ * tab is open, the tab while the panel is open, the console tab before that.
+ * Each step the visitor takes brings the next target into the DOM, and the arrow
+ * moves to it on its own with no state to track.
+ *
+ * Ordering it most-specific-first is load-bearing. The reverse would stop at the
+ * console tab forever, since that stays on screen the whole time.
+ *
+ * Renders nothing when no target in the chain has a non-zero box.
  */
 
 const POLL_MS = 400;
 
-export default function TdArrow({ target, side = "below", label = "" }) {
+export default function TdArrow({ targets, side = "below", label = "" }) {
   const [pos, setPos] = useState(null);
 
+  /* Joined so the effect re-runs on a CONTENT change, not on the new array
+     identity a parent produces on every render. */
+  const chainKey = Array.isArray(targets) ? targets.join("|") : String(targets ?? "");
+
   useEffect(() => {
-    if (!target || typeof document === "undefined") {
+    const chain = chainKey ? chainKey.split("|") : [];
+    if (chain.length === 0 || typeof document === "undefined") {
       setPos(null);
       return undefined;
     }
 
-    const measure = () => {
-      const el = document.querySelector(`[data-td-target="${target}"]`);
-      if (!el) { setPos(null); return; }
+    /** One target's box, or null. A display:none ancestor gives a zero box
+        rather than a missing node, so both cases are checked. */
+    const boxOf = (name) => {
+      if (!name) return null;
+      const el = document.querySelector(`[data-td-target="${name}"]`);
+      if (!el) return null;
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) { setPos(null); return; }
+      return r.width === 0 || r.height === 0 ? null : r;
+    };
+
+    /**
+     * Bring the target on screen the first time this chain resolves.
+     *
+     * Mission 1's tile sat 102px below the fold, so the one arrow the visitor
+     * most needs was the one they could not see. Scrolled ONCE per chain, not on
+     * every measure: the poll would otherwise fight anyone trying to scroll
+     * away, and `scrolled` is reset only when the chain itself changes — which
+     * happens on a mission change, exactly when a new scroll is wanted.
+     */
+    let scrolled = false;
+    const revealIfNeeded = (el, r) => {
+      if (scrolled || !el) return;
+      // The mission card occupies the bottom of a phone viewport; treat the
+      // lower third as covered so the target does not land underneath it.
+      const safeBottom = window.innerHeight * 0.62;
+      if (r.top >= 0 && r.bottom <= safeBottom) return;
+      scrolled = true;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+
+    const measure = () => {
+      let r = null;
+      let el = null;
+      for (const name of chain) {
+        r = boxOf(name);
+        if (r) { el = document.querySelector(`[data-td-target="${name}"]`); break; }
+      }
+      if (!r) { setPos(null); return; }
+      revealIfNeeded(el, r);
       setPos((prev) => {
-        const next = side === "right"
-          ? { x: r.right + 8, y: r.top + r.height / 2 }
-          : { x: r.left + r.width / 2, y: r.bottom + 8 };
+        let next;
+        if (side === "right") {
+          next = { x: r.right + 8, y: r.top + r.height / 2 };
+        } else {
+          /**
+           * Below the target, unless that would put the arrow under the mission
+           * card — on a phone the card owns the bottom of the viewport, and an
+           * arrow that lands on it reads as pointing at the card's own buttons
+           * rather than at the control. Tuck it just inside the target's lower
+           * edge instead, which still reads as "this one" without leaving the
+           * element.
+           */
+          const below = r.bottom + 8;
+          const card = document.querySelector('[data-td-target="mission-card"]');
+          const ceiling = card ? card.getBoundingClientRect().top - 40 : Infinity;
+          next =
+            below > ceiling
+              ? { x: r.left + r.width / 2, y: Math.max(r.top + 8, r.bottom - 44) }
+              : { x: r.left + r.width / 2, y: below };
+        }
         if (prev && Math.abs(prev.x - next.x) < 1 && Math.abs(prev.y - next.y) < 1) return prev;
         return next;
       });
@@ -46,7 +114,7 @@ export default function TdArrow({ target, side = "below", label = "" }) {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
-  }, [target, side]);
+  }, [chainKey, side]);
 
   if (!pos) return null;
 

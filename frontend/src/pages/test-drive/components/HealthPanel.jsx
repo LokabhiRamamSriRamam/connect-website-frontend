@@ -135,6 +135,7 @@ export default function HealthPanel({ screenId }) {
               </span>
               <button
                 type="button"
+                data-td-target={`screen-online-${s.id}`}
                 onClick={() => dispatch(toggleScreenOnline(s.id))}
                 aria-pressed={online}
                 className={`td-tap shrink-0 rounded-full border-2 border-sb-ink px-2 py-0.5 text-[10px] font-extrabold ${

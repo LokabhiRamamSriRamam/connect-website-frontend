@@ -1,4 +1,15 @@
-import { Check, HelpCircle, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  Pause,
+  Play,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useI18n } from "../i18n/I18nContext.jsx";
 import { useAudio } from "../audio/AudioContext.jsx";
 import { useTutorial } from "./TutorialContext.jsx";
@@ -14,6 +25,16 @@ import TdArrow from "./TdArrow.jsx";
  * on the wall, both above it, so the card never covers its own target. The
  * Spotlight handles the rest by drawing outside the element.
  *
+ * COLLAPSIBLE ON MOBILE. Expanded, the card ran 189–310px of an 844px phone
+ * viewport, so a visitor on mission 1 could see one of their five screens. The
+ * body and hint fold away behind a toggle, leaving the progress chip, the title
+ * and the buttons — enough to know where you are and to carry on. It re-expands
+ * on every new mission, because the body is the instruction and a visitor who
+ * collapsed step 2 has not asked to skip reading step 3.
+ *
+ * sm and up is unaffected: the card is a small floating panel there, the room it
+ * takes is not scarce, and the toggle is hidden.
+ *
  * The caption text IS the narration script, so a muted visitor loses nothing:
  * the body below is the same i18n string the recording says. That is why the
  * plan requires the on-screen wording to stay consistent with the fixed audio.
@@ -24,6 +45,15 @@ export default function MissionCard() {
   const tutorial = useTutorial();
 
   const { mission, step, total, currentComplete, isLast, guided } = tutorial;
+
+  const [collapsed, setCollapsed] = useState(false);
+
+  /* A new mission is a new instruction, so it arrives expanded. */
+  const missionId = mission?.id;
+  useEffect(() => {
+    setCollapsed(false);
+  }, [missionId]);
+
   if (!guided || !mission) return null;
 
   const playing = audio.status === "playing" && audio.cueId === mission.cueId;
@@ -39,9 +69,13 @@ export default function MissionCard() {
   return (
     <>
       <Spotlight target={mission.target} />
-      {/* Arrow only while the action is outstanding — disappears once done. */}
-      {!currentComplete && mission.arrowTarget && (
-        <TdArrow target={mission.arrowTarget} />
+      {/* Arrow only while the action is outstanding — it disappears once the
+          predicate turns green. The chain is ordered most-specific-first and
+          TdArrow points at the first target on screen, so the pointer follows
+          the visitor through the mission's steps instead of stopping at the
+          first one. */}
+      {!currentComplete && mission.arrowTargets && (
+        <TdArrow targets={mission.arrowTargets} />
       )}
 
       <aside
@@ -101,6 +135,22 @@ export default function MissionCard() {
             >
               <RotateCcw size={12} aria-hidden="true" />
             </button>
+
+            {/* Mobile only: sm+ has room for the whole card. */}
+            <button
+              type="button"
+              data-td-target="mission-collapse"
+              onClick={() => setCollapsed((c) => !c)}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? t("tutorial.expand") : t("tutorial.collapse")}
+              className="td-tap rounded-full border-2 border-sb-ink bg-white p-1 sm:hidden"
+            >
+              {collapsed ? (
+                <ChevronUp size={12} aria-hidden="true" />
+              ) : (
+                <ChevronDown size={12} aria-hidden="true" />
+              )}
+            </button>
           </div>
         </header>
 
@@ -108,15 +158,26 @@ export default function MissionCard() {
           {t(mission.titleKey)}
         </h2>
 
-        {/* The same string the narration speaks. Captions by construction. */}
-        <p className="mt-1 text-[12.5px] font-semibold leading-relaxed text-sb-slate">
+        {/* The same string the narration speaks. Captions by construction.
+            `hidden sm:block` when collapsed, never unmounted: the caption must
+            stay in the accessibility tree for a screen reader even when a
+            sighted visitor has folded it away. */}
+        <p
+          className={`mt-1 text-[12.5px] font-semibold leading-relaxed text-sb-slate ${
+            collapsed ? "hidden sm:block" : ""
+          }`}
+        >
           {t(mission.bodyKey)}
         </p>
 
         {/* The hint appears only while the action is outstanding. Once it is
             done, repeating the instruction reads as not having noticed. */}
         {!currentComplete && (
-          <p className="mt-1.5 rounded-xl border-2 border-sb-taupe bg-sb-cream px-2.5 py-1.5 text-[11.5px] font-bold text-sb-ink">
+          <p
+            className={`mt-1.5 rounded-xl border-2 border-sb-taupe bg-sb-cream px-2.5 py-1.5 text-[11.5px] font-bold text-sb-ink ${
+              collapsed ? "hidden sm:block" : ""
+            }`}
+          >
             {t(mission.hintKey)}
           </p>
         )}

@@ -51,11 +51,23 @@ export function SecondaryNotice({ screen }) {
   );
 }
 
-export default function ControlPanel() {
+/**
+ * `tab` / `onTabChange` are OPTIONAL. Uncontrolled, the panel keeps its own tab
+ * as it always did; controlled, Console owns it so a mission can open the tab it
+ * is teaching. Mission 3 asks for the content library, and arriving with Health
+ * still open from mission 2 left the visitor staring at the wrong panel with an
+ * arrow pointing at a third one.
+ */
+export default function ControlPanel({ tab: tabProp, onTabChange }) {
   const { t } = useI18n();
   const { screens, selectedScreenId } = useTd();
-  /** Which tab is open. Local state: view position with nothing to preserve. */
-  const [tab, setTab] = useState("creative");
+  /** Fallback for the uncontrolled case. */
+  const [ownTab, setOwnTab] = useState("creative");
+  const tab = tabProp ?? ownTab;
+  const setTab = (next) => {
+    setOwnTab(next);
+    onTabChange?.(next);
+  };
   /** Which creative instance the editor is open on, within the content tab. */
   const [editingId, setEditingId] = useState(null);
 

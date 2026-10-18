@@ -278,6 +278,124 @@ check("mission ids, orders and spotlight targets are sane", () => {
   assert.deepEqual(orders, [1, 2, 3, 4, 5, 6], "declared in order");
 });
 
+check("every mission's arrow chain resolves to a real data-td-target", () => {
+  /**
+   * The arrow points at the first target in its chain that is on screen, so a
+   * misspelt name does not throw — it is silently skipped, and the visitor gets
+   * an arrow on the wrong control or none at all. That is exactly the kind of
+   * failure a gate should catch instead of a browser.
+   *
+   * Targets are collected from the component source rather than a rendered tree,
+   * because the ones that matter most here are inside tabs that are closed until
+   * the visitor opens them. Interpolated names are expanded from the loops that
+   * produce them.
+   */
+  const dir = new URL("../src/pages/test-drive/", import.meta.url);
+  const sources = [
+    "components/Console.jsx",
+    "components/ControlPanel.jsx",
+    "components/CreativePicker.jsx",
+    "components/HealthPanel.jsx",
+    "components/MirrorEditor.jsx",
+    "components/SaveBar.jsx",
+    "components/ScheduleSection.jsx",
+    "components/ScheduleListView.jsx",
+    "components/ScheduleTimelineView.jsx",
+    "components/ScreenTile.jsx",
+    "components/ScreenWall.jsx",
+  ]
+    .map((rel) => readFileSync(new URL(rel, dir), "utf8"))
+    .join("\n");
+
+  const known = new Set();
+  for (const m of sources.matchAll(/data-td-target="([a-z0-9-]+)"/g)) known.add(m[1]);
+
+  // The templated families, expanded over the ids their loops actually run on.
+  const SCREEN_IDS = ["s1", "s2", "s3", "s4", "s5"];
+  for (const id of ["screens", "panel"]) known.add(`console-tab-${id}`);
+  for (const id of ["creative", "schedule", "hours", "mirror", "health"]) {
+    known.add(`panel-tab-${id}`);
+  }
+  for (const id of SCREEN_IDS) {
+    known.add(`screen-tile-${id}`);
+    known.add(`screen-online-${id}`);
+  }
+
+  for (const m of MISSIONS) {
+    assert.ok(
+      Array.isArray(m.arrowTargets) && m.arrowTargets.length > 0,
+      `${m.id}: no arrowTargets chain`
+    );
+    for (const target of m.arrowTargets) {
+      assert.ok(known.has(target), `${m.id}: arrow target "${target}" does not exist`);
+    }
+    // The spotlight's own target must resolve too.
+    assert.ok(known.has(m.target), `${m.id}: spotlight target "${m.target}" does not exist`);
+  }
+
+  /**
+   * Existing in the source is not the same as being reachable when the mission
+   * runs, and the gap between the two shipped a real bug: m4 led with
+   * `promote-screen`, which renders only on a screen that is ALREADY secondary.
+   * The mission asks for the opposite, so its first target was absent for the
+   * whole mission and the arrow fell through to the save bar.
+   *
+   * These are the targets that render only in a state the mission does not
+   * start in. A mission may still list one LATER in its chain as a follow-on
+   * step; leading with one is the error.
+   */
+  const NOT_AT_START = new Set([
+    "promote-screen", // only on an already-secondary screen; m4 starts primary
+    "slot-editor", // only once "add a time slot" has been pressed
+    "creative-editor", // only once a creative is being edited
+    "secondary-notice", // only on a secondary screen
+  ]);
+
+  for (const m of MISSIONS) {
+    const first = m.arrowTargets[0];
+    assert.equal(
+      NOT_AT_START.has(first),
+      false,
+      `${m.id}: leads with "${first}", which is not rendered in the mission's starting state`
+    );
+  }
+});
+
+check("a mission that points into the Control Panel declares which tab", () => {
+  /**
+   * Console opens `mission.panelTab` when the mission opens. Without it the
+   * panel keeps whichever tab the previous mission left open — m3 asked for the
+   * content library while sitting on Health from m2, so the library was not in
+   * the DOM and the arrow pointed at Schedule instead.
+   */
+  const PANEL_TABS = new Set(["creative", "schedule", "hours", "mirror", "health"]);
+  for (const m of MISSIONS) {
+    const needsPanel = m.arrowTargets.some(
+      (target) => target.startsWith("panel-tab-") || target === "console-tab-panel"
+    );
+    if (!needsPanel) continue;
+    assert.ok(
+      PANEL_TABS.has(m.panelTab),
+      `${m.id}: points into the Control Panel but declares panelTab="${m.panelTab}"`
+    );
+    /**
+     * The tab it opens must appear in its own chain — not necessarily first.
+     * m3 is genuinely two-part (pick a creative on Content, then schedule it on
+     * Schedule), so it names both and leads with the schedule half, which is
+     * the step that outlives the other. What would be wrong is opening a tab
+     * the chain never mentions: nothing would point at the panel it just put
+     * the visitor in front of.
+     */
+    const named = m.arrowTargets.filter((target) => target.startsWith("panel-tab-"));
+    if (named.length > 0) {
+      assert.ok(
+        named.includes(`panel-tab-${m.panelTab}`),
+        `${m.id}: opens "${m.panelTab}" but its chain only points at ${named.join(", ")}`
+      );
+    }
+  }
+});
+
 // ------------------------------------------------------------- creatives ----
 
 check("every creative declares a limit for each of its fields", () => {
