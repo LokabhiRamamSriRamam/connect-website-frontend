@@ -52,9 +52,16 @@ export default function SlotEditor({ screenId, slotId, onClose }) {
 
   const [submitted, setSubmitted] = useState(false);
 
-  /** A slot's creative, named by its own headline — what the visitor typed. */
-  const labelFor = (slot) => {
-    const inst = creativeInstances[slot?.instanceId];
+  /**
+   * A slot's creative, named by its own headline — what the visitor typed.
+   * Accepts EITHER a slot (with .instanceId) OR an instance (with .id / .templateId)
+   * directly, so it works for both validation messages and the <option> list.
+   */
+  const labelFor = (slotOrInst) => {
+    // If it looks like an instance (has templateId), use it directly.
+    const inst = slotOrInst?.templateId
+      ? slotOrInst
+      : creativeInstances[slotOrInst?.instanceId];
     if (!inst) return t("schedule.chooseCreative");
     const tpl = getTemplate(inst.templateId);
     return inst.fields.headline || (tpl ? t(tpl.nameKey) : "");

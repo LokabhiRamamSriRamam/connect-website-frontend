@@ -4,6 +4,7 @@ import { useAudio } from "../audio/AudioContext.jsx";
 import { useTutorial } from "./TutorialContext.jsx";
 import { helpCueFor } from "./missions.js";
 import Spotlight from "./Spotlight.jsx";
+import TdArrow from "./TdArrow.jsx";
 
 /**
  * The current mission: what to do, whether it is done, and the narration.
@@ -38,11 +39,15 @@ export default function MissionCard() {
   return (
     <>
       <Spotlight target={mission.target} />
+      {/* Arrow only while the action is outstanding — disappears once done. */}
+      {!currentComplete && mission.arrowTarget && (
+        <TdArrow target={mission.arrowTarget} />
+      )}
 
       <aside
         data-td-target="mission-card"
         aria-label={t(mission.titleKey)}
-        className="td-safe-bottom fixed inset-x-0 bottom-0 z-50 border-t-2 border-sb-ink bg-white px-4 pt-3 shadow-[0_-6px_0_rgba(25,25,25,0.08)] sm:inset-x-auto sm:bottom-4 sm:left-4 sm:max-w-sm sm:rounded-2xl sm:border-2 sm:px-4 sm:pb-3 sm:shadow-[5px_5px_0_#191919]"
+        className="td-safe-bottom fixed inset-x-0 bottom-[62px] z-50 border-t-2 border-sb-ink bg-white px-4 pt-3 shadow-[0_-6px_0_rgba(25,25,25,0.08)] sm:inset-x-auto sm:bottom-4 sm:left-4 sm:max-w-sm sm:rounded-2xl sm:border-2 sm:px-4 sm:pb-3 sm:shadow-[5px_5px_0_#191919]"
       >
         <header className="flex items-center gap-2">
           <span className="rounded-full border-2 border-sb-ink bg-sb-lilac px-2 py-0.5 text-[10px] font-extrabold tabular-nums">

@@ -37,12 +37,15 @@ export const MISSIONS = [
     hintKey: "tutorial.m1.hint",
     cueId: "exploreScreens",
     target: "screen-wall",
+    // Arrow points at screen-tile-s2 (the first non-default screen)
+    arrowTarget: "screen-tile-s2",
     /**
-     * Two actions: select a screen other than the default, and switch the wall
-     * view. Requiring a non-default selection is what makes this a real action
-     * rather than something true on arrival — s1 is already selected at start.
+     * Tap any screen other than the default s1. The wallView requirement was
+     * removed: on mobile the view toggle is easy to miss, and blocking "next"
+     * until two separate controls are used frustrated visitors who had clearly
+     * understood the mission (they'd tapped a screen).
      */
-    isComplete: (s) => s.selectedScreenId !== "s1" && s.ui.wallView !== "grid",
+    isComplete: (s) => s.selectedScreenId !== "s1",
   },
   {
     id: "m2",
@@ -52,6 +55,8 @@ export const MISSIONS = [
     hintKey: "tutorial.m2.hint",
     cueId: "controlPanelHealth",
     target: "health-panel",
+    // Arrow points at the health tab in the control panel's scrollable tab bar
+    arrowTarget: "panel-tab-health",
     /**
      * Opening a tab is local component state, which a predicate over reducer
      * state cannot see — and moving it into the reducer to make it observable
@@ -72,6 +77,7 @@ export const MISSIONS = [
     hintKey: "tutorial.m3.hint",
     cueId: "contentLibrary",
     target: "control-panel",
+    arrowTarget: "creative-library",
     /**
      * Pick a creative AND give it a time. Both halves are required because
      * either alone leaves nothing on screen: a creative with no slot never
@@ -87,6 +93,7 @@ export const MISSIONS = [
     hintKey: "tutorial.m4.hint",
     cueId: "primarySecondary",
     target: "mirror-editor",
+    arrowTarget: "mirror-editor",
     /** A real mirror link: role AND a target, since a secondary pointing
         nowhere is a broken link rather than a completed mission. */
     isComplete: (s) =>
@@ -100,6 +107,7 @@ export const MISSIONS = [
     hintKey: "tutorial.m5.hint",
     cueId: "monitorSetup",
     target: "health-panel",
+    arrowTarget: "health-panel",
     /**
      * Notice a screen that has dropped. Taking one offline is the only way to
      * reach the offline and primaryOffline playback states, so this mission is
@@ -115,6 +123,7 @@ export const MISSIONS = [
     hintKey: "tutorial.m6.hint",
     cueId: "saveSeeChanges",
     target: "save-bar",
+    arrowTarget: "save-button",
     /**
      * A SUCCESSFUL save, not a press. `savedAt` is written only by SAVE_SUCCESS,
      * so this cannot complete on a save that failed — which matters, because the

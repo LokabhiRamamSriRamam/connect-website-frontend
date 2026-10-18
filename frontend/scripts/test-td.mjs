@@ -2652,7 +2652,7 @@ register("NO mission is already complete at the start", () => {
 register("each mission is completed by its own action and no other", () => {
   /** Build the state each mission's action produces, from a clean start. */
   const steps = {
-    m1: (s) => reducer(reducer(s, selectScreen("s2")), uiSetWallView("list")),
+    m1: (s) => reducer(s, selectScreen("s2")),
     m2: (s) => reducer(s, healthTick()),
     m3: (s) => {
       let n = reducer(s, creativeAdd("ci_a", TPL, {}, 1));
@@ -2680,12 +2680,11 @@ register("each mission is completed by its own action and no other", () => {
   }
 });
 
-register("m1 needs BOTH halves of its action", () => {
+register("m1 completes on selecting any non-default screen", () => {
   const selected = reducer(initialState, selectScreen("s2"));
-  assert.equal(MISSIONS[0].isComplete(selected), false, "selecting alone is not enough");
-  const viewed = reducer(initialState, uiSetWallView("list"));
-  assert.equal(MISSIONS[0].isComplete(viewed), false, "nor switching view alone");
-  assert.equal(MISSIONS[0].isComplete(reducer(selected, uiSetWallView("list"))), true);
+  assert.equal(MISSIONS[0].isComplete(selected), true, "selecting s2 is enough");
+  // s1 is the default — selecting it must not complete the mission
+  assert.equal(MISSIONS[0].isComplete(initialState), false, "s1 selected on arrival — not done");
 });
 
 register("m3 needs a creative AND a time for it", () => {
@@ -2936,18 +2935,13 @@ register("persistence: a refresh mid-flow restores the work", () => {
 
 register("persistence: tutorial progress survives a refresh", () => {
   /**
-   * Predicates over events is what makes this work — but with one wrinkle this
-   * test exists to pin down.
-   *
-   * `ui` is deliberately not persisted (plan §11), and m1 asks for a wall-view
-   * switch, which lives in ui.wallView. So after a refresh m1's PREDICATE is
-   * false again even though the visitor plainly did it. The durable record is
-   * `completed`, which TUT_COMPLETE appends to and which IS persisted — and
-   * TutorialContext reads both, so Continue does not re-lock on a mission
-   * already finished.
+   * Predicates over persisted state are what make this work. m1 now checks only
+   * selectedScreenId, which IS persisted, so all six predicates re-evaluate true
+   * after a round-trip. The `completed` record is still the authoritative source
+   * for TutorialContext — it means a mission's predicate can never accidentally
+   * lock Continue on something already finished even if the predicate changes.
    */
   let s = reducer(initialState, selectScreen("s2"));
-  s = reducer(s, uiSetWallView("list"));
   s = reducer(s, healthTick());
   s = reducer(s, creativeAdd("ci_a", TPL, {}, 1));
   s = reducer(s, slotAdd("s1", { id: "sl_1", startMin: 540, endMin: 720, instanceId: "ci_a" }));
@@ -2967,15 +2961,11 @@ register("persistence: tutorial progress survives a refresh", () => {
     "every mission is still recorded as done"
   );
 
-  // Five of the six re-evaluate true off persisted state alone. m1 is the
-  // exception, and the reason the `completed` record is load-bearing.
+  // All six re-evaluate true off persisted state: m1 now checks selectedScreenId,
+  // which is persisted, so no mission requires the `completed` record as a fallback.
   for (const m of MISSIONS) {
     const live = m.isComplete(restored);
-    if (m.id === "m1") {
-      assert.equal(live, false, "m1's predicate reads ui, which is not persisted");
-    } else {
-      assert.equal(live, true, `${m.id} re-evaluates true from persisted state`);
-    }
+    assert.equal(live, true, `${m.id} re-evaluates true from persisted state`);
     assert.ok(
       live || restored.tutorial.completed.includes(m.id),
       `${m.id} is done by neither route`

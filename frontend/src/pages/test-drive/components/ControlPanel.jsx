@@ -101,6 +101,7 @@ export default function ControlPanel() {
             role="tab"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
+            data-td-target={`panel-tab-${id}`}
             /* scroll-mx gives a tab a little clearance from the rounded ends when
                the browser scrolls it into view on focus, so the selected tab is
                never flush against the clipped edge. */
