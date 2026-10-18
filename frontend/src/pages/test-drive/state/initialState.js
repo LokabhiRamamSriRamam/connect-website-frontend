@@ -32,6 +32,14 @@ export const MAX_SLOTS_PER_SCREEN = 8;
 export const INDUSTRY_LEAD_LABEL = {
   restaurant: "Restaurant",
   cafe: "Café / Coffee Shop",
+  retail: "Retail / Store",
+  healthcare: "Clinic / Hospital",
+  hospitality: "Hotel / Resort",
+  realestate: "Real Estate / Developer",
+  corporate: "Corporate / Office",
+  fitness: "Gym / Fitness Studio",
+  education: "School / College / Coaching",
+  automotive: "Car Showroom / Service",
 };
 
 /** Default active hours: 09:00-21:00, as minutes since midnight. */

@@ -45,7 +45,18 @@ export const en = {
       "We couldn't save your details, but your test drive is ready. We'll retry in the background.",
   },
 
-  industries: { restaurant: "Restaurant", cafe: "Café / Coffee Shop" },
+  industries: {
+    restaurant: "Restaurant",
+    cafe: "Café / Coffee Shop",
+    retail: "Retail / Store",
+    healthcare: "Clinic / Hospital",
+    hospitality: "Hotel / Resort",
+    realestate: "Real Estate / Developer",
+    corporate: "Corporate / Office",
+    fitness: "Gym / Fitness Studio",
+    education: "School / College / Coaching",
+    automotive: "Car Showroom / Service",
+  },
 
   intro: {
     arrival: "Welcome to {business}",
@@ -171,6 +182,20 @@ export const en = {
       cta: "Call to action",
       // Only the informational creatives declare this one.
       hours: "Opening hours",
+      /* The healthcare set's own two. A clinic screen's payload is guidance and
+         queue position, not an offer and a price, and the label above the box is
+         the whole instruction a non-technical visitor gets — so these are their
+         own fields rather than `offer` and `price` wearing different hats. */
+      detail: "Details",
+      token: "Token number",
+      /* The hospitality set's own. A receptionist typing "Mr & Mrs Sharma"
+         needs to see "Guest name" above the box, not "Headline". */
+      guestName: "Guest name",
+      /* The real-estate set's own, shared with corporate's metrics board. A
+         figure that is the POINT of the card and is NOT a currency amount —
+         "72% sold", "4 BHK", "NPS 72" — where "Price" above the editor box
+         would read wrong. */
+      stat: "Figure",
     },
     fieldHint: "Shown on the screen exactly as typed.",
   },
@@ -244,6 +269,262 @@ export const en = {
     c_opening_hours: {
       name: "Café Hours",
       desc: "Informational: when you open and close, with a cup.",
+    },
+    rt_flash_sale: {
+      name: "Flash Sale",
+      desc: "The loudest card in the set: a discount on a starburst, for the window.",
+    },
+    rt_new_arrivals: {
+      name: "New Arrivals",
+      desc: "A drop announcement on a rail of hangers. No price — the swing tag has that.",
+    },
+    rt_buy_one_get_one: {
+      name: "Buy One Get One",
+      desc: "Two bags, one of them free, so the offer reads before the text does.",
+    },
+    rt_price_drop: {
+      name: "Price Drop",
+      desc: "Old price struck through, new price large. Factual rather than promotional.",
+    },
+    rt_weekend_offer: {
+      name: "Weekend Special",
+      desc: "A lit shop window on deep indigo, with a ribbon for the time window.",
+    },
+    rt_members_only: {
+      name: "Members Save More",
+      desc: "A membership card on black — the premium card in a library of sale shouting.",
+    },
+    rt_clearance_rack: {
+      name: "Clearance",
+      desc: "A rack of swing tags. Takes the longest discount text in the set.",
+    },
+    rt_store_hours: {
+      name: "Store Hours",
+      desc: "Informational: your trading hours, on a shopfront with an open sign.",
+    },
+    h_doctor_on_duty: {
+      name: "Doctor on Duty",
+      desc: "Who is in and until when — the waiting room's most-asked question.",
+    },
+    h_token_queue: {
+      name: "Now Serving",
+      desc: "The queue display: a large token number on a lit panel.",
+    },
+    h_health_tip: {
+      name: "Tip of the Day",
+      desc: "A line of advice over an ECG trace. Built for a repeating playlist.",
+    },
+    h_vaccination_drive: {
+      name: "Vaccination Drive",
+      desc: "A walk-in announcement, with a syringe on a shield.",
+    },
+    h_department_guide: {
+      name: "Department Guide",
+      desc: "Wayfinding: a destination and a route, on a corridor sign board.",
+    },
+    h_health_package: {
+      name: "Check-up Package",
+      desc: "A priced package as a clipboard of ticked tests.",
+    },
+    h_camp_notice: {
+      name: "Health Camp",
+      desc: "A community camp under a night sky. The price field often reads “FREE”.",
+    },
+    h_clinic_hours: {
+      name: "OPD Timings",
+      desc: "Informational: your consulting hours, drawn as a window inside the day.",
+    },
+    ho_lobby_welcome: {
+      name: "Lobby Welcome",
+      desc: "A guest greeted by name, on indigo and gold with two key cards.",
+    },
+    ho_room_offer: {
+      name: "Room Offer",
+      desc: "A priced weekend rate, with five stars over the bed.",
+    },
+    ho_amenity_hours: {
+      name: "Pool & Spa Hours",
+      desc: "Timings for an amenity, over still water. For the door it stands beside.",
+    },
+    ho_dinner_tonight: {
+      name: "Dinner Tonight",
+      desc: "What is on downstairs this evening — for a guest already staying.",
+    },
+    ho_spa_package: {
+      name: "Spa Package",
+      desc: "The calmest card in the set: a priced treatment over a candle bowl.",
+    },
+    ho_event_today: {
+      name: "Event Today",
+      desc: "Tonight's function under string lights. Re-pointed daily.",
+    },
+    ho_directions: {
+      name: "Corridor Directions",
+      desc: "Wayfinding: room numbers and a route, on a brushed sign plate.",
+    },
+    ho_checkout_info: {
+      name: "Check-in & Check-out",
+      desc: "Informational: the two times guests ask about, beside a packed suitcase.",
+    },
+    re_tower_launch: {
+      name: "Tower Launch",
+      desc: "The set's one card that shouts: a new project under a tower crane, with a booking amount.",
+    },
+    re_available_units: {
+      name: "Available Units",
+      desc: "A configuration and its per-sqft rate, with a floor plan laid beside the figure.",
+    },
+    re_site_visit: {
+      name: "Site Visit",
+      desc: "Weekend pick-up timings on a project-site hoarding sign.",
+    },
+    re_sold_announcement: {
+      name: "Nearly Sold Out",
+      desc: "Social proof: a figure under a tilted SOLD stamp.",
+    },
+    re_emi_offer: {
+      name: "EMI Starts At",
+      desc: "The affordability card: a monthly figure on a stack of coins.",
+    },
+    re_open_house: {
+      name: "Open House",
+      desc: "A model-flat opening with its address pinned on the map.",
+    },
+    re_amenity_showcase: {
+      name: "Project Amenities",
+      desc: "What is inside the gate — four icons across the top, with the list below.",
+    },
+    re_office_hours: {
+      name: "Sales Office Hours",
+      desc: "Informational: when the office is open, with a house key on its tag.",
+    },
+    co_all_hands: {
+      name: "All-Hands",
+      desc: "Deep indigo auditorium invite, with a mic on stage and a gold time plate.",
+    },
+    co_meeting_room: {
+      name: "Meeting Room Status",
+      desc: "A door with a lit indicator — the screen that sits outside a conference room.",
+    },
+    co_visitor_welcome: {
+      name: "Visitor Welcome",
+      desc: "The reception screen: a visitor greeted by name, with a lanyard badge.",
+    },
+    co_birthdays: {
+      name: "Birthdays Today",
+      desc: "Names on a tilted sticky note, pinned to the board.",
+    },
+    co_metrics: {
+      name: "Metrics Board",
+      desc: "The KPI monitor's card: one large figure with a rising bar chart.",
+    },
+    co_townhall: {
+      name: "Townhall · AMA",
+      desc: "A soft Q&A invite under two overlapping chat bubbles.",
+    },
+    co_notice: {
+      name: "Facility Notice",
+      desc: "A lift or washroom notice — a caution triangle and a workaround.",
+    },
+    co_office_hours: {
+      name: "Office Hours",
+      desc: "Informational: a Mon–Fri planner strip, with the working window marked.",
+    },
+    f_class_schedule: {
+      name: "Tonight's Classes",
+      desc: "The gym floor's at-a-glance: a hazard-stripe band over tonight's programme.",
+    },
+    f_membership_drive: {
+      name: "Membership Drive",
+      desc: "The one card that shouts: a dumbbell behind the headline, with a monthly rate.",
+    },
+    f_pt_offer: {
+      name: "Personal Training",
+      desc: "A session package priced per block, with a stopwatch dial drawn beside it.",
+    },
+    f_motivation: {
+      name: "No Excuses",
+      desc: "An ink-black motivational slab with a lightning bolt. No price, no CTA — the card is the message.",
+    },
+    f_hydration: {
+      name: "Drink Water",
+      desc: "A tall gym bottle beside a short wellness reminder, for the between-sets playlist.",
+    },
+    f_new_class: {
+      name: "New Class",
+      desc: "A quiet announcement for a new programme: a cycle wheel and a launch time.",
+    },
+    f_leaderboard: {
+      name: "Challenge Board",
+      desc: "A large figure under a medal — days on a streak, or members on a challenge.",
+    },
+    f_gym_hours: {
+      name: "Gym Hours",
+      desc: "Informational: your opening window, drawn as a stopwatch dial.",
+    },
+    e_seminar_notice: {
+      name: "Guest Lecture",
+      desc: "The campus seminar invite, under an open book on indigo and gold.",
+    },
+    e_exam_schedule: {
+      name: "Exam Dates",
+      desc: "End-of-semester dates on a ruled notebook page, with a tilted pencil at the corner.",
+    },
+    e_event_announcement: {
+      name: "Fest · Event",
+      desc: "A campus festival announcement with the atom's three orbits drawn behind the headline.",
+    },
+    e_timetable_change: {
+      name: "Class Moved",
+      desc: "The seminar-moved card: a paper plane with a dashed trail, and an attention badge.",
+    },
+    e_notice: {
+      name: "Cork Board Notice",
+      desc: "A tilted paper sheet pinned to a cork-textured ground. The whole card is the pinned notice.",
+    },
+    e_toppers: {
+      name: "Results Board",
+      desc: "A large figure under a mortarboard with a tassel — pass rate, toppers, distinctions.",
+    },
+    e_club_signup: {
+      name: "Club Sign-up",
+      desc: "An open-invite card with a stack of three books. The CTA names the route to join.",
+    },
+    e_office_hours: {
+      name: "Admin Office Hours",
+      desc: "Informational: your opening window on a ruled notebook page with a Mon–Sat date band.",
+    },
+    au_new_model: {
+      name: "New Model",
+      desc: "The dark-showroom hero: a side-profile car on a spot-lit turntable, with the on-road price.",
+    },
+    au_used_certified: {
+      name: "Certified Pre-owned",
+      desc: "A number plate spelling CERTIFIED beside a priced used car — the service-lounge comparison card.",
+    },
+    au_service_package: {
+      name: "Service Package",
+      desc: "A priced service bundle under a crossed spanner-and-screwdriver, in service-bay indigo.",
+    },
+    au_accessory: {
+      name: "Accessory Bundle",
+      desc: "A priced alloy-and-fit bundle beside a tyre-and-alloy drawn head-on.",
+    },
+    au_test_drive: {
+      name: "Test Drive Invite",
+      desc: "A key fob with a signal arc. No price — the invitation is the point of the card.",
+    },
+    au_spec_showcase: {
+      name: "Standout Spec",
+      desc: "One figure made large under a half-ring gauge: mileage, 0–60, boot volume.",
+    },
+    au_warranty: {
+      name: "Warranty Years",
+      desc: "A shield with a check mark on mint. The stat is a count of years, not money.",
+    },
+    au_showroom_hours: {
+      name: "Showroom Hours",
+      desc: "Informational: your opening window on a speedometer dial, with an odometer window below.",
     },
   },
 

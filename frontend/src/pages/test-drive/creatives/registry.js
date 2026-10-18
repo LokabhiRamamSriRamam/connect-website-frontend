@@ -16,11 +16,27 @@
  */
 import { restaurantCreatives } from "./restaurant/index.js";
 import { cafeCreatives } from "./cafe/index.js";
+import { retailCreatives } from "./retail/index.js";
+import { healthcareCreatives } from "./healthcare/index.js";
+import { hospitalityCreatives } from "./hospitality/index.js";
+import { realEstateCreatives } from "./realestate/index.js";
+import { corporateCreatives } from "./corporate/index.js";
+import { fitnessCreatives } from "./fitness/index.js";
+import { educationCreatives } from "./education/index.js";
+import { automotiveCreatives } from "./automotive/index.js";
 
 /** Industry slug -> manifest array. */
 export const CREATIVES_BY_INDUSTRY = {
   restaurant: restaurantCreatives,
   cafe: cafeCreatives,
+  retail: retailCreatives,
+  healthcare: healthcareCreatives,
+  hospitality: hospitalityCreatives,
+  realestate: realEstateCreatives,
+  corporate: corporateCreatives,
+  fitness: fitnessCreatives,
+  education: educationCreatives,
+  automotive: automotiveCreatives,
 };
 
 /** Every manifest entry, across industries. */
@@ -29,9 +45,11 @@ export const allCreatives = Object.values(CREATIVES_BY_INDUSTRY).flat();
 /**
  * The library for one industry. Unknown or empty slug falls back to restaurant.
  *
- * Both industries now have a full set, so the fallback is only reached by an
- * industry the intake form does not offer — kept because a visitor arriving with
- * stale persisted state must still see a library rather than an empty panel.
+ * Every industry the intake form offers has a full set, so the fallback is only
+ * reached by an industry it does not — kept because a visitor arriving with stale
+ * persisted state must still see a library rather than an empty panel. As more
+ * industries land, that is exactly the path a visitor who picked one in an older
+ * build takes, so it must stay.
  */
 export function creativesFor(industry) {
   const list = CREATIVES_BY_INDUSTRY[industry];

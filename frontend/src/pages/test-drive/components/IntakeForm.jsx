@@ -29,8 +29,15 @@ import {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** The two industries with a creative library. Values are slugs; labels translate. */
-const INDUSTRY_SLUGS = ["restaurant", "cafe"];
+/**
+ * The industries with a creative library. Values are slugs; labels translate.
+ *
+ * This list and CREATIVES_BY_INDUSTRY in creatives/registry.js must agree: an
+ * industry offered here without a library would drop the visitor into the
+ * restaurant fallback and silently show them the wrong set. check-test-drive.mjs
+ * asserts the two match.
+ */
+const INDUSTRY_SLUGS = ["restaurant", "cafe", "retail", "healthcare", "hospitality", "realestate", "corporate", "fitness", "education", "automotive"];
 
 function validate(business, t) {
   const e = {};

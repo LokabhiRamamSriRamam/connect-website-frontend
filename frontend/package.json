@@ -11,6 +11,7 @@
     "check:td": "node scripts/check-test-drive.mjs",
     "check:creatives": "esbuild scripts/check-creative-safety.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --external:react --external:react-dom --outfile=node_modules/.cache/td-safety.mjs --log-level=error && node node_modules/.cache/td-safety.mjs",
     "check:td-render": "esbuild scripts/check-td-render.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --main-fields=module,main --external:react --external:react-dom --outfile=node_modules/.cache/td-render.mjs --log-level=error && node node_modules/.cache/td-render.mjs",
+    "check:td-geometry": "esbuild scripts/check-td-geometry.mjs --bundle --platform=node --format=esm --loader:.jsx=jsx --jsx=automatic --main-fields=module,main --external:react --external:react-dom --outfile=node_modules/.cache/td-geometry.mjs --log-level=error && node node_modules/.cache/td-geometry.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

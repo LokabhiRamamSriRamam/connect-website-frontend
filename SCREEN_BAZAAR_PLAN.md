@@ -717,6 +717,79 @@ Six digital-signage blogs, a Blogs section after Testimonials on the landing pag
 
 ---
 
+## 4e. Test drive (✅ all 10 industries built)
+
+An interactive demo at `/test-drive`: the visitor fills a short intake form, then gets a console with five virtual screens, a content library of creatives for their industry, a schedule, active hours, role-based mirroring and a simulated clock. It is the one place on the site where someone operates the product instead of reading about it.
+
+### How a creative library is built
+
+Each industry has **8 creatives** — bespoke inline-SVG components, never one template recoloured. A creative is pure data plus a drawing: the manifest declares its fields, character limits, palette and defaults; the component draws it.
+
+**The seven touch points** for adding an industry (all must agree, and the checks below enforce it):
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `frontend/src/pages/test-drive/creatives/<slug>/*.jsx` | 8 components |
+| 2 | `creatives/<slug>/index.js` | manifest (plain .js, no JSX — node must import it) |
+| 3 | `creatives/components.jsx` | 8 imports + 8 map entries |
+| 4 | `creatives/registry.js` | one line in `CREATIVES_BY_INDUSTRY` |
+| 5 | `i18n/en.js` + `i18n/hi.js` | `industries.<slug>`, 8 name/desc pairs each, any new field labels |
+| 6 | `state/initialState.js` | `INDUSTRY_LEAD_LABEL` entry |
+| 7 | `components/IntakeForm.jsx` | slug in `INDUSTRY_SLUGS` |
+
+Plus the id-prefix table in `scripts/check-test-drive.mjs` and the industry table in `scripts/test-td.mjs`.
+
+### Rules that hold across every library
+
+- **Safety by construction.** Visitor text reaches the DOM only as a JSX text child of `<text>`, via `CText`. No token replacement, no `dangerouslySetInnerHTML`, no string concatenation into attributes. `CreativeFrame` is the only renderer and it allowlists fields against the manifest and `String()`-coerces them.
+- **Only eight SVG elements** may appear in rendered output: `svg, g, rect, circle, ellipse, path, text, tspan`. `check-creative-safety.mjs` tokenises the output and fails on anything else — this caught a `<polygon>` during hospitality, which was redrawn as a `path` rather than widening the allowlist.
+- **Character limits are Hindi-safe.** Devanagari sets ~10% wider than Latin and SVG `<text>` neither wraps nor shrinks. Several caps are set by *geometry* instead — a centred field grows in both directions; a field beside artwork must stop before it. Those say so in the manifest.
+- **Field vocabulary is open.** A library may declare its own field names (healthcare added `detail` and `token`, hospitality added `guestName`) as long as both languages label them. The editor's label *is* the instruction a non-technical visitor reads, so "Price" above a box where someone types a token number is a real bug.
+- **No randomness in a drawing.** A creative must render identically on every screen in a chain, so scattered elements (stars, bulbs) use literal coordinate tables, never `Math.random()`.
+- **An informational card in every set.** Each library carries one hours/info creative with no price and no CTA — what a screen shows when there is nothing to announce. All five are drawn differently (clock, shopfront, day bar, suitcase, cup) so they do not read as one card recoloured.
+
+### Four gates, all must pass
+
+```
+npm run check:td          # manifest/i18n/data consistency
+npm run test:td           # reducer + library tests
+npm run check:creatives   # XSS probes x every creative, element allowlist, overflow
+npm run check:td-render   # render-level checks
+npm run check:td-geometry # text-vs-text overlap + frame bounds, both languages
+```
+
+The geometry audit was ad hoc for the first five rounds and was committed as `scripts/check-td-geometry.mjs` while building Real Estate. It takes an optional industry argument, renders every creative at three input sizes (defaults, max-English, max-Hindi) and reports text-vs-text overlaps and anything landing outside the 320×180 frame. A tiny vertical touch (under 4 units) prints as `WARN`; a real collision prints as `FAIL`. It has found real bugs every single round, including two in Retail that the standing checks missed and one on Real Estate's Sold creative — a stat and a detail that overlapped at maximum length — forced into the one-line headline the manifest now sets.
+
+### Status
+
+| Industry | Slug | Prefix | State |
+|---|---|---|---|
+| Restaurants | `restaurant` | `r_` | ✅ 8 creatives |
+| Cafés | `cafe` | `c_` | ✅ 8 creatives |
+| Retail | `retail` | `rt_` | ✅ 8 creatives |
+| Healthcare | `healthcare` | `h_` | ✅ 8 creatives |
+| Hospitality | `hospitality` | `ho_` | ✅ 8 creatives |
+| Real Estate | `realestate` | `re_` | ✅ 8 creatives |
+| Corporate & Offices | `corporate` | `co_` | ✅ 8 creatives |
+| Fitness & Wellness | `fitness` | `f_` | ✅ 8 creatives |
+| Education | `education` | `e_` | ✅ 8 creatives |
+| Automotive | `automotive` | `au_` | ✅ 8 creatives |
+
+> Note: the website treats "Restaurants & Cafés" as one industry (§4b); the test drive splits it into two slugs, so nine website industries map to ten test-drive libraries.
+
+### Per-industry design notes (built so far)
+
+- **Retail** — price tag, bag, hanger, % burst. Five of eight are priced: a shop window is selling.
+- **Healthcare** — stethoscope, ECG, syringe, cross, suitcase-free. Only **two** priced (check-up package, camp): a clinic screen informs people already inside the building, and advertising treatment prices is regulated in several states. Added fields `detail`, `token`.
+- **Hospitality** — organised by the guest's-day route (Lobby → Pool → Terrace → Restaurant → Corridor) rather than by offer, because a hotel runs different screens in different *places*. Only **two** priced (room offer, spa). Added field `guestName`. Evening indigo + gold, key card, star rating, suitcase, cloche.
+- **Real Estate** — a sales-office / project-site screen informs a visitor who is already *inside* the funnel (same posture as healthcare), but what it informs them of IS a product with a defined price. So **three** priced cards (tower launch booking amount, per-sqft rate for available units, EMI starting figure), not none and not five. Added field `stat` for the one card whose figure is NOT money (a percentage sold). Motifs on-brief: blueprint grid behind the launch poster, a floor plan beside the units card, a project-site hoarding for the weekend-visit card, a tilted SOLD stamp with its letters drawn as paths, coins under the EMI card, a map pin on the open-house card, four amenity icons across the top of the lifestyle card, a house key on a tag for the hours card. The hours card is drawn as a key (distinct from clock / shopfront / day bar / suitcase / cup).
+- **Corporate & Offices** — the one library in the product with **no price field anywhere**, because a corporate office screen is internal comms, not an advertising surface. Eight creatives organised around the office's own touchpoints: reception (`co_visitor_welcome`, reusing hospitality's `guestName`), the auditorium (`co_all_hands`), the meeting-room door (`co_meeting_room`), the cork board (`co_birthdays`, the sticky-note motif), the KPI monitor (`co_metrics`, reusing real-estate's `stat`), a townhall AMA under the chat-bubble motif, a facility notice with a caution triangle, and a hours card drawn as a **Mon–Fri planner strip** (distinct from the six hours cards already shipped). Clean indigo UI, mug/chart/sticky-note/chat motifs on-brief. Zero new fields: everything in this set is covered by existing field vocabulary plus `guestName` and `stat`.
+- **Fitness & Wellness** — a gym screen talks to members who **already pay a subscription**, so most of what plays is schedule, motivation, hygiene reminders, programme announcements — not promotions. Only **two priced** cards: the annual membership drive and the personal-training package, the two things the gym genuinely upsells to the people already walking its floor. Dumbbell, bolt, bottle, stopwatch motifs on-brief. The ink-black motivation slab leans into the all-caps/hazard-stripe aesthetic the plan names, with those stripes repeated as a thinner band on the leaderboard card so the set reads consistent. The hours card is drawn as a **stopwatch dial** with a 12-tick ring and a red sweep hand (distinct from the seven hours cards already shipped — clock / shopfront / day bar / suitcase / cup / key / planner). Zero new fields: `stat` from real-estate carries the leaderboard figure.
+- **Education** — a campus corridor screen is almost pure notice board. A school or college does not advertise to students in the corridor between classes; the audience is captive and already enrolled, so this is the **second no-price library** in the product. The reasoning differs from corporate's: corporate is internal workforce comms, education is a captive student / parent audience. Eight creatives around the educator's own surfaces: a guest-lecture invite under an open book, exam dates on a **ruled notebook page** (the plan's primary motif), a fest announcement with the atom's three orbits behind the headline, the plan's named "class moved" interaction drawn with a paper plane and dashed trail, a pinned cork-board notice (tilted sheet on a cork-textured ground), a toppers' board under a tasseled grad cap, a club sign-up with a stack of three books, and the hours card drawn as a ruled notebook with a **Mon–Sat date band** at the top (distinct from the eight hours cards already shipped). Zero new fields: `stat` carries the results figure.
+- **Automotive** — a showroom screen is read by someone considering a high-value purchase, where the price is a **specification, not a promotion**. Four priced (new model, certified pre-owned, service package, accessory bundle) because the figure is the content; four unpriced (test-drive invite, standout-spec showcase, warranty years, hours) because a showroom screen also has to keep the lounge watchable while a buyer waits. Dark showroom + spotlight pool palette on the heroes; the number plate spells CERTIFIED as drawn paths so the plate's own alphabet never switches scripts under Hindi. Steering-wheel / tyre / key fob / spanner motifs on-brief. The hours card is drawn as a **speedometer dial** with an odometer window below the hub (distinct from the nine hours cards already shipped — clock / shopfront / day bar / suitcase / cup / key / planner / stopwatch / notebook). Zero new fields: `stat` carries mileage and warranty-year figures.
+
+---
+
 ## 5. Assets needed from the owner (⏳)
 
 Most important first: **#1, #2, #3, #10**. Placeholders will be used until assets arrive.
@@ -801,6 +874,8 @@ Files that will change:
 | 16 | Three testimonials (retail owner, corporate workplace manager, café owner) with photos in `media/`; place after Industries; animated, interactive SVGs on the cards | Built; see §4c |
 | 17 | Testimonials: move profile pictures so they can be bigger; transition between Before and Now automatically | Large cut-out portraits beside the name; continuous Before ⇄ Now loop; see §4c |
 | 18 | Redesign Contact Us (`/get-in-touch`) in the landing page's style, with SVGs + animations; correct form fields; check Mongo, routes, nodemailer | Built: hero + form, phone→screen SVG scene, 4 channel cards, "What happens next". Fields: name*, phone*, business, email, city, industry, screen count, message (+ honeypot). Lead model + email updated to match. SMTP credentials currently rejected by Gmail — app password must be regenerated |
+
+| 19 | Build the test drive's creative libraries for the remaining industries, one industry at a time, 8 creatives each, code first and plan backfilled after | Retail, Healthcare and Hospitality built (§4e); five industries remain |
 
 ### Rejected / superseded ideas
 - Names Drishti, Darpan, Kanvas.AI, Connect Screens → replaced by **Screen Bazaar**.

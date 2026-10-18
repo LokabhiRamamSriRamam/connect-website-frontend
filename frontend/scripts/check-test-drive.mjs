@@ -344,22 +344,104 @@ check("every declared field has an editor label in both languages", () => {
   }
 });
 
+/**
+ * Industry slug -> template id prefix.
+ *
+ * Adding an industry means adding a line here. That is deliberate: the check
+ * below fails on an unregistered industry rather than skipping it, so a new
+ * library cannot land with ids that collide with an existing set.
+ */
+const ID_PREFIX = {
+  restaurant: "r_",
+  cafe: "c_",
+  retail: "rt_",
+  healthcare: "h_",
+  hospitality: "ho_",
+  realestate: "re_",
+  corporate: "co_",
+  fitness: "f_",
+  education: "e_",
+  automotive: "au_",
+};
+
 check("template ids are unique and prefixed by industry", () => {
   const seen = new Set();
   for (const tpl of allCreatives) {
     assert.equal(seen.has(tpl.id), false, `duplicate template id ${tpl.id}`);
     seen.add(tpl.id);
-    // r_ for restaurant, c_ for cafe: the prefix is what makes a stray id
-    // obvious in a state dump a human is reading.
-    const expected = tpl.industry === "restaurant" ? "r_" : "c_";
+    // A per-industry prefix is what makes a stray id obvious in a state dump a
+    // human is reading. A table rather than a ternary: with more than two
+    // industries, "not restaurant means cafe" silently accepts anything.
+    const expected = ID_PREFIX[tpl.industry];
+    assert.ok(expected, `${tpl.id}: industry "${tpl.industry}" has no id prefix registered`);
     assert.ok(
       tpl.id.startsWith(expected),
       `${tpl.id}: industry "${tpl.industry}" expects the "${expected}" prefix`
     );
+    // Exactly one prefix may match. "r_" and "rt_", "h_" and "ho_" are one
+    // keystroke apart, so an id mis-prefixed between those pairs would satisfy
+    // the assertion above while being filed under the wrong industry in every
+    // state dump a human later reads.
+    const matching = Object.values(ID_PREFIX).filter((px) => tpl.id.startsWith(px));
+    assert.equal(
+      matching.length,
+      1,
+      `${tpl.id}: matches ${matching.length} industry prefixes (${matching.join(", ")})`
+    );
   }
 });
 
-check("both industries have a full library", () => {
+/**
+ * The intake form's industry list, read as TEXT rather than imported.
+ *
+ * IntakeForm.jsx is a component: importing it here would drag React and the
+ * whole i18n context into a bare-node script. The list is a single literal line,
+ * so matching it is both cheap and stable — and if someone reformats it across
+ * lines, this check fails loudly rather than passing vacuously, which is the
+ * behaviour we want from a consistency guard.
+ */
+const INTAKE_SRC = readFileSync(
+  join(here, "..", "src", "pages", "test-drive", "components", "IntakeForm.jsx"),
+  "utf8"
+);
+
+check("every industry the intake form offers has a library", () => {
+  const match = INTAKE_SRC.match(/const INDUSTRY_SLUGS = \[([^\]]*)\]/);
+  assert.ok(match, "could not find INDUSTRY_SLUGS in IntakeForm.jsx");
+  const offered = [...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(offered.length > 0, "INDUSTRY_SLUGS parsed as empty");
+
+  // Offering an industry with no library drops the visitor into the restaurant
+  // fallback in creativesFor() and silently shows them the wrong set.
+  for (const slug of offered) {
+    assert.ok(
+      CREATIVES_BY_INDUSTRY[slug]?.length,
+      `intake offers "${slug}" but CREATIVES_BY_INDUSTRY has no library for it`
+    );
+  }
+
+  // And the converse: a library nobody can reach is dead weight the bundle still
+  // pays for. Not fatal in principle, but always a mistake in practice.
+  for (const slug of Object.keys(CREATIVES_BY_INDUSTRY)) {
+    assert.ok(
+      offered.includes(slug),
+      `"${slug}" has a library but the intake form does not offer it`
+    );
+  }
+
+  // Both languages must be able to name every industry in the dropdown.
+  for (const [lang, dict] of [["en", en], ["hi", hi]]) {
+    for (const slug of offered) {
+      assert.equal(
+        typeof get(dict, `industries.${slug}`),
+        "string",
+        `${lang} has no industries.${slug} for the intake dropdown`
+      );
+    }
+  }
+});
+
+check("every industry has a full library", () => {
   for (const [industry, list] of Object.entries(CREATIVES_BY_INDUSTRY)) {
     // The brief asks for at least 8 creatives per industry.
     assert.ok(list.length >= 8, `${industry}: only ${list.length} creatives, expected 8+`);

@@ -1,12 +1,107 @@
-# CLAUDE.md — Connect Gen AI Website
+# CLAUDE.md — Screen Bazaar (Connect Gen AI Website)
+
+> ⚠️ **Much of this file predates the Screen Bazaar pivot and is stale.** The
+> sections below marked ⚠️ describe the old AI-chatbot site. **`SCREEN_BAZAAR_PLAN.md`
+> is the source of truth** for the site as it is now; `BLOGS_PLAN.md` for the blogs.
+> Verify anything here against the code before relying on it.
 
 ## Project Overview
 
-Official marketing and lead-generation website for **Connect Gen AI** — an AI-powered chatbot/automation platform for businesses. The site showcases the product, targets specific industries, captures leads, handles job applications, and provides a business registration flow.
+Marketing and lead-generation website for **Screen Bazaar** — a **digital signage**
+business (hardware + a web/mobile app for scheduling content to screens). Slogan:
+*Connect your screens to opportunity.*
+
+**The no-AI rule:** the signage product has **no AI features** and must never be
+pitched as having any. Connect Gen AI remains the parent company, and its other
+products (Vital AI, Molaris AI, Saarthi, Nexus) live under an "Also from Connect
+Gen AI" nav dropdown — but the signage pitch stays AI-free.
+
+Careers has been scrapped as a site section.
+
+### What exists now (not reflected in the stale sections below)
+
+| Area | Location |
+|------|----------|
+| Landing page (the signage page) | `frontend/src/pages/LandingPage.jsx` |
+| Screen Bazaar components | `frontend/src/components/screenbazaar/` (Hero, Features, Industries, Testimonials, Blogs, FinalCTA, SBFooter, `content.js`, `illustrations/`) |
+| 9 bespoke signage industry pages | `frontend/src/pages/signage/` — Retail, Restaurants, Healthcare, Hospitality, Fitness, Education, Automotive, RealEstate, Corporate (+ `SignageChrome.jsx`, `art/`) |
+| Blogs | `frontend/src/pages/blog/`, prerendered by `scripts/prerender-blogs.mjs` |
+| **Test drive** (interactive demo) | `frontend/src/pages/test-drive/` — see the section below |
+| Other products | `frontend/src/pages/Products/`, `/saarthi*` pages |
+
+> Each signage industry page is **bespoke**, not one shared template with swapped
+> content. Do not refactor them into a common component.
+
+The old AI-era `/industry/*` pages (Salon, Dentist, Ecommerce, Finance…) still
+exist and are listed in the stale section below; whether to retire or redirect
+them is an open item in the plan.
 
 ---
 
-## Repository Structure
+## Test drive (`/test-drive`)
+
+An interactive demo where the visitor operates the product: five virtual screens,
+a content library, a schedule, active hours, role mirroring, a simulated clock.
+Lives in `frontend/src/pages/test-drive/`. Full spec: **`SCREEN_BAZAAR_PLAN.md` §4e**.
+
+### Creative libraries — the rules
+
+Each industry has **8 creatives**: bespoke inline-SVG components, never one
+template recoloured. All 10 industries built: `restaurant` (`r_`), `cafe` (`c_`),
+`retail` (`rt_`), `healthcare` (`h_`), `hospitality` (`ho_`),
+`realestate` (`re_`), `corporate` (`co_`), `fitness` (`f_`),
+`education` (`e_`), `automotive` (`au_`).
+
+**Safety is by construction, and must stay that way:**
+
+- Visitor text reaches the DOM **only** as a JSX text child of `<text>`, via
+  `CText` in `creatives/kit.jsx`. No token replacement (`svg.replace("{{x}}", …)`),
+  no `dangerouslySetInnerHTML`, no concatenation into attributes, no SVG parsing.
+- `CreativeFrame.jsx` is the **only** renderer. It allowlists fields against the
+  manifest and `String()`-coerces them, and it owns the `<svg>` and viewBox —
+  creatives never render their own.
+- Only **eight** SVG elements may appear in output: `svg, g, rect, circle,
+  ellipse, path, text, tspan`. `check-creative-safety.mjs` fails on anything
+  else. Do not widen this allowlist; redraw the shape as a `path` instead.
+- `creatives/registry.js` and every `creatives/*/index.js` must stay **plain .js
+  with no JSX imports** — bare node imports them in the test scripts.
+- Two separate trees: `creatives/` renders visitor text; `components/art/` never
+  does. They have separate registries and must not import each other.
+
+**Adding an industry** touches seven files plus two test tables — the list is in
+`SCREEN_BAZAAR_PLAN.md` §4e. The checks enforce that they all agree.
+
+**Character limits** are Hindi-safe (Devanagari sets ~10% wider; SVG `<text>`
+neither wraps nor shrinks). Some caps are set by geometry instead — a centred
+field grows in both directions, a field beside artwork must stop before it.
+
+**No `Math.random()` in a drawing** — a creative must render identically on every
+screen in a chain. Use literal coordinate tables.
+
+### Gates — run all four after touching anything under `creatives/`
+
+```bash
+cd frontend
+npm run check:td          # manifest/i18n/data consistency
+npm run test:td           # reducer + library tests
+npm run check:creatives   # XSS probes, element allowlist, overflow estimate
+npm run check:td-render   # render-level checks
+npm run check:td-geometry # text-vs-text overlap + frame bounds, both languages
+```
+
+`check:td-geometry` is a per-creative render-and-measure script committed with
+the Real Estate build. It takes an optional industry slug (defaults to all)
+and reports text-vs-text overlaps and anything landing outside the 320×180
+frame; a soft touch (under 4 units) prints as `WARN`, a real collision as
+`FAIL`. The heuristic has no font metric, so it is approximate — a flag means
+"look at this one in a browser", not necessarily a bug.
+
+> `npx eslint` on this tree reports many `react/prop-types` errors. They are
+> pre-existing and repo-wide (~1600), not introduced by new creatives.
+
+---
+
+## Repository Structure ⚠️ stale
 
 ```
 connect_website/
@@ -75,7 +170,7 @@ connect_website/
 
 ---
 
-## Frontend Routes
+## Frontend Routes ⚠️ stale
 
 ### Public pages (production)
 | Path | Component | Layout |
@@ -113,7 +208,7 @@ connect_website/
 
 ---
 
-## Backend API Endpoints
+## Backend API Endpoints ⚠️ stale
 
 ### Production (Vercel serverless — `api/index.js`)
 | Method | Path | Description |
@@ -137,7 +232,7 @@ connect_website/
 
 ---
 
-## MongoDB Models
+## MongoDB Models ⚠️ stale
 
 ### Lead
 ```js
@@ -170,10 +265,14 @@ connect_website/
 
 ### Backend (`.env`)
 ```
-MONGODB_URI=<MongoDB connection string>
+MONGO_URI=<MongoDB connection string>   # NOT MONGODB_URI — see backend/src/utils/db.js
 GEMINI_API_KEY=<Google AI Studio API key>
 PORT=5000  # local dev only
 ```
+
+> ⚠️ **`backend/` is a git submodule.** Commit inside it separately; a commit in
+> the parent repo only records the submodule pointer. Its live code is under
+> `backend/src/`, not the `backend/api/` paths in the stale sections above.
 
 ---
 
@@ -208,7 +307,7 @@ Both frontend and backend are deployed as **separate Vercel projects**.
 
 ---
 
-## Key Components
+## Key Components ⚠️ stale
 
 | Component | Purpose |
 |-----------|---------|
@@ -236,3 +335,16 @@ Both frontend and backend are deployed as **separate Vercel projects**.
 - `backend/api/index.js` (Vercel) is missing `careerRoutes` and `staffRoutes` compared to `server.js`. These need to be added to `api/index.js` to work in production.
 - Several routes (`/world-map`, `/topnav`, etc.) appear to be development/testing routes and are not linked from the main UI.
 - The `register.routes.js` file is duplicated — both `backend/api/routes/register.routes.js` and referenced in `server.js` contain the same logic.
+
+### Current (verified)
+
+- **`backend/` is a git submodule** — commit inside it, and the env var is
+  `MONGO_URI`. The `backend/api/*` paths above are stale; live code is `backend/src/`.
+- **SMTP credentials are rejected by Gmail** — the contact form's app password
+  needs regenerating (also logged in `SCREEN_BAZAAR_PLAN.md` §8, row 18).
+- **~1600 `react/prop-types` eslint errors repo-wide.** Pre-existing and not
+  enforced in practice; don't treat them as a regression in new work.
+- **The signage industry pages are deliberately bespoke** — nine separate files,
+  no shared template. Same for test-drive creatives.
+- **Plans are the source of truth and must be kept current:**
+  `SCREEN_BAZAAR_PLAN.md` (site), `BLOGS_PLAN.md` (blogs, 6 signage posts).

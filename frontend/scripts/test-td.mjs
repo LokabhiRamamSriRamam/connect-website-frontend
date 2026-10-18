@@ -2394,11 +2394,29 @@ register("no stored value is a translated string — every one is a key", () => 
   assert.equal(s.creativeInstances.ci_a.fields.headline, "मेरा ऑफ़र", "their text is kept verbatim");
 });
 
-register("both industries resolve to a full, correctly-filed library", () => {
-  for (const [industry, prefix] of [
+register("every industry resolves to a full, correctly-filed library", () => {
+  /**
+   * Industry -> id prefix, mirroring ID_PREFIX in check-test-drive.mjs.
+   *
+   * Listed explicitly rather than derived from CREATIVES_BY_INDUSTRY: deriving
+   * both sides of an assertion from the same source makes it pass by
+   * construction. A new industry adds a line here, and the total below is
+   * computed from this table so it never needs hand-editing again.
+   */
+  const INDUSTRIES = [
     ["restaurant", "r_"],
     ["cafe", "c_"],
-  ]) {
+    ["retail", "rt_"],
+    ["healthcare", "h_"],
+    ["hospitality", "ho_"],
+    ["realestate", "re_"],
+    ["corporate", "co_"],
+    ["fitness", "f_"],
+    ["education", "e_"],
+    ["automotive", "au_"],
+  ];
+
+  for (const [industry, prefix] of INDUSTRIES) {
     const list = creativesFor(industry);
     assert.equal(list.length, 8, `${industry} has eight creatives`);
     for (const tpl of list) {
@@ -2410,7 +2428,11 @@ register("both industries resolve to a full, correctly-filed library", () => {
       assertKey(tpl.descKey);
     }
   }
-  assert.equal(allCreatives.length, 16, "sixteen in total");
+  assert.equal(
+    allCreatives.length,
+    INDUSTRIES.length * 8,
+    `${INDUSTRIES.length} industries x 8 creatives in total`
+  );
   // Café no longer falls back to restaurant, which it did until this phase.
   assert.notDeepEqual(creativesFor("cafe"), creativesFor("restaurant"));
   // An industry the intake form does not offer still gets a library rather than
