@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { ArrowRight, Loader2, AlertCircle, MonitorPlay, RotateCcw } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, MonitorPlay, RotateCcw, QrCode, BadgePercent } from "lucide-react";
 import TopNav from "../components/TopNav";
 import SBFooter from "../components/screenbazaar/SBFooter";
 import { Squiggle, Sparkle, Blob, Burst } from "../components/screenbazaar/Decor";
@@ -27,9 +27,23 @@ import {
   LEAD_SOURCE_CONTACT,
 } from "../components/forms/services";
 import { WA_PRIMARY, WA_SECONDARY, waDisplay, waLink } from "../lib/whatsapp";
+import SeatCounter from "../components/screenbazaar/SeatCounter";
 import "../components/screenbazaar/sb.css";
 
 /* Contact Us — Screen Bazaar. Same look as the landing page (see SCREEN_BAZAAR_PLAN.md §1). */
+
+/**
+ * The flyer campaign: "Scan & register — 30% off, only 50 seats."
+ *
+ * Print the QR code pointing at /get-in-touch?from=flyer. That param does three
+ * things and nothing else: it greets the scanner by the promise the flyer made,
+ * preselects Screen Bazaar in the service dropdown, and tags the message so we
+ * know the lead came off paper. The offer itself is live for everyone — a
+ * visitor who typed the URL still sees the counter and the 30% banner, because
+ * the scheme is "first 50 customers", not "first 50 scanners".
+ */
+const fromFlyer = () =>
+  typeof window !== "undefined" && new URLSearchParams(window.location.search).get("from") === "flyer";
 
 const PHONE_DISPLAY = "+91 82914 89909";
 const PHONE_TEL = "+918291489909";
@@ -202,10 +216,16 @@ function ContactForm() {
     if (typeof window === "undefined") return EMPTY;
     const q = new URLSearchParams(window.location.search);
     const screens = q.get("screens");
+    const flyer = q.get("from") === "flyer";
     return {
       ...EMPTY,
       screens: SCREEN_COUNTS.includes(screens) ? screens : "",
-      service: SERVICES.includes(q.get("service")) ? q.get("service") : "",
+      // The flyer only advertises signage, so a scanner starts on Screen Bazaar.
+      service: SERVICES.includes(q.get("service"))
+        ? q.get("service")
+        : flyer
+          ? SB_SERVICE
+          : "",
       screenSource: SCREEN_SOURCES.includes(q.get("source")) ? q.get("source") : "",
       screenKind: SCREEN_KINDS.includes(q.get("kind")) ? q.get("kind") : "",
       scale: SCALES.includes(q.get("scale")) ? q.get("scale") : "",
@@ -246,7 +266,7 @@ function ContactForm() {
 
     // Bot filled the hidden field — pretend it worked, send nothing.
     if (form.website) {
-      setSent({ name: form.name.trim().split(" ")[0], phone: form.phone.trim() });
+      setSent({ name: form.name.trim().split(" ")[0], phone: form.phone.trim(), sb: form.service === SB_SERVICE });
       return;
     }
 
@@ -265,6 +285,14 @@ function ContactForm() {
           )
           .map(([k, v]) => [k, v.trim()])
       );
+      // Flyer attribution. The Lead schema has no campaign field, so this rides
+      // along in `message`, where it shows up in the notification email.
+      if (fromFlyer()) {
+        body.message = [body.message, "[Scanned the 30% off flyer — Founding 50]"]
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 2000);
+      }
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -277,7 +305,7 @@ function ContactForm() {
         throw new Error(data.error || "Something went wrong. Please try again.");
       }
 
-      setSent({ name: body.name.split(" ")[0], phone: body.phone });
+      setSent({ name: body.name.split(" ")[0], phone: body.phone, sb: form.service === SB_SERVICE });
       setForm(EMPTY);
       setErrors({});
     } catch (err) {
@@ -314,6 +342,13 @@ function ContactForm() {
                 We&apos;ve got your message. Someone from our team will call you on{" "}
                 <span className="whitespace-nowrap font-extrabold text-sb-ink">{sent.phone}</span> within 24 hours.
               </p>
+              {sent.sb && (
+                <p className="mx-auto mt-4 flex max-w-sm items-start gap-2 rounded-2xl border-2 border-sb-ink bg-sb-mint px-4 py-3 text-left font-manrope text-sm font-bold text-sb-ink">
+                  <BadgePercent size={18} className="mt-0.5 shrink-0 text-sb-violet" />
+                  Your place in the <span className="font-extrabold">Founding 50</span> is noted — we&apos;ll
+                  confirm your 30% off on that call.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => setSent(null)}
@@ -459,7 +494,46 @@ function ContactForm() {
   );
 }
 
+/**
+ * The offer banner. Carries the flyer's exact promise — 30% off, 50 seats — so a
+ * scanner sees the same words on the page they saw on paper, which is what stops
+ * them bouncing. Scanners get the "you scanned it" wording; everyone else gets
+ * the same offer stated plainly.
+ */
+function OfferBanner({ scanned }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.15 }}
+      className="relative mx-auto mt-8 max-w-2xl"
+    >
+      <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[26px] border-2 border-sb-ink bg-sb-gold" aria-hidden="true" />
+      <div className="relative flex flex-col items-center gap-3 rounded-[26px] border-2 border-sb-ink bg-white px-5 py-4 text-center sm:flex-row sm:text-left">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-sb-ink bg-sb-gradient text-white shadow-[3px_3px_0_#191919]">
+          {scanned ? <QrCode size={22} /> : <BadgePercent size={22} />}
+        </span>
+        <p className="font-manrope text-base font-bold text-sb-slate sm:text-lg">
+          {scanned ? (
+            <>
+              You scanned it — nice. <span className="font-extrabold text-sb-ink">30% off</span> your
+              Screen Bazaar setup, for the <span className="sb-mark">first 50 businesses only.</span>
+            </>
+          ) : (
+            <>
+              <span className="font-extrabold text-sb-ink">30% off</span> your Screen Bazaar setup for
+              the <span className="sb-mark">first 50 businesses.</span> Register below to claim a seat.
+            </>
+          )}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function GetInTouch() {
+  const scanned = fromFlyer();
+
   return (
     <MotionConfig reducedMotion="user">
       <div className="sb-root min-h-screen overflow-x-clip">
@@ -511,6 +585,8 @@ export default function GetInTouch() {
                 >
                   Tell us a little about your business. We&apos;ll call you back and help you <span className="sb-mark">pick the right setup.</span>
                 </motion.p>
+
+                <OfferBanner scanned={scanned} />
               </div>
 
               <div className="mt-14 grid items-start gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
@@ -528,8 +604,11 @@ export default function GetInTouch() {
                   transition={{ delay: 0.5, duration: 0.7 }}
                   className="relative order-first lg:order-none lg:sticky lg:top-28"
                 >
+                  {/* Above the artwork, not below: on a phone the counter is the
+                      first thing a scanner sees, which is the whole point of it. */}
+                  <SeatCounter className="mb-8" />
                   <MessageToScreen className="mx-auto block w-full max-w-lg" />
-                  <Burst label="Reply within 24 hrs" size={104} className="absolute -top-4 left-0 hidden sm:block" />
+                  <Burst label="30% off · first 50" size={104} className="absolute -top-4 left-0 hidden sm:block" />
                 </motion.div>
               </div>
             </div>
@@ -559,24 +638,25 @@ export default function GetInTouch() {
                     >
                       <Icon size={64} />
                       <h3 className="mt-4 font-manrope text-2xl font-extrabold tracking-tight">{title}</h3>
-                      <div className="mt-1 flex flex-col gap-1">
+                      <p className="mt-1 font-manrope text-sm font-semibold opacity-70">{note}</p>
+                      {/* Two numbers, so this card can't be one big <a> like the
+                          others. Each number is its own link — and it has to LOOK
+                          like one: a shared "Open" affordance below would have no
+                          single destination to point at. */}
+                      <div className="mt-4 flex flex-col gap-2">
                         {links.map((l) => (
                           <a
                             key={l.href}
                             href={l.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="break-words font-manrope text-base font-extrabold underline-offset-2 hover:underline"
+                            className="group/link inline-flex items-center justify-between gap-2 rounded-full border-2 border-sb-ink bg-white px-4 py-2.5 font-manrope text-sm font-extrabold text-sb-ink shadow-[3px_3px_0_#191919] transition-transform hover:-translate-y-0.5"
                           >
-                            {l.label}
+                            <span className="break-all">{l.label}</span>
+                            <ArrowRight size={16} className="shrink-0 text-sb-violet transition-transform group-hover/link:translate-x-1" />
                           </a>
                         ))}
                       </div>
-                      <p className="mt-1 font-manrope text-sm font-semibold opacity-70">{note}</p>
-                      <span className="mt-5 inline-flex items-center gap-1.5 font-manrope text-sm font-extrabold text-sb-violet">
-                        Open
-                        <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-                      </span>
                     </motion.div>
                   ) : (
                     <motion.a
