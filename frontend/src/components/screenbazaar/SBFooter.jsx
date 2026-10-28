@@ -72,6 +72,11 @@ export default function SBFooter() {
           <p>
             <a href="mailto:connectgenai@gmail.com" className="hover:text-white">connectgenai@gmail.com</a>
           </p>
+          <p className="pt-2">
+            <a href="/privacy-policy" className="hover:text-white">Privacy Policy</a>
+            {" · "}
+            <a href="/terms-of-service" className="hover:text-white">Terms of Service</a>
+          </p>
           <a
             href="https://www.linkedin.com/company/connect-gen-ai/"
             target="_blank"
@@ -84,6 +89,10 @@ export default function SBFooter() {
       </div>
       <div className="border-t border-white/10 py-6 text-center text-xs text-white/50">
         © {new Date().getFullYear()} Sreeji Growth Advisory. All rights reserved.
+        {" · "}
+        <a href="/privacy-policy" className="hover:text-white">Privacy Policy</a>
+        {" · "}
+        <a href="/terms-of-service" className="hover:text-white">Terms of Service</a>
       </div>
       <FooterWordmark />
     </footer>

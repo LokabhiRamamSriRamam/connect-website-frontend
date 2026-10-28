@@ -90,6 +90,10 @@ const Footer = ({ enableGradient = false }) => {
       {/* Footer Bottom */}
       <div className="mt-10 text-center text-xs text-gray-600 relative z-10">
         © {new Date().getFullYear()} Sreeji Growth Advisory. All rights reserved.
+        {" · "}
+        <a href="/privacy-policy" className="hover:text-gray-900">Privacy Policy</a>
+        {" · "}
+        <a href="/terms-of-service" className="hover:text-gray-900">Terms of Service</a>
       </div>
 
       <FooterWordmark className="relative -mb-12 mt-8" />

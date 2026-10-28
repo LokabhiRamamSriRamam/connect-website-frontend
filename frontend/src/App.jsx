@@ -47,6 +47,8 @@ import SignageAutomotive from "./pages/signage/Automotive";
 import SignageRealEstate from "./pages/signage/RealEstate";
 import SignageCorporate from "./pages/signage/Corporate";
 import BlogIndex from "./pages/blog/BlogIndex";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
 // The test drive is a heavy, self-contained app surface — keep it out of the main bundle.
 const TestDrive = lazy(() => import("./pages/test-drive/TestDrive"));
 import { BLOGS, BLOG_BASE, BLOG_INDEX, SITE_NAME as BLOG_SITE_NAME, blogPath, blogOgImage, blogSchema, blogIndexSchema } from "./pages/blog/meta";
@@ -527,6 +529,32 @@ const router = createBrowserRouter([
         <SEO title="Get Saarthi" description="Get started with Saarthi by Connect Gen AI." path="/saarthi/get-saarthi" noindex />
         <TopNav />
         <SaarthiSuccess />
+      </div>
+    ),
+  },
+  {
+    path: "/privacy-policy",
+    element: (
+      <div>
+        <SEO
+          title="Privacy Policy — Screen Bazaar"
+          description="How Screen Bazaar collects, uses, stores, and protects your personal information and media files."
+          path="/privacy-policy"
+        />
+        <PrivacyPolicy />
+      </div>
+    ),
+  },
+  {
+    path: "/terms-of-service",
+    element: (
+      <div>
+        <SEO
+          title="Terms of Service — Screen Bazaar"
+          description="The terms governing your access to and use of the Screen Bazaar application and platform services."
+          path="/terms-of-service"
+        />
+        <TermsOfService />
       </div>
     ),
   },
